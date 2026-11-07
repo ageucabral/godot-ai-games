@@ -3,6 +3,7 @@ extends Control
 
 signal back_requested
 signal next_requested(date: String, index: int)
+signal next_level_requested
 
 const POUR_MOVE_TIME: float = 0.22
 const POUR_FLOW_TIME: float = 0.38
@@ -11,6 +12,7 @@ const POUR_ANGLE_DEG: float = 72.0
 @onready var _row_top: HBoxContainer = %RowTop
 @onready var _row_bottom: HBoxContainer = %RowBottom
 @onready var _challenge_value: Label = %ChallengeValue
+@onready var _challenge_caption: Label = $Layout/Hud/ChallengeChip/Box/Caption
 @onready var _moves_value: Label = %MovesValue
 @onready var _points_value: Label = %PointsValue
 @onready var _subtitle: Label = %Subtitle
@@ -55,6 +57,19 @@ func open_challenge(date: String, index: int) -> void:
 	GameState.start_attempt(key())
 
 
+## Abre um nível do modo por níveis (sem tentativas contadas).
+func open_level(level: int) -> void:
+	var data := LevelGenerator.generate(level)
+	if data.is_empty():
+		back_requested.emit()
+		return
+	open_with(data)
+
+
+func is_level() -> bool:
+	return challenge.get("mode", "daily") == "level"
+
+
 ## Monta a tela com um desafio já pronto (usado também pelos testes).
 func open_with(data: Dictionary) -> void:
 	if _pour_tween and _pour_tween.is_valid():
@@ -71,6 +86,8 @@ func open_with(data: Dictionary) -> void:
 
 
 func key() -> String:
+	if is_level():
+		return LevelGenerator.key_for(challenge.level)
 	return ChallengeGenerator.key_for(challenge.get("date", ""), challenge.get("index", 0))
 
 
@@ -200,9 +217,14 @@ func _refresh() -> void:
 	_moves_value.text = "%d / %d" % [used, move_limit]
 	_moves_value.add_theme_color_override("font_color", TropicalStyle.ACCENT if used > challenge.par else TropicalStyle.INK)
 	_points_value.text = str(current_points())
-	_challenge_value.text = "%d / %d" % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
+	if is_level():
+		_challenge_caption.text = "NÍVEL"
+		_challenge_value.text = str(challenge.level)
+	else:
+		_challenge_caption.text = "DESAFIO"
+		_challenge_value.text = "%d / %d" % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
 	var diff: String = challenge.difficulty
-	_subtitle.text = "%s · vale %d pontos" % [Rules.DIFFICULTY_NAMES[diff], challenge.full_points]
+	_subtitle.text = tr("%s · vale %d pontos") % [tr(Rules.DIFFICULTY_NAMES[diff]), challenge.full_points]
 	_extra_button.disabled = not out_of_moves()
 
 
@@ -211,13 +233,18 @@ func _refresh() -> void:
 func _on_restart_pressed() -> void:
 	if busy:
 		return
-	dialog.open("Recomeçar?", "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado.", [
+	var text := "Recomeçar pede uma propaganda." if is_level() else "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado."
+	dialog.open("Recomeçar?", tr(text), [
 		["Assistir e recomeçar", _restart_with_ad, true],
 		["Continuar jogando", func() -> void: pass],
 	])
 
 
 func _restart_with_ad() -> void:
+	if is_level():
+		var level: int = challenge.level
+		Ads.show_rewarded(func() -> void: open_level(level))
+		return
 	if _show_if_closed(challenge.date):
 		return  # não pede propaganda para um desafio que já encerrou
 	Ads.show_rewarded(func() -> void: open_challenge(challenge.date, challenge.index))
@@ -230,14 +257,22 @@ func _on_extra_moves_pressed() -> void:
 
 
 func _show_out_of_moves() -> void:
-	dialog.open("Acabaram as jogadas", "Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto." % [Rules.EXTRA_MOVES, challenge.par], [
-		["+%d jogadas" % Rules.EXTRA_MOVES, _on_extra_moves_pressed, true],
+	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [Rules.EXTRA_MOVES, challenge.par], [
+		[tr("+%d jogadas") % Rules.EXTRA_MOVES, _on_extra_moves_pressed, true],
 		["Recomeçar", _restart_with_ad],
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
 
 func _show_zero_points() -> void:
+	if is_level():
+		# nos níveis dá para terminar sem pontos e seguir em frente
+		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
+			["Recomeçar", _restart_with_ad, true],
+			["Continuar sem pontos", func() -> void: pass],
+			["Menu", func() -> void: back_requested.emit()],
+		])
+		return
 	dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este desafio.", [
 		["Recomeçar", _restart_with_ad, true],
 		["Menu", func() -> void: back_requested.emit()],
@@ -248,7 +283,7 @@ func _show_zero_points() -> void:
 func _show_if_closed(date: String) -> bool:
 	if date == GameState.today():
 		return false
-	dialog.open("Desafio encerrado", "Este desafio era de %s. Agora só valem os desafios de hoje." % Rules.pretty_date(date), [
+	dialog.open("Desafio encerrado", tr("Este desafio era de %s. Agora só valem os desafios de hoje.") % Rules.pretty_date(date), [
 		["Ver desafios de hoje", func() -> void: back_requested.emit(), true],
 	])
 	return true
@@ -267,13 +302,23 @@ func _finish() -> void:
 	_finished = true
 	var points := current_points()
 	var used := puzzle.moves_used()
+	if is_level():
+		GameState.complete_level(challenge.level, points, used)
+		var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
+		if points < challenge.full_points:
+			level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
+		dialog.open("Na Lata!", level_text, [
+			["Próximo nível", func() -> void: next_level_requested.emit(), true],
+			["Menu", func() -> void: back_requested.emit()],
+		])
+		return
 	var improved := GameState.save_result(key(), points, used)
 	var best: Dictionary = GameState.result(key())
-	var text := "+%d pontos em %d jogadas." % [points, used]
+	var text := tr("+%d pontos em %d jogadas.") % [points, used]
 	if not improved:
-		text += "\nSeu melhor continua %d pontos." % best.best_points
+		text += tr("\nSeu melhor continua %d pontos.") % best.best_points
 	elif points < challenge.full_points:
-		text += "\nDava para fazer em %d jogadas." % challenge.par
+		text += tr("\nDava para fazer em %d jogadas.") % challenge.par
 	var buttons: Array = []
 	var next_index := next_unsolved_after(challenge.date, challenge.index)
 	if next_index >= 0:

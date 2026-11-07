@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/ui/home_screen.tscn" id="2_home"]
 [ext_resource type="PackedScene" path="res://scenes/game/game_screen.tscn" id="3_game"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ranking_screen.tscn" id="4_ranking"]
+[ext_resource type="PackedScene" path="res://scenes/ui/daily_screen.tscn" id="5_daily"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -15,6 +16,10 @@ grow_vertical = 2
 script = ExtResource("1_main")
 
 [node name="Home" parent="." instance=ExtResource("2_home")]
+layout_mode = 1
+
+[node name="Daily" parent="." instance=ExtResource("5_daily")]
+visible = false
 layout_mode = 1
 
 [node name="Game" parent="." instance=ExtResource("3_game")]

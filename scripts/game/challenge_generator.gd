@@ -42,24 +42,37 @@ static func _generate(date: String, index: int) -> Dictionary:
 	rng.seed = seed_for(key_for(date, index))
 	var color_options: Array = setup.colors
 	var n_colors: int = color_options[index % color_options.size()]
-	for attempt in 50:
-		var palette := _pick_colors(rng, n_colors)
-		var tubes := _shuffled_tubes(rng, palette, setup.empty)
+	var puzzle := build_puzzle(rng, n_colors, setup.empty, setup.min_par, TropicalStyle.DAILY_LIQUIDS, false)
+	if puzzle.is_empty():
+		push_error("Não consegui gerar o desafio %s" % key_for(date, index))
+		return {}
+	return {
+		"mode": "daily", "date": date, "index": index, "difficulty": difficulty, "tubes": puzzle.tubes,
+		"par": puzzle.par, "full_points": Rules.FULL_POINTS[difficulty], "hidden": setup.hidden,
+	}
+
+
+## Sorteia garrafas até achar uma com pelo menos `min_par` jogadas. Devolve {tubes, par} ou {}.
+## Com `accept_best` (níveis), tenta no máximo 8 vezes (cada cálculo das 7 cores leva quase 1 s)
+## e, se nenhuma chegar lá, fica com a mais longa que tiver solução.
+static func build_puzzle(rng: RandomNumberGenerator, n_colors: int, empty: int, min_par: int,
+		palette_size: int, accept_best: bool) -> Dictionary:
+	var best: Dictionary = {}
+	for attempt in (8 if accept_best else 50):
+		var palette := _pick_colors(rng, n_colors, palette_size)
+		var tubes := _shuffled_tubes(rng, palette, empty)
 		if _has_finished_tube(tubes):
 			continue
 		var par := SortPuzzle.min_moves(tubes)
-		if par < setup.min_par:
-			continue
-		return {
-			"date": date, "index": index, "difficulty": difficulty, "tubes": tubes, "par": par,
-			"full_points": Rules.FULL_POINTS[difficulty], "hidden": setup.hidden,
-		}
-	push_error("Não consegui gerar o desafio %s" % key_for(date, index))
-	return {}
+		if par >= min_par:
+			return {"tubes": tubes, "par": par}
+		if par > 0 and par > int(best.get("par", 0)):
+			best = {"tubes": tubes, "par": par}
+	return best if accept_best else {}
 
 
-static func _pick_colors(rng: RandomNumberGenerator, count: int) -> Array:
-	var all: Array = range(TropicalStyle.LIQUIDS.size())
+static func _pick_colors(rng: RandomNumberGenerator, count: int, palette_size: int) -> Array:
+	var all: Array = range(palette_size)
 	_shuffle(rng, all)
 	return all.slice(0, count)
 

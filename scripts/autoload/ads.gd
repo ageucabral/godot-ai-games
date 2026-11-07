@@ -42,7 +42,7 @@ func show_rewarded(on_reward: Callable) -> void:
 
 	var left := duration
 	while left > 0.0:
-		label.text = "PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d" % ceili(left)
+		label.text = tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d") % ceili(left)
 		await get_tree().create_timer(minf(1.0, left)).timeout
 		left -= 1.0
 	layer.queue_free()

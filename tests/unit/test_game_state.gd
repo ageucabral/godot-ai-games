@@ -40,7 +40,7 @@ func test_month_total_only_counts_month() -> void:
 	state.save_result("2026-11-01#0", 10, 8)
 	state.save_result("2026-11-07#9", 25, 14)
 	state.save_result("2026-10-31#0", 50, 20)
-	assert_eq(state.month_total("2026-11"), {"points": 35, "moves": 22, "completed": 2})
+	assert_eq(state.month_total("2026-11"), {"points": 35, "moves": 22, "completed": 2, "levels": 0})
 
 
 func test_progress_is_saved_to_disk() -> void:

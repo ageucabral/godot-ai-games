@@ -19,8 +19,11 @@ const LIQUIDS: Array[Color] = [
 	Color("6a4c93"),  # 3 Uva
 	Color("8ac926"),  # 4 Limão
 	Color("1d5fa8"),  # 5 Anil
+	Color("ff7aa8"),  # 6 Goiaba (só nos níveis mais altos)
 ]
-const LIQUID_NAMES: Array[String] = ["Acerola", "Hortelã", "Manga", "Uva", "Limão", "Anil"]
+const LIQUID_NAMES: Array[String] = ["Acerola", "Hortelã", "Manga", "Uva", "Limão", "Anil", "Goiaba"]
+## Os desafios do dia usam só as 6 primeiras cores (assim continuam iguais aos já sorteados).
+const DAILY_LIQUIDS: int = 6
 
 const TITLE_FONT_PATH := "res://assets/fonts/LilitaOne-Regular.ttf"
 const BODY_FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
