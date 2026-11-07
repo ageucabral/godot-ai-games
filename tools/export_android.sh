@@ -5,6 +5,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+mkdir -p build && touch build/.gdignore  # o Godot não deve importar o que já foi exportado
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 JAVA_HOME="${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")}"
 OUT="build/android/na-lata-teste.apk"

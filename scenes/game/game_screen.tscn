@@ -52,8 +52,14 @@ layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 18
 
+[node name="MenuButton" type="Button" parent="Layout/Hud"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Menu"
+
 [node name="ChallengeChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="Box" type="VBoxContainer" parent="Layout/Hud/ChallengeChip"]
@@ -70,11 +76,11 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "Exemplo"
+text = "1 / 20"
 horizontal_alignment = 1
 
 [node name="MovesChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="Box" type="VBoxContainer" parent="Layout/Hud/MovesChip"]
@@ -95,7 +101,7 @@ text = "0 / 0"
 horizontal_alignment = 1
 
 [node name="PointsChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="Box" type="VBoxContainer" parent="Layout/Hud/PointsChip"]
@@ -119,7 +125,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
-text = "Médio · 5 cores"
+text = "Fácil · 10 pontos"
 horizontal_alignment = 1
 
 [node name="Board" type="VBoxContainer" parent="Layout"]
@@ -132,23 +138,18 @@ theme_override_constants/separation = 28
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 34
+theme_override_constants/separation = 24
 
 [node name="RowBottom" type="HBoxContainer" parent="Layout/Board"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 34
+theme_override_constants/separation = 24
 
 [node name="Actions" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 16
-
-[node name="UndoButton" type="Button" parent="Layout/Actions"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Desfazer"
 
 [node name="RestartButton" type="Button" parent="Layout/Actions"]
 unique_name_in_owner = true
@@ -160,50 +161,3 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MainButton"
 text = "+5 jogadas"
-
-[node name="WinOverlay" type="ColorRect" parent="."]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.227451, 0.133333, 0.0745098, 0.55)
-
-[node name="Center" type="CenterContainer" parent="WinOverlay"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Card" type="PanelContainer" parent="WinOverlay/Center"]
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-
-[node name="Box" type="VBoxContainer" parent="WinOverlay/Center/Card"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="WinTitle" type="Label" parent="WinOverlay/Center/Card/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.909804, 0.262745, 0.184314, 1)
-theme_override_font_sizes/font_size = 84
-text = "Na Lata!"
-horizontal_alignment = 1
-
-[node name="WinText" type="Label" parent="WinOverlay/Center/Card/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = ""
-horizontal_alignment = 1
-
-[node name="PlayAgainButton" type="Button" parent="WinOverlay/Center/Card/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"MainButton"
-text = "Jogar de novo"

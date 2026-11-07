@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/ui/home_screen.tscn" id="2_home"]
+[ext_resource type="PackedScene" path="res://scenes/game/game_screen.tscn" id="3_game"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ranking_screen.tscn" id="4_ranking"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Home" parent="." instance=ExtResource("2_home")]
+layout_mode = 1
+
+[node name="Game" parent="." instance=ExtResource("3_game")]
+visible = false
+layout_mode = 1
+
+[node name="Ranking" parent="." instance=ExtResource("4_ranking")]
+visible = false
+layout_mode = 1

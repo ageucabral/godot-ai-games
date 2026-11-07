@@ -97,6 +97,13 @@ Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre gar
 (Android / Google Play). Estilo visual escolhido: **Feira Tropical** (garrafinhas de vidro com
 tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + Nunito).
 Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/tropical_style.gd`.
-- `scripts/game/sort_puzzle.gd`: regras (despejar, desfazer, vitória) e resolvedor `min_moves`.
-- `scenes/game/game_screen.tscn` (cena principal): partida com um desafio de exemplo.
-- Ainda não existem: menu dos 20 desafios do dia, ranking, login, anúncios (AdMob).
+- `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
+  +5 jogadas por propaganda, datas no horário de Brasília).
+- `scripts/game/challenge_generator.gd`: gera os 20 desafios do dia, iguais para todos (semente
+  FNV-1a de "AAAA-MM-DD#n"), com o número exato de jogadas calculado por `SortPuzzle.min_moves`.
+- `scripts/game/sort_puzzle.gd`: regras de despejar, camadas escondidas ("?") e lista de jogadas.
+- `scripts/autoload/game_state.gd`: tentativas e melhor resultado salvos no aparelho.
+- `scripts/autoload/ads.gd`: propaganda **simulada** (3 s). O AdMob de verdade entra aqui depois.
+- Cena principal `scenes/main/main.tscn`: menu (`scenes/ui/home_screen.tscn`), partida
+  (`scenes/game/game_screen.tscn`, com animação de despejo) e ranking (`scenes/ui/ranking_screen.tscn`).
+- Ainda não existem: contas e servidor (Supabase), ranking com todos os jogadores, AdMob real.

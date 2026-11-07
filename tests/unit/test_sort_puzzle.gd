@@ -1,9 +1,6 @@
 extends "res://tests/test_case.gd"
 ## Regras de despejar, vitória, desfazer e o resolvedor de menor número de jogadas.
 
-const GameScreenScript := preload("res://scripts/game/game_screen.gd")
-
-
 func test_pour_into_empty() -> void:
 	var p := SortPuzzle.new([[0, 1], []])
 	assert_eq(p.pour(0, 1), 1, "move uma camada")
@@ -32,13 +29,17 @@ func test_cannot_pour_on_other_color_or_full() -> void:
 	assert_eq(p.moves_used(), 0)
 
 
-func test_undo() -> void:
+func test_moves_are_recorded() -> void:
 	var p := SortPuzzle.new([[0, 1, 1], []])
 	p.pour(0, 1)
-	assert_true(p.undo())
-	assert_eq(p.tubes, [[0, 1, 1], []])
-	assert_eq(p.moves_used(), 0)
-	assert_false(p.undo(), "nada para desfazer")
+	assert_eq(p.moves, [[0, 1]], "lista de jogadas para o servidor conferir")
+
+
+func test_hidden_layers_reveal_when_on_top() -> void:
+	var p := SortPuzzle.new([[0, 1, 2], []], true)
+	assert_eq(p.hidden, [[true, true, false], []], "só o topo aparece")
+	p.pour(0, 1)
+	assert_eq(p.hidden, [[true, false], [false]], "a camada de baixo aparece ao virar topo")
 
 
 func test_solved() -> void:
@@ -49,13 +50,3 @@ func test_solved() -> void:
 func test_min_moves_small() -> void:
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0, 0]]), 0, "já resolvido")
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0, 1], [1, 1, 1, 0], []]), 3)
-
-
-func test_sample_par_matches_solver() -> void:
-	assert_eq(SortPuzzle.min_moves(GameScreenScript.SAMPLE_TUBES), GameScreenScript.SAMPLE_PAR, "limite de jogadas do exemplo")
-
-
-func test_score_for() -> void:
-	assert_eq(GameScreenScript.score_for(200, 15, 15), 200, "dentro do limite")
-	assert_eq(GameScreenScript.score_for(200, 18, 15), 197, "3 jogadas a mais")
-	assert_eq(GameScreenScript.score_for(5, 30, 15), 0, "nunca negativo")

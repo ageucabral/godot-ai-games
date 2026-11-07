@@ -17,7 +17,8 @@ func test_main_scene_instantiates() -> void:
 	var scene := packed.instantiate()
 	add_child(scene)
 	await get_tree().process_frame
-	assert_eq(scene.get_node("%RowTop").get_child_count() + scene.get_node("%RowBottom").get_child_count(), 7, "7 garrafinhas na tela")
+	assert_true(scene.get_node("Home").visible, "abre no menu")
+	assert_false(scene.get_node("Game").visible)
 	scene.queue_free()
 
 

@@ -7,6 +7,9 @@ const PAPER := Color("fff8e6")        # fundo dos cartões
 const SAND := Color("ffe7b0")         # fundo da tela
 const ACCENT := Color("e8432f")       # vermelho dos botões principais
 const GLASS := Color(1, 1, 1, 0.55)
+const HIDDEN_LAYER := Color("b9a58c")  # camada escondida ("?")
+## Cores da dificuldade nos quadradinhos do menu.
+const DIFFICULTY_COLORS := {Rules.EASY: Color("8ccf5a"), Rules.MEDIUM: Color("ffb03a"), Rules.HARD: Color("ef6a4a")}
 
 ## Cores dos líquidos, na ordem dos números usados nos desafios.
 const LIQUIDS: Array[Color] = [
@@ -21,6 +24,7 @@ const LIQUID_NAMES: Array[String] = ["Acerola", "Hortelã", "Manga", "Uva", "Lim
 
 const TITLE_FONT_PATH := "res://assets/fonts/LilitaOne-Regular.ttf"
 const BODY_FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
+const TILE_PATH := "res://assets/ui/azulejo_tile.svg"
 
 # Garrafinha desenhada numa grade de 60 x 160 (mesma do painel de estilos).
 const DESIGN_SIZE := Vector2(60, 160)
@@ -64,15 +68,46 @@ static func layer_height(capacity: int) -> float:
 	return (LIQUID_BOTTOM - LIQUID_TOP) / float(capacity)
 
 
-## Polígono(s) de uma camada: a faixa horizontal recortada pelo formato da garrafa.
-static func layer_polygons(layer_index: int, capacity: int) -> Array[PackedVector2Array]:
-	var h: float = layer_height(capacity)
-	var y1: float = LIQUID_BOTTOM - h * (layer_index + 1)
-	var y2: float = LIQUID_BOTTOM - h * layer_index
-	if layer_index == capacity - 1:
-		y1 -= 2.0  # cobre a curva dos ombros
-	var band := PackedVector2Array([Vector2(0, y1), Vector2(60, y1), Vector2(60, y2 + 0.5), Vector2(0, y2 + 0.5)])
+## Faixa de líquido entre duas alturas (grade 60 x 160), recortada pelo formato da garrafa.
+static func band_polygons(y_top: float, y_bottom: float) -> Array[PackedVector2Array]:
+	var band := PackedVector2Array([Vector2(0, y_top), Vector2(60, y_top), Vector2(60, y_bottom), Vector2(0, y_bottom)])
 	return Geometry2D.intersect_polygons(band, bottle_outline())
+
+
+## Fundo de areia com azulejo, ocupando a tela toda.
+static func add_background(parent: Control) -> void:
+	var bg := ColorRect.new()
+	bg.color = SAND
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(bg)
+	var tiles := TextureRect.new()
+	tiles.texture = load(TILE_PATH)
+	tiles.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tiles.stretch_mode = TextureRect.STRETCH_TILE
+	tiles.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(tiles)
+
+
+static func make_label(text: String, font_size: int, title: bool = false, color: Color = INK) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", font_size)
+	l.add_theme_color_override("font_color", color)
+	if title:
+		l.add_theme_font_override("font", title_font())
+	return l
+
+
+static func make_button(text: String, main: bool = false, font_size: int = 30) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.add_theme_font_size_override("font_size", font_size)
+	if main:
+		b.theme_type_variation = &"MainButton"
+	return b
 
 
 ## Tema com as letras e os botões do estilo (borda escura e "sombra dura" embaixo).
