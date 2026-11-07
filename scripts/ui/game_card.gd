@@ -9,7 +9,13 @@ var locked: bool = false:
 		locked = value
 		disabled = value
 		queue_redraw()
-var art: String = "potion"
+## Ilustração do jogo (vazio = desenho dos frascos feito no código).
+var art_path: String = "":
+	set(value):
+		art_path = value
+		_art = load(value) if value != "" and ResourceLoader.exists(value) else null
+		queue_redraw()
+var _art: Texture2D
 var _time: float = 0.0
 ## Caixas do desenho: criadas uma vez (o cartão liberado redesenha a cada quadro).
 var _boxes: Dictionary = {}
@@ -39,6 +45,8 @@ func _draw() -> void:
 	draw_style_box(_boxes.inner, art_rect)
 	if locked:
 		_draw_lock(art_rect.get_center())
+	elif _art:
+		_draw_art(art_rect)
 	else:
 		_draw_potions(art_rect)
 	var font := GameStyle.title_font()
@@ -93,6 +101,35 @@ func _draw_potions(area: Rect2) -> void:
 		closed.append(outline[0])
 		draw_polyline(closed, GameStyle.GLASS_EDGE, 2.5, true)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+## Ilustração recortada com cantos redondos e brilhinhos subindo por cima.
+func _draw_art(area: Rect2) -> void:
+	var pts := _rounded_rect(area, 24.0)
+	var uvs := PackedVector2Array()
+	for p in pts:
+		uvs.append((p - area.position) / area.size)
+	# a arte é quadrada: mostra o meio dela na janela (sem deformar)
+	var k := area.size / maxf(area.size.x, area.size.y)
+	for i in uvs.size():
+		uvs[i] = Vector2(0.5, 0.5) + (uvs[i] - Vector2(0.5, 0.5)) * k
+	draw_colored_polygon(pts, Color.WHITE, uvs, _art)
+	for i in 5:
+		var tt := fmod(_time * 0.35 + i * 0.2, 1.0)
+		var p := area.position + Vector2(area.size.x * (0.15 + 0.17 * i), area.size.y * (0.85 - tt * 0.7))
+		var a := sin(tt * PI)
+		draw_colored_polygon(GameStyle.star_points(p, 9.0 * a + 2.0, 2.5, 4), Color(1, 1, 0.85, 0.85 * a))
+
+
+static func _rounded_rect(r: Rect2, rad: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var corners := [[r.end - Vector2(rad, rad), 0.0], [Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5],
+		[r.position + Vector2(rad, rad), PI], [Vector2(r.end.x - rad, r.position.y + rad), PI * 1.5]]
+	for c in corners:
+		for j in 7:
+			var a: float = c[1] + PI * 0.5 * j / 6.0
+			pts.append(c[0] + Vector2(cos(a), sin(a)) * rad)
+	return pts
 
 
 func _draw_lock(c: Vector2) -> void:

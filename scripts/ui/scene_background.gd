@@ -2,10 +2,12 @@ class_name SceneBackground
 extends Control
 ## Fundo animado. "sky": céu de fim de tarde com morros e nuvens andando (menu).
 ## "night": noite azul com brilho no meio e estrelas piscando (partida).
+## "hub": vila flutuante ao entardecer (menu Na Lata). "splash": tela de abertura.
 ## Usa a ilustração gerada (assets/art) e desenha por cima os brilhos animados.
 ## Sem a imagem, cai no desenho feito no código.
 
-const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg"}
+const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg",
+	"hub": "res://assets/art/hub_bg.jpg"}
 
 var kind: String = "sky"
 var _art: Texture2D

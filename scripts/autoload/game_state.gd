@@ -12,6 +12,8 @@ var _cfg := ConfigFile.new()
 
 
 const PLAYER := "player"
+## Jogos do hub que somam pontos. O ranking global (o que vale prêmio) soma todos eles.
+const GAME_IDS: Array[String] = ["potion"]
 
 
 func _ready() -> void:
@@ -128,6 +130,26 @@ func month_total(month_key: String) -> Dictionary:
 		points += int(_cfg.get_value(key, "best_points"))
 		moves += int(_cfg.get_value(key, "best_moves"))
 	return {"points": points, "moves": moves, "completed": completed, "levels": levels}
+
+
+## Pontos do mês num jogo só (ranking daquele jogo). Por enquanto todo o progresso é do Poção de Cores.
+func game_month_total(game_id: String, month_key: String) -> Dictionary:
+	if game_id == "potion":
+		return month_total(month_key)
+	return {"points": 0, "moves": 0, "completed": 0, "levels": 0}
+
+
+## Ranking global do mês: soma os pontos e as jogadas de todos os jogos do hub.
+func global_month_total(month_key: String) -> Dictionary:
+	var points := 0
+	var moves := 0
+	var games := {}
+	for id in GAME_IDS:
+		var t := game_month_total(id, month_key)
+		points += int(t.points)
+		moves += int(t.moves)
+		games[id] = int(t.points)
+	return {"points": points, "moves": moves, "games": games}
 
 
 func _save() -> void:

@@ -51,8 +51,26 @@ func test_ranking_shows_month_points() -> void:
 	main.get_node("Home").ranking_requested.emit()
 	var ranking: Control = main.get_node("Ranking")
 	assert_true(ranking.visible)
-	assert_eq(ranking.title_label.text, "Ranking de novembro")
+	assert_eq(ranking.title_label.text, "Ranking do Poção de Cores")
 	assert_eq(ranking.points_label.text, "10 pts")
+	assert_false(ranking.prize_banner.visible, "o ranking do jogo não vale prêmio")
+	ranking.back_requested.emit()
+	assert_true(main.get_node("Home").visible, "volta ao menu do jogo")
+
+
+func test_global_ranking_opens_from_hub() -> void:
+	GameState.save_result("2026-11-02#0", 10, 6)
+	var hub: Control = main.get_node("Hub")
+	assert_eq(hub.rank_banner.points, 10, "a faixa do hub mostra os pontos globais")
+	assert_eq(hub.rank_banner.countdown, "23d 12h")
+	hub.rank_banner.pressed.emit()
+	var ranking: Control = main.get_node("Ranking")
+	assert_true(ranking.visible)
+	assert_eq(ranking.title_label.text, "Ranking Global")
+	assert_true(ranking.prize_banner.visible, "o global vale prêmio")
+	assert_eq(ranking.points_label.text, "10 pts")
+	ranking.back_requested.emit()
+	assert_true(hub.visible, "volta ao hub")
 
 
 func test_declining_ad_returns_to_menu() -> void:
