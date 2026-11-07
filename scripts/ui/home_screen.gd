@@ -13,6 +13,8 @@ var countdown_label: Label
 var prev_button: Button
 var next_button: Button
 var grid: GridContainer
+## Dia de hoje da última atualização (para perceber a virada da meia-noite).
+var _today: String = ""
 
 
 func _ready() -> void:
@@ -136,6 +138,7 @@ func next_unsolved() -> int:
 func refresh() -> void:
 	if date == "":
 		return
+	_today = GameState.today()
 	var dates := Rules.available_dates(GameState.now_unix())
 	if not date in dates:
 		date = dates[-1]
@@ -181,6 +184,13 @@ func _shift_day(delta: int) -> void:
 
 
 func _update_countdown() -> void:
+	var today := GameState.today()
+	if _today != "" and today != _today:
+		# virou o dia com o menu aberto: quem estava em "hoje" passa para o dia novo
+		if date == _today:
+			date = today
+		refresh()
+		return
 	var secs := Rules.seconds_to_next_day(GameState.now_unix())
 	countdown_label.text = "Novos desafios em %dh %02dmin" % [secs / 3600, (secs % 3600) / 60]
 

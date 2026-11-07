@@ -146,6 +146,6 @@ static func min_moves(start: Array, max_states: int = 400000) -> int:
 static func _key(state: Array) -> String:
 	var parts: PackedStringArray = []
 	for t in state:
-		parts.append(",".join((t as Array).map(func(c: int) -> String: return str(c))))
+		parts.append(str(t))
 	parts.sort()
 	return "|".join(parts)

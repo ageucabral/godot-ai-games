@@ -39,7 +39,7 @@ func request_play(date: String, index: int) -> void:
 		text = "Seu melhor aqui: %d pontos em %d jogadas." % [r.best_points, r.best_moves]
 	dialog.open("Desafio %d" % (index + 1), text + "\nUma nova tentativa pede uma propaganda.", [
 		["Assistir e jogar", func() -> void: Ads.show_rewarded(func() -> void: _start(date, index)), true],
-		["Voltar", func() -> void: pass],
+		["Voltar", func() -> void: show_screen(home)],
 	])
 
 

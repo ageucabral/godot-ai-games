@@ -28,6 +28,7 @@ var busy: bool = false
 var dialog: DialogBox
 var _bottles: Array[BottleView] = []
 var _finished: bool = false
+var _pour_tween: Tween
 
 
 func _ready() -> void:
@@ -43,12 +44,19 @@ func _ready() -> void:
 ## Abre um desafio do dia e começa uma tentativa nova.
 ## (Quem chama decide se a tentativa precisa de propaganda; veja main.gd.)
 func open_challenge(date: String, index: int) -> void:
-	open_with(ChallengeGenerator.generate(date, index))
+	var data := ChallengeGenerator.generate(date, index)
+	if data.is_empty():
+		# o gerador falhou: volta ao menu sem gastar a tentativa
+		back_requested.emit()
+		return
+	open_with(data)
 	GameState.start_attempt(key())
 
 
 ## Monta a tela com um desafio já pronto (usado também pelos testes).
 func open_with(data: Dictionary) -> void:
+	if _pour_tween and _pour_tween.is_valid():
+		_pour_tween.kill()  # um despejo da partida anterior não pode mexer na nova
 	challenge = data
 	puzzle = SortPuzzle.new(data.tubes, data.get("hidden", false))
 	move_limit = data.par
@@ -118,6 +126,7 @@ func _animate_pour(src: BottleView, dst: BottleView, src_before: Array, dst_befo
 	src.stream_end = dst.surface_global()
 
 	var t := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pour_tween = t
 	t.tween_property(src, "pour_offset", offset, POUR_MOVE_TIME)
 	t.parallel().tween_property(src, "pour_angle", angle, POUR_MOVE_TIME)
 	t.tween_callback(func() -> void: src.stream_on = true)
@@ -231,6 +240,15 @@ func _show_zero_points() -> void:
 	])
 
 
+## Próximo desafio ainda não resolvido do mesmo dia, depois deste (dá a volta). -1 se não houver.
+static func next_unsolved_after(date: String, index: int) -> int:
+	for step in range(1, Rules.DAILY_COUNT):
+		var i := (index + step) % Rules.DAILY_COUNT
+		if not GameState.is_completed(ChallengeGenerator.key_for(date, i)):
+			return i
+	return -1
+
+
 func _finish() -> void:
 	_finished = true
 	var points := current_points()
@@ -243,8 +261,8 @@ func _finish() -> void:
 	elif points < challenge.full_points:
 		text += "\nDava para fazer em %d jogadas." % challenge.par
 	var buttons: Array = []
-	var next_index: int = challenge.index + 1
-	if next_index < Rules.DAILY_COUNT:
+	var next_index := next_unsolved_after(challenge.date, challenge.index)
+	if next_index >= 0:
 		buttons.append(["Próximo desafio", func() -> void: next_requested.emit(challenge.date, next_index), true])
 	if points < challenge.full_points:
 		buttons.append(["Tentar melhorar", _restart_with_ad])

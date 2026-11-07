@@ -113,3 +113,12 @@ func test_pour_animation_finishes() -> void:
 	await get_tree().create_timer(1.2).timeout
 	assert_false(screen.busy, "terminou")
 	assert_eq(screen.get_node("%MovesValue").text, "1 / 3")
+
+
+func test_next_skips_solved_challenges() -> void:
+	GameState.save_result("2026-11-07#1", 10, 5)
+	GameState.save_result("2026-11-07#2", 10, 5)
+	assert_eq(screen.next_unsolved_after("2026-11-07", 0), 3, "pula os já resolvidos")
+	for i in Rules.DAILY_COUNT:
+		GameState.save_result("2026-11-07#%d" % i, 1, 5)
+	assert_eq(screen.next_unsolved_after("2026-11-07", 0), -1, "todos resolvidos")

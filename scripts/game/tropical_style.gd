@@ -9,7 +9,7 @@ const ACCENT := Color("e8432f")       # vermelho dos botões principais
 const GLASS := Color(1, 1, 1, 0.55)
 const HIDDEN_LAYER := Color("b9a58c")  # camada escondida ("?")
 ## Cores da dificuldade nos quadradinhos do menu.
-const DIFFICULTY_COLORS := {"easy": Color("8ccf5a"), "medium": Color("ffb03a"), "hard": Color("ef6a4a")}
+const DIFFICULTY_COLORS := {Rules.EASY: Color("8ccf5a"), Rules.MEDIUM: Color("ffb03a"), Rules.HARD: Color("ef6a4a")}
 
 ## Cores dos líquidos, na ordem dos números usados nos desafios.
 const LIQUIDS: Array[Color] = [

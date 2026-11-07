@@ -51,3 +51,18 @@ func test_ranking_shows_month_points() -> void:
 	assert_true(ranking.visible)
 	assert_eq(ranking.title_label.text, "Ranking de novembro")
 	assert_eq(ranking.points_label.text, "10 pts")
+
+
+func test_declining_ad_returns_to_menu() -> void:
+	main.request_play("2026-11-07", 0)
+	main.request_play("2026-11-07", 0)
+	assert_true(main.dialog.visible, "pede propaganda")
+	main.dialog.press("Voltar")
+	assert_true(main.get_node("Home").visible, "não fica preso na partida")
+
+
+func test_home_follows_midnight() -> void:
+	var home: Control = main.get_node("Home")
+	GameState.fixed_unix += 86400
+	home._update_countdown()
+	assert_eq(home.day_label.text, "Hoje, 8 de novembro")
