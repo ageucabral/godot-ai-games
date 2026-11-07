@@ -11,6 +11,9 @@ var fixed_unix: int = -1
 var _cfg := ConfigFile.new()
 
 
+const PLAYER := "player"
+
+
 func _ready() -> void:
 	load_progress()
 
@@ -27,10 +30,44 @@ func load_progress() -> void:
 	_cfg = ConfigFile.new()
 	if FileAccess.file_exists(save_path):
 		_cfg.load(save_path)
+	I18n.apply(language())
 
 
 func reset_all() -> void:
 	_cfg = ConfigFile.new()
+	I18n.apply(language())
+	_save()
+
+
+# ---------- idioma ----------
+
+func language() -> String:
+	return _cfg.get_value(PLAYER, "language", I18n.DEFAULT)
+
+
+func set_language(code: String) -> void:
+	_cfg.set_value(PLAYER, "language", code if I18n.is_supported(code) else I18n.DEFAULT)
+	I18n.apply(language())
+	_save()
+
+
+# ---------- modo por níveis ----------
+
+## Próximo nível a jogar (começa no 1 e nunca acaba).
+func current_level() -> int:
+	return _cfg.get_value(PLAYER, "level", 1)
+
+
+## Guarda o nível resolvido (vale para o ranking do mês em que foi resolvido) e libera o próximo.
+## Só conta uma vez: resolver de novo um nível que já passou não muda nada.
+func complete_level(level: int, points: int, moves: int) -> void:
+	if level != current_level():
+		return
+	var key := LevelGenerator.key_for(level)
+	_cfg.set_value(key, "best_points", points)
+	_cfg.set_value(key, "best_moves", moves)
+	_cfg.set_value(key, "month", Rules.month_for(now_unix()))
+	_cfg.set_value(PLAYER, "level", level + 1)
 	_save()
 
 
@@ -73,18 +110,24 @@ func save_result(key: String, points: int, moves: int) -> bool:
 	return better
 
 
-## Soma do mês ("AAAA-MM"): pontos, movimentos (desempate) e desafios resolvidos.
+## Soma do mês ("AAAA-MM"): pontos, movimentos (desempate), desafios e níveis resolvidos.
 func month_total(month_key: String) -> Dictionary:
 	var points := 0
 	var moves := 0
 	var completed := 0
+	var levels := 0
 	for key in _cfg.get_sections():
-		if not key.begins_with(month_key) or not is_completed(key):
+		if not is_completed(key):
+			continue
+		if key.begins_with(month_key):
+			completed += 1
+		elif key.begins_with("nivel#") and _cfg.get_value(key, "month", "") == month_key:
+			levels += 1
+		else:
 			continue
 		points += int(_cfg.get_value(key, "best_points"))
 		moves += int(_cfg.get_value(key, "best_moves"))
-		completed += 1
-	return {"points": points, "moves": moves, "completed": completed}
+	return {"points": points, "moves": moves, "completed": completed, "levels": levels}
 
 
 func _save() -> void:

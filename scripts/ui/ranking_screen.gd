@@ -67,7 +67,7 @@ func refresh() -> void:
 	var now := GameState.now_unix()
 	var month := Rules.month_for(now)
 	var total := GameState.month_total(month)
-	title_label.text = "Ranking de %s" % Rules.month_name(month)
-	subtitle_label.text = "Termina em %d dias · zera no dia 1" % Rules.days_left_in_month(now)
-	points_label.text = "%d pts" % total.points
-	detail_label.text = "%d desafios resolvidos · %d jogadas" % [total.completed, total.moves]
+	title_label.text = tr("Ranking de %s") % Rules.month_name(month)
+	subtitle_label.text = tr("Termina em %d dias · zera no dia 1") % Rules.days_left_in_month(now)
+	points_label.text = tr("%d pts") % total.points
+	detail_label.text = tr("%d desafios e %d níveis · %d jogadas") % [total.completed, total.levels, total.moves]
