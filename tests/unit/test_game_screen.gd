@@ -247,3 +247,12 @@ func test_shuffle_costs_one_point_and_keeps_colors() -> void:
 	assert_eq(screen.shuffles_left, Rules.SHUFFLES_PER_STAGE - 1)
 	assert_eq(screen._points_value.text, "9", "custa 1 ponto")
 	assert_true(SortPuzzle.min_moves(screen.puzzle.tubes) >= 0, "continua com solução")
+
+
+func test_boost_blocked_when_it_would_zero_a_daily() -> void:
+	var data := EASY.duplicate(true)
+	data.full_points = 1
+	screen.open_with(data)
+	assert_true(screen.get_node("%BottleButton").disabled, "ajuda zeraria o desafio: fica desligada")
+	screen.get_node("%BottleButton").pressed.emit()
+	assert_false(screen.dialog.visible, "nem pergunta")

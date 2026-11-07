@@ -11,6 +11,8 @@ extends RefCounted
 ## Esta classe não depende da árvore de cenas: dá para testar sozinha.
 
 const CAPACITY: int = 4
+## Limite da busca que confere se um embaralhado tem solução (mesmo limite do gerador de desafios).
+const SHUFFLE_MAX_STATES: int = 150000
 
 var tubes: Array = []
 var hidden: Array = []
@@ -66,19 +68,38 @@ func add_empty_tube() -> void:
 	covers.append(-1)
 
 
-## Embaralhar: mistura as camadas das garrafas abertas que ainda não estão completas, mantendo
-## quanto cada uma tem. Só aceita um embaralhado diferente e com solução. Devolve false se não achou.
+## Embaralhar: mistura as camadas à mostra das garrafas abertas que ainda não estão completas,
+## mantendo quanto cada uma tem. As camadas "?" ficam onde estão (senão o embaralhar revelaria
+## cores escondidas e esconderia cores já vistas). Só aceita um embaralhado diferente e com solução.
+## Devolve false se não achou.
 func shuffle(rng: RandomNumberGenerator, tries: int = 10) -> bool:
+	var candidate := shuffled_state(rng, tries)
+	if candidate.is_empty():
+		return false
+	apply_shuffled(candidate)
+	return true
+
+
+## Troca as garrafas por um embaralhado já calculado por `shuffled_state`.
+func apply_shuffled(state: Array) -> void:
+	tubes = copy_tubes(state)
+	last_revealed = reveal_in(tubes, covers)  # o embaralhado pode completar a cor de um pano
+
+
+## Calcula um embaralhado (sem aplicar). Devolve [] se não achou um diferente e com solução.
+func shuffled_state(rng: RandomNumberGenerator, tries: int = 10) -> Array:
 	var spots: Array = []
 	var pool: Array = []
 	for i in tubes.size():
 		if is_covered(i) or is_complete(tubes[i]):
 			continue
 		for j in (tubes[i] as Array).size():
+			if hidden[i][j]:
+				continue
 			spots.append([i, j])
 			pool.append(tubes[i][j])
 	if pool.size() < 2:
-		return false
+		return []
 	for _t in tries:
 		var mixed: Array = pool.duplicate()
 		for k in range(mixed.size() - 1, 0, -1):
@@ -93,11 +114,12 @@ func shuffle(rng: RandomNumberGenerator, tries: int = 10) -> bool:
 			candidate[spots[n][0]][spots[n][1]] = mixed[n]
 		if is_solved_state(candidate):
 			continue
-		if min_moves(candidate, 150000, covers) < 0:
+		var candidate_covers: Array = covers.duplicate()
+		reveal_in(candidate, candidate_covers)
+		if min_moves(candidate, SHUFFLE_MAX_STATES, candidate_covers) < 0:
 			continue
-		tubes = candidate
-		return true
-	return false
+		return candidate
+	return []
 
 
 func is_solved() -> bool:
