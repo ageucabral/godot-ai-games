@@ -57,13 +57,15 @@ static func level_setup(level: int) -> Dictionary:
 		"hidden": step[5], "min_par": int(step[6]) + bonus}
 
 
-## Nome da dificuldade mostrado num nível (pelas cores usadas).
+## Nome da dificuldade mostrado num nível (pelo degrau): com camadas "?" é difícil,
+## com frasco coberto é médio, senão fácil.
 static func level_difficulty(level: int) -> String:
-	if level < 10:
-		return EASY
-	if level < 30:
+	var setup := level_setup(level)
+	if setup.hidden:
+		return HARD
+	if int(setup.covers) > 0:
 		return MEDIUM
-	return HARD
+	return EASY
 
 
 static func difficulty_for(index: int) -> String:

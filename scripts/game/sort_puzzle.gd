@@ -15,7 +15,7 @@ const CAPACITY: int = 4
 var tubes: Array = []
 var hidden: Array = []
 var covers: Array = []
-## Garrafas que abriram na última jogada (a tela usa para animar o pano saindo).
+## Garrafas que abriram na última jogada (a tela confere `is_covered`; isto ajuda os testes).
 var last_revealed: Array = []
 ## Lista de jogadas feitas, cada uma [de, para]. Vai para o servidor conferir no futuro.
 var moves: Array = []
@@ -113,8 +113,8 @@ static func is_complete(tube: Array) -> bool:
 ## uma coberta daquela cor (a primeira da esquerda). Devolve as garrafas que abriram agora.
 static func reveal_in(state: Array, cover_state: Array) -> Array:
 	var opened: Array = []
-	if cover_state.is_empty():
-		return opened
+	if not cover_state.any(func(v) -> bool: return int(v) >= 0):
+		return opened  # nenhuma garrafa coberta: nada a abrir (caminho rápido do resolvedor)
 	var complete := {}
 	for i in state.size():
 		if not is_covered_in(cover_state, i) and is_complete(state[i]):

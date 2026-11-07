@@ -8,6 +8,9 @@ signal next_level_requested
 const POUR_MOVE_TIME: float = 0.22
 const POUR_FLOW_TIME: float = 0.38
 const POUR_ANGLE_DEG: float = 72.0
+## Cor dos pontos no placar: normal e quando já passou do número exato de jogadas.
+const POINTS_COLOR := Color("6b3d10")
+const POINTS_OVER_COLOR := Color("e0303f")
 
 @onready var _row_top: HBoxContainer = %RowTop
 @onready var _row_bottom: HBoxContainer = %RowBottom
@@ -53,7 +56,7 @@ func _style_hud() -> void:
 	pill.content_margin_left = 8
 	%PointsPill.add_theme_stylebox_override("panel", pill)
 	_points_value.add_theme_font_override("font", GameStyle.title_font())
-	_points_value.add_theme_color_override("font_color", Color("6b3d10"))
+	_points_value.add_theme_color_override("font_color", POINTS_COLOR)
 	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
 	GameStyle.apply_title_look(_challenge_value, Color.WHITE, 10)
 	_subtitle.add_theme_font_override("font", GameStyle.title_font())
@@ -293,7 +296,7 @@ func _show_points(points: int) -> void:
 	_shown_points = points
 	_points_value.text = str(points)
 	var over: bool = puzzle.moves_used() > int(challenge.par)
-	_points_value.add_theme_color_override("font_color", Color("e0303f") if over else Color("6b3d10"))
+	_points_value.add_theme_color_override("font_color", POINTS_OVER_COLOR if over else POINTS_COLOR)
 	if not dropped or not animate or not is_inside_tree():
 		return
 	var pill: Control = %PointsPill
