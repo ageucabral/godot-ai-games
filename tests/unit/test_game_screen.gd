@@ -122,3 +122,16 @@ func test_next_skips_solved_challenges() -> void:
 	for i in Rules.DAILY_COUNT:
 		GameState.save_result("2026-11-07#%d" % i, 1, 5)
 	assert_eq(screen.next_unsolved_after("2026-11-07", 0), -1, "todos resolvidos")
+
+
+func test_touch_plus_emulated_click_selects_once() -> void:
+	# No Android um toque gera InputEventScreenTouch e também um clique emulado.
+	var bottle: BottleView = screen.get_node("%RowTop").get_child(0)
+	var touch := InputEventScreenTouch.new()
+	touch.pressed = true
+	bottle._gui_input(touch)
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	bottle._gui_input(click)
+	assert_eq(screen.selected, 0, "garrafa escolhida (não foi solta logo em seguida)")

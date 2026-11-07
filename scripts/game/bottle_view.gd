@@ -69,10 +69,10 @@ static func segments_from(tube: Array, hidden: Array) -> Array:
 	return out
 
 
+## Só o clique conta. No celular o toque vira clique sozinho (emulate_mouse_from_touch);
+## contar o toque E o clique fazia a garrafa ser escolhida e solta no mesmo instante.
 func _gui_input(event: InputEvent) -> void:
-	var pressed: bool = (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) \
-		or (event is InputEventScreenTouch and event.pressed)
-	if pressed:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		tapped.emit(index)
 		accept_event()
 

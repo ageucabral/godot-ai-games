@@ -84,6 +84,7 @@ build/        Saída da exportação (ignorada pelo git)
   `assert_almost_eq`. Ganchos: `before_each()`, `after_each()`. Pode usar `await`
   (ex.: `await wait_physics_frames(10)`).
 - Toda mecânica nova deve vir com pelo menos um teste.
+- Todo PR passa pela revisão `/code-review` (com correções) e é juntado pelo Claude ao final.
 - Antes de concluir uma tarefa: `tools/run_tests.sh` e, se mexeu em algo visual ou na
   exportação, `tools/export_web.sh` + `tools/web_smoke_test.sh` e olhar a captura.
 
@@ -99,6 +100,7 @@ tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + 
 Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/tropical_style.gd`.
 - `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
   +5 jogadas por propaganda, datas no horário de Brasília).
+- Só os desafios de HOJE podem ser jogados (Ageu, 7/11/2026); dias anteriores ficam encerrados.
 - `scripts/game/challenge_generator.gd`: gera os 20 desafios do dia, iguais para todos (semente
   FNV-1a de "AAAA-MM-DD#n"), com o número exato de jogadas calculado por `SortPuzzle.min_moves`.
 - `scripts/game/sort_puzzle.gd`: regras de despejar, camadas escondidas ("?") e lista de jogadas.

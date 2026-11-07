@@ -1,5 +1,5 @@
 extends Control
-## Tela inicial: os 20 desafios do dia, o botão de jogar e o acesso ao ranking.
+## Tela inicial: os 20 desafios de HOJE (dias anteriores não podem ser jogados), o botão de jogar e o acesso ao ranking.
 
 signal play_requested(date: String, index: int)
 signal ranking_requested
@@ -10,8 +10,6 @@ var progress_label: Label
 var play_button: Button
 var month_label: Label
 var countdown_label: Label
-var prev_button: Button
-var next_button: Button
 var grid: GridContainer
 ## Dia de hoje da última atualização (para perceber a virada da meia-noite).
 var _today: String = ""
@@ -50,19 +48,8 @@ func _build() -> void:
 	box.add_child(logo)
 	box.add_child(TropicalStyle.make_label("Separe as cores. Acerte em cheio.", 28))
 
-	var day_row := HBoxContainer.new()
-	day_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	day_row.add_theme_constant_override("separation", 16)
-	prev_button = TropicalStyle.make_button("<", false, 30)
-	prev_button.pressed.connect(func() -> void: _shift_day(-1))
 	day_label = TropicalStyle.make_label("", 34, true)
-	day_label.custom_minimum_size = Vector2(380, 0)
-	next_button = TropicalStyle.make_button(">", false, 30)
-	next_button.pressed.connect(func() -> void: _shift_day(1))
-	day_row.add_child(prev_button)
-	day_row.add_child(day_label)
-	day_row.add_child(next_button)
-	box.add_child(day_row)
+	box.add_child(day_label)
 
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", TropicalStyle.card_box())
@@ -139,13 +126,8 @@ func refresh() -> void:
 	if date == "":
 		return
 	_today = GameState.today()
-	var dates := Rules.available_dates(GameState.now_unix())
-	if not date in dates:
-		date = dates[-1]
-	var is_today := date == dates[-1]
-	day_label.text = ("Hoje, " if is_today else "") + Rules.pretty_date(date)
-	prev_button.disabled = date == dates[0]
-	next_button.disabled = is_today
+	date = _today  # só os desafios de hoje podem ser jogados
+	day_label.text = "Hoje, " + Rules.pretty_date(date)
 	var done := 0
 	for i in Rules.DAILY_COUNT:
 		var key := ChallengeGenerator.key_for(date, i)
@@ -176,20 +158,10 @@ func _on_play_pressed() -> void:
 		play_requested.emit(date, next)
 
 
-func _shift_day(delta: int) -> void:
-	var dates := Rules.available_dates(GameState.now_unix())
-	var i := clampi(dates.find(date) + delta, 0, dates.size() - 1)
-	date = dates[i]
-	refresh()
-
-
 func _update_countdown() -> void:
 	var today := GameState.today()
 	if _today != "" and today != _today:
-		# virou o dia com o menu aberto: quem estava em "hoje" passa para o dia novo
-		if date == _today:
-			date = today
-		refresh()
+		refresh()  # virou o dia com o menu aberto: mostra os desafios novos
 		return
 	var secs := Rules.seconds_to_next_day(GameState.now_unix())
 	countdown_label.text = "Novos desafios em %dh %02dmin" % [secs / 3600, (secs % 3600) / 60]

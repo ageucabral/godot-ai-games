@@ -66,3 +66,11 @@ func test_home_follows_midnight() -> void:
 	GameState.fixed_unix += 86400
 	home._update_countdown()
 	assert_eq(home.day_label.text, "Hoje, 8 de novembro")
+
+
+func test_past_days_cannot_be_played() -> void:
+	main.request_play("2026-11-06", 0)
+	assert_true(main.dialog.visible, "avisa que acabou")
+	assert_eq(main.dialog.title_label.text, "Desafio encerrado")
+	assert_false(main.get_node("Game").visible, "não abre a partida")
+	assert_eq(GameState.attempts("2026-11-06#0"), 0)
