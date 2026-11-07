@@ -58,7 +58,7 @@ func test_invalid_pour_keeps_puzzle() -> void:
 func test_win_saves_full_points() -> void:
 	_solve()
 	assert_true(screen.puzzle.is_solved())
-	assert_eq(screen.dialog.title_label.text, "Na Lata!")
+	assert_true(screen.dialog.title_label.text in ["Perfeito!", "Muito bem!"])
 	assert_eq(GameState.result("2026-11-07#0").best_points, 10)
 	assert_true("Próximo desafio" in screen.dialog.button_texts())
 

@@ -33,7 +33,7 @@ func test_difficulty_grows() -> void:
 		last_par = s.min_par
 	assert_false(Rules.level_setup(29).hidden)
 	assert_true(Rules.level_setup(30).hidden, "camadas escondidas a partir do 30")
-	assert_true(Rules.level_setup(1000).colors <= TropicalStyle.LIQUIDS.size(), "não passa das cores que existem")
+	assert_true(Rules.level_setup(1000).colors <= GameStyle.LIQUIDS.size(), "não passa das cores que existem")
 
 
 func test_levels_are_solvable() -> void:
@@ -61,7 +61,7 @@ func test_daily_puzzles_unchanged_by_new_color() -> void:
 	for i in Rules.DAILY_COUNT:
 		for tube in ChallengeGenerator.generate("2026-11-07", i).tubes:
 			for c in tube:
-				assert_true(c < TropicalStyle.DAILY_LIQUIDS)
+				assert_true(c < GameStyle.DAILY_LIQUIDS)
 
 
 func test_month_countdown() -> void:

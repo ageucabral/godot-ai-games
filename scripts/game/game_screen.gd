@@ -12,7 +12,6 @@ const POUR_ANGLE_DEG: float = 72.0
 @onready var _row_top: HBoxContainer = %RowTop
 @onready var _row_bottom: HBoxContainer = %RowBottom
 @onready var _challenge_value: Label = %ChallengeValue
-@onready var _challenge_caption: Label = $Layout/Hud/ChallengeChip/Box/Caption
 @onready var _moves_value: Label = %MovesValue
 @onready var _points_value: Label = %PointsValue
 @onready var _subtitle: Label = %Subtitle
@@ -36,13 +35,64 @@ var _pour_tween: Tween
 
 
 func _ready() -> void:
-	theme = TropicalStyle.build_theme()
-	_subtitle.add_theme_font_override("font", TropicalStyle.title_font())
+	theme = GameStyle.build_theme()
+	var bg := GameStyle.add_background(self, "night")
+	move_child(bg, 0)
+	_style_hud()
 	dialog = DialogBox.new()
 	add_child(dialog)
-	_menu_button.pressed.connect(func() -> void: back_requested.emit())
+	_menu_button.pressed.connect(_open_pause)
 	_restart_button.pressed.connect(_on_restart_pressed)
 	_extra_button.pressed.connect(_on_extra_moves_pressed)
+
+
+func _style_hud() -> void:
+	var pill := GameStyle.pill_box()
+	pill.content_margin_left = 8
+	%PointsPill.add_theme_stylebox_override("panel", pill)
+	_points_value.add_theme_font_override("font", GameStyle.title_font())
+	_points_value.add_theme_color_override("font_color", Color("6b3d10"))
+	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
+	_title_look(_challenge_value, 10)
+	_subtitle.add_theme_font_override("font", GameStyle.title_font())
+	_subtitle.add_theme_color_override("font_color", Color("c9d4ff"))
+	var chip := GameStyle.plate_box()
+	chip.bg_color = Color(0.1, 0.1, 0.3, 0.8)
+	chip.border_color = Color("4b4fa8")
+	chip.set_border_width_all(3)
+	chip.content_margin_left = 26
+	chip.content_margin_right = 26
+	%MovesChip.add_theme_stylebox_override("panel", chip)
+	%Caption.add_theme_color_override("font_color", Color("9aa6e8"))
+	_title_look(_moves_value, 8)
+	var bar := GameStyle.plate_box()
+	bar.bg_color = Color("2e2470")
+	bar.border_color = Color("5a3fc0")
+	bar.set_corner_radius_all(44)
+	bar.content_margin_left = 36
+	bar.content_margin_right = 36
+	bar.content_margin_top = 18
+	bar.content_margin_bottom = 18
+	%BoosterBar.add_theme_stylebox_override("panel", bar)
+	(_extra_button as BoosterButton).icon_kind = "plus"
+
+
+static func _title_look(l: Label, outline: int) -> void:
+	l.add_theme_font_override("font", GameStyle.title_font())
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.add_theme_color_override("font_outline_color", GameStyle.INK)
+	l.add_theme_constant_override("outline_size", outline)
+
+
+## Pausa (engrenagem): continuar, recomeçar ou voltar ao menu.
+func _open_pause() -> void:
+	if busy:
+		return
+	dialog.open("Pausa", "", [
+		["Continuar jogando", func() -> void: pass, true],
+		["Recomeçar", _on_restart_pressed],
+		["Menu", func() -> void: back_requested.emit()],
+	])
 
 
 ## Abre um desafio do dia e começa uma tentativa nova.
@@ -149,7 +199,7 @@ func _animate_pour(src: BottleView, dst: BottleView, src_before: Array, dst_befo
 	var offset := target - src.mouth_global(angle, Vector2.ZERO)
 	src.z_index = 10
 	dst.cap_open = true
-	src.stream_color = TropicalStyle.liquid_color(color)
+	src.stream_color = GameStyle.liquid_color(color)
 	src.stream_end = dst.surface_global()
 
 	var t := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -223,14 +273,12 @@ func _refresh() -> void:
 		_bottles[i].selected = (i == selected)
 	var used: int = puzzle.moves_used()
 	_moves_value.text = "%d / %d" % [used, move_limit]
-	_moves_value.add_theme_color_override("font_color", TropicalStyle.ACCENT if used > challenge.par else TropicalStyle.INK)
+	_moves_value.add_theme_color_override("font_color", Color("ff7a8a") if used > challenge.par else Color.WHITE)
 	_points_value.text = str(current_points())
 	if is_level():
-		_challenge_caption.text = "NÍVEL"
-		_challenge_value.text = str(challenge.level)
+		_challenge_value.text = tr("Nível %d") % challenge.level
 	else:
-		_challenge_caption.text = "DESAFIO"
-		_challenge_value.text = "%d / %d" % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
+		_challenge_value.text = tr("Desafio %d / %d") % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
 	var diff: String = challenge.difficulty
 	_subtitle.text = tr("%s · vale %d pontos") % [tr(Rules.DIFFICULTY_NAMES[diff]), challenge.full_points]
 	_extra_button.disabled = not out_of_moves()
@@ -315,7 +363,8 @@ func _finish() -> void:
 		var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
 		if points < challenge.full_points:
 			level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
-		dialog.open("Na Lata!", level_text, [
+		_celebrate()
+		dialog.open(win_title(points, challenge.full_points), level_text, [
 			["Próximo nível", func() -> void: next_level_requested.emit(), true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
@@ -334,4 +383,41 @@ func _finish() -> void:
 	if points < challenge.full_points:
 		buttons.append(["Tentar melhorar", _restart_with_ad])
 	buttons.append(["Menu", func() -> void: back_requested.emit()])
-	dialog.open("Na Lata!", text, buttons)
+	_celebrate()
+	dialog.open(win_title(points, challenge.full_points), text, buttons)
+
+
+## "Perfeito!" com a pontuação cheia; senão "Muito bem!".
+static func win_title(points: int, full_points: int) -> String:
+	return "Perfeito!" if points >= full_points else "Muito bem!"
+
+
+## Confete colorido caindo do alto da tela.
+func _celebrate() -> void:
+	if not animate or not is_inside_tree():
+		return
+	var p := CPUParticles2D.new()
+	p.position = Vector2(size.x * 0.5, -20)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(size.x * 0.5, 10)
+	p.amount = 90
+	p.lifetime = 2.6
+	p.one_shot = true
+	p.explosiveness = 0.85
+	p.direction = Vector2(0, 1)
+	p.spread = 25
+	p.initial_velocity_min = 260
+	p.initial_velocity_max = 520
+	p.gravity = Vector2(0, 420)
+	p.angular_velocity_min = -360
+	p.angular_velocity_max = 360
+	p.scale_amount_min = 8
+	p.scale_amount_max = 16
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+	ramp.colors = PackedColorArray([GameStyle.LIQUIDS[0], GameStyle.LIQUIDS[1], GameStyle.LIQUIDS[2], GameStyle.LIQUIDS[3], GameStyle.LIQUIDS[4], GameStyle.LIQUIDS[5]])
+	p.color_initial_ramp = ramp
+	p.z_index = 50
+	add_child(p)
+	p.emitting = true
+	get_tree().create_timer(3.5).timeout.connect(p.queue_free)

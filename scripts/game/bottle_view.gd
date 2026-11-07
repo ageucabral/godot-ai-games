@@ -6,7 +6,7 @@ extends Control
 signal tapped(index: int)
 
 const LIFT: float = 34.0
-const MOUTH := Vector2(30, 6)       # boca da garrafa na grade 60 x 160
+const MOUTH := Vector2(30, 4)       # boca do frasco na grade 60 x 160
 const PIVOT := Vector2(30, 80)      # centro de giro ao inclinar
 
 var index: int = 0
@@ -58,7 +58,7 @@ func _ready() -> void:
 
 
 func set_bottle_width(w: float) -> void:
-	custom_minimum_size = Vector2(w, w * TropicalStyle.DESIGN_SIZE.y / TropicalStyle.DESIGN_SIZE.x + LIFT)
+	custom_minimum_size = Vector2(w, w * GameStyle.DESIGN_SIZE.y / GameStyle.DESIGN_SIZE.x + LIFT)
 
 
 ## Monta as camadas a partir de uma garrafa do quebra-cabeça.
@@ -95,13 +95,13 @@ func _animate_lift() -> void:
 
 
 func design_scale() -> float:
-	return minf(size.x / TropicalStyle.DESIGN_SIZE.x, (size.y - LIFT) / TropicalStyle.DESIGN_SIZE.y)
+	return minf(size.x / GameStyle.DESIGN_SIZE.x, (size.y - LIFT) / GameStyle.DESIGN_SIZE.y)
 
 
 ## Transformação da grade 60 x 160 para a posição local (com elevação, giro e deslocamento).
 func design_transform(angle: float = pour_angle, offset: Vector2 = pour_offset, lift: float = _lift) -> Transform2D:
 	var s := design_scale()
-	var origin := Vector2((size.x - TropicalStyle.DESIGN_SIZE.x * s) * 0.5, LIFT - lift)
+	var origin := Vector2((size.x - GameStyle.DESIGN_SIZE.x * s) * 0.5, LIFT - lift)
 	var pivot := PIVOT * s
 	return Transform2D(0.0, origin + pivot + offset) * Transform2D(angle, Vector2.ZERO) \
 		* Transform2D(0.0, -pivot) * Transform2D(0.0, Vector2(s, s), 0.0, Vector2.ZERO)
@@ -117,61 +117,64 @@ func surface_global() -> Vector2:
 	var level := 0.0
 	for seg in segments:
 		level += seg[1]
-	var y := TropicalStyle.LIQUID_BOTTOM - level * layer_height()
+	var y := GameStyle.LIQUID_BOTTOM - level * layer_height()
 	return get_global_transform() * (design_transform(0.0, Vector2.ZERO, 0.0) * Vector2(30, y))
 
 
 func layer_height() -> float:
-	return (TropicalStyle.LIQUID_BOTTOM - TropicalStyle.LIQUID_TOP) / float(capacity)
+	return (GameStyle.LIQUID_BOTTOM - GameStyle.LIQUID_TOP) / float(capacity)
 
 
 func _draw() -> void:
 	var xf := design_transform()
 	draw_set_transform_matrix(xf)
-	var outline := TropicalStyle.bottle_outline()
+	var outline := GameStyle.bottle_outline()
 
-	# sombra no chão (só parada)
-	if _lift < 1.0 and pour_angle == 0.0:
-		draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(1, 0.25), 0.0, Vector2.ZERO))
-		draw_circle(Vector2(30, 620), 26, Color(TropicalStyle.INK, 0.12))
-		draw_set_transform_matrix(xf)
+	# brilho azul atrás do frasco escolhido
+	if _lift > 1.0:
+		draw_circle(Vector2(30, 96), 40, Color(0.55, 0.8, 1.0, 0.10 * _lift / LIFT))
 
-	draw_colored_polygon(outline, TropicalStyle.GLASS)
+	draw_colored_polygon(outline, GameStyle.GLASS)
 	var h := layer_height()
 	var level := 0.0
-	var font := get_theme_default_font()
+	var font := GameStyle.title_font()
 	for seg in segments:
 		var amount: float = seg[1]
 		if amount <= 0.001:
 			continue
-		var y_bottom := TropicalStyle.LIQUID_BOTTOM - level * h
-		var y_top := TropicalStyle.LIQUID_BOTTOM - (level + amount) * h
-		if level + amount >= capacity - 0.01:
-			y_top -= 2.0  # cobre a curva dos ombros
-		var col: Color = TropicalStyle.HIDDEN_LAYER if seg[2] else TropicalStyle.liquid_color(seg[0])
-		for poly in TropicalStyle.band_polygons(y_top, y_bottom + 0.5):
+		var y_bottom := GameStyle.LIQUID_BOTTOM - level * h
+		var y_top := GameStyle.LIQUID_BOTTOM - (level + amount) * h
+		var col: Color = GameStyle.HIDDEN_LAYER if seg[2] else GameStyle.liquid_color(seg[0])
+		for poly in GameStyle.band_polygons(y_top, y_bottom + 0.5):
 			draw_colored_polygon(poly, col)
+		# sombra na lateral direita (volume)
+		for poly in GameStyle.band_polygons(y_top, y_bottom + 0.5):
+			var shade := PackedVector2Array()
+			for v in poly:
+				shade.append(Vector2(maxf(v.x, 44.0), v.y))
+			draw_colored_polygon(shade, Color(0, 0, 0, 0.14))
 		if seg[2] and amount > 0.6:
-			draw_string(font, Vector2(0, (y_top + y_bottom) * 0.5 + 6), "?", HORIZONTAL_ALIGNMENT_CENTER, 60, 17, Color.WHITE)
+			draw_string(font, Vector2(0, (y_top + y_bottom) * 0.5 + 8), "?", HORIZONTAL_ALIGNMENT_CENTER, 60, 22, Color("c9c3ff"))
 		level += amount
-	if level > 0.01:  # brilho na superfície do líquido
-		var y := TropicalStyle.LIQUID_BOTTOM - level * h
-		for poly in TropicalStyle.band_polygons(y, y + 3):
-			draw_colored_polygon(poly, Color(1, 1, 1, 0.35))
+	if level > 0.01:  # superfície do líquido (elipse clara, dá a ideia de cilindro)
+		var y := GameStyle.LIQUID_BOTTOM - level * h
+		var top_col: Color = GameStyle.HIDDEN_LAYER if segments[-1][2] else GameStyle.liquid_color(segments[-1][0])
+		draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(1.0, 0.22), 0.0, Vector2(0, y * 0.78)))
+		draw_circle(Vector2(30, y), 23, top_col.lightened(0.28))
+		draw_set_transform_matrix(xf)
 
-	# reflexo do vidro
-	draw_rect(Rect2(13, 64, 4, 62), Color(1, 1, 1, 0.45))
-	draw_rect(Rect2(25, 10, 3, 18), Color(1, 1, 1, 0.45))
+	# reflexos do vidro
+	draw_rect(Rect2(11, 50, 4, 70), Color(1, 1, 1, 0.35))
+	draw_rect(Rect2(11, 126, 4, 10), Color(1, 1, 1, 0.25))
+	draw_rect(Rect2(24, 6, 3, 14), Color(1, 1, 1, 0.35))
 
 	var closed := outline.duplicate()
 	closed.append(outline[0])
-	draw_polyline(closed, TropicalStyle.INK, 2.6, true)
-
-	# tampinha vermelha (sai durante o despejo)
-	if pour_angle == 0.0 and not cap_open:
-		var cap := Rect2(19, 1, 22, 8)
-		draw_rect(cap, TropicalStyle.ACCENT)
-		draw_rect(cap, TropicalStyle.INK, false, 2.2)
+	draw_polyline(closed, Color(GameStyle.GLASS_EDGE, 0.35), 6.0, true)
+	draw_polyline(closed, GameStyle.GLASS_EDGE, 2.4, true)
+	# borda do gargalo
+	draw_rect(Rect2(18, 3, 24, 6), Color("2a3a7a"))
+	draw_rect(Rect2(18, 3, 24, 6), GameStyle.GLASS_EDGE, false, 2.0)
 
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if stream_on:

@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/game/game_screen.gd" id="1_screen"]
-[ext_resource type="Texture2D" path="res://assets/ui/azulejo_tile.svg" id="2_tile"]
+[ext_resource type="Script" path="res://scripts/ui/icon_button.gd" id="2_icon"]
+[ext_resource type="Script" path="res://scripts/ui/booster_button.gd" id="3_booster"]
+[ext_resource type="Script" path="res://scripts/ui/coin_icon.gd" id="4_coin"]
 
 [node name="GameScreen" type="Control"]
 layout_mode = 3
@@ -12,152 +14,139 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_screen")
 
-[node name="Background" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(1, 0.905882, 0.690196, 1)
-
-[node name="Tiles" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("2_tile")
-expand_mode = 1
-stretch_mode = 1
-
 [node name="Layout" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = 56.0
-offset_right = -28.0
-offset_bottom = -48.0
+offset_left = 24.0
+offset_top = 48.0
+offset_right = -24.0
+offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 16
 
-[node name="Hud" type="HBoxContainer" parent="Layout"]
+[node name="TopBar" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 18
 
-[node name="MenuButton" type="Button" parent="Layout/Hud"]
+[node name="PointsPill" type="PanelContainer" parent="Layout/TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Row" type="HBoxContainer" parent="Layout/TopBar/PointsPill"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Coin" type="Control" parent="Layout/TopBar/PointsPill/Row"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4_coin")
+
+[node name="PointsValue" type="Label" parent="Layout/TopBar/PointsPill/Row"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "Menu"
-
-[node name="ChallengeChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-
-[node name="Box" type="VBoxContainer" parent="Layout/Hud/ChallengeChip"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Caption" type="Label" parent="Layout/Hud/ChallengeChip/Box"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "DESAFIO"
-horizontal_alignment = 1
-
-[node name="ChallengeValue" type="Label" parent="Layout/Hud/ChallengeChip/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "1 / 20"
-horizontal_alignment = 1
-
-[node name="MovesChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-
-[node name="Box" type="VBoxContainer" parent="Layout/Hud/MovesChip"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Caption" type="Label" parent="Layout/Hud/MovesChip/Box"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "JOGADAS"
-horizontal_alignment = 1
-
-[node name="MovesValue" type="Label" parent="Layout/Hud/MovesChip/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "0 / 0"
-horizontal_alignment = 1
-
-[node name="PointsChip" type="PanelContainer" parent="Layout/Hud"]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-
-[node name="Box" type="VBoxContainer" parent="Layout/Hud/PointsChip"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Caption" type="Label" parent="Layout/Hud/PointsChip/Box"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "PONTOS"
-horizontal_alignment = 1
-
-[node name="PointsValue" type="Label" parent="Layout/Hud/PointsChip/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 38
 text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="Layout/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MenuButton" type="Button" parent="Layout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("2_icon")
+
+[node name="PlateRow" type="CenterContainer" parent="Layout"]
+layout_mode = 2
+
+[node name="LevelPlate" type="PanelContainer" parent="Layout/PlateRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+
+[node name="ChallengeValue" type="Label" parent="Layout/PlateRow/LevelPlate"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+text = "Nível 1"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Layout"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "Fácil · 10 pontos"
+theme_override_font_sizes/font_size = 28
+text = "Fácil · vale 2 pontos"
 horizontal_alignment = 1
+
+[node name="MovesRow" type="CenterContainer" parent="Layout"]
+layout_mode = 2
+
+[node name="MovesChip" type="PanelContainer" parent="Layout/MovesRow"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Layout/MovesRow/MovesChip"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Caption" type="Label" parent="Layout/MovesRow/MovesChip/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "JOGADAS"
+vertical_alignment = 1
+
+[node name="MovesValue" type="Label" parent="Layout/MovesRow/MovesChip/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "0 / 0"
+vertical_alignment = 1
 
 [node name="Board" type="VBoxContainer" parent="Layout"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
-theme_override_constants/separation = 28
+theme_override_constants/separation = 40
 
 [node name="RowTop" type="HBoxContainer" parent="Layout/Board"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 24
+theme_override_constants/separation = 20
 
 [node name="RowBottom" type="HBoxContainer" parent="Layout/Board"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 24
+theme_override_constants/separation = 20
 
-[node name="Actions" type="HBoxContainer" parent="Layout"]
+[node name="BoosterRow" type="CenterContainer" parent="Layout"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 16
 
-[node name="RestartButton" type="Button" parent="Layout/Actions"]
+[node name="BoosterBar" type="PanelContainer" parent="Layout/BoosterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Layout/BoosterRow/BoosterBar"]
+layout_mode = 2
+theme_override_constants/separation = 36
+
+[node name="RestartButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Recomeçar"
+script = ExtResource("3_booster")
 
-[node name="ExtraButton" type="Button" parent="Layout/Actions"]
+[node name="ExtraButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"MainButton"
 text = "+5 jogadas"
+script = ExtResource("3_booster")

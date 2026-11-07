@@ -1,6 +1,8 @@
 extends Control
-## Cena principal: troca entre o menu, os desafios do dia, a partida e o ranking.
+## Cena principal: hub Na Lata (lista de jogos) e, no Poção de Cores, o menu, os desafios do dia,
+## a partida e o ranking.
 
+@onready var hub: Control = $Hub
 @onready var home: Control = $Home
 @onready var daily: Control = $Daily
 @onready var game: Control = $Game
@@ -12,10 +14,12 @@ var _return_screen: Control
 
 
 func _ready() -> void:
-	theme = TropicalStyle.build_theme()
+	theme = GameStyle.build_theme()
 	dialog = DialogBox.new()
 	add_child(dialog)
 	_return_screen = home
+	hub.game_requested.connect(func(_id: String) -> void: show_screen(home))
+	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
 	home.daily_requested.connect(func() -> void: show_screen(daily))
 	home.ranking_requested.connect(func() -> void: show_screen(ranking))
@@ -25,11 +29,11 @@ func _ready() -> void:
 	game.next_requested.connect(request_play)
 	game.next_level_requested.connect(play_level)
 	ranking.back_requested.connect(func() -> void: show_screen(home))
-	show_screen(home)
+	show_screen(hub)
 
 
 func show_screen(screen: Control) -> void:
-	for s in [home, daily, game, ranking]:
+	for s in [hub, home, daily, game, ranking]:
 		s.visible = (s == screen)
 	if screen.has_method("refresh"):
 		screen.refresh()

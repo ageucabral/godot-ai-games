@@ -15,8 +15,8 @@ var _legend_labels: Array[Label] = []
 
 
 func _ready() -> void:
-	theme = TropicalStyle.build_theme()
-	TropicalStyle.add_background(self)
+	theme = GameStyle.build_theme()
+	GameStyle.add_background(self, "night")
 	_build()
 	date = GameState.today()
 	GameState.progress_changed.connect(refresh)
@@ -38,21 +38,21 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 18)
 	add_child(box)
 
-	var back := TropicalStyle.make_button("Voltar", false, 28)
+	var back := GameStyle.make_button("Voltar", false, 28)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	back.pressed.connect(func() -> void: back_requested.emit())
 	box.add_child(back)
-	box.add_child(TropicalStyle.make_label("Desafios do dia", 64, true, TropicalStyle.ACCENT))
-	day_label = TropicalStyle.make_label("", 34, true)
+	box.add_child(GameStyle.make_title("Desafios do dia", 64, GameStyle.GOLD))
+	day_label = GameStyle.make_title("", 34)
 	box.add_child(day_label)
 
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", TropicalStyle.card_box())
+	card.add_theme_stylebox_override("panel", GameStyle.card_box())
 	box.add_child(card)
 	var card_box := VBoxContainer.new()
 	card_box.add_theme_constant_override("separation", 14)
 	card.add_child(card_box)
-	progress_label = TropicalStyle.make_label("", 30)
+	progress_label = GameStyle.make_label("", 30)
 	card_box.add_child(progress_label)
 	grid = GridContainer.new()
 	grid.columns = 5
@@ -76,30 +76,30 @@ func _build() -> void:
 		swatch.custom_minimum_size = Vector2(22, 22)
 		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = TropicalStyle.DIFFICULTY_COLORS[diff]
-		sb.border_color = TropicalStyle.INK
+		sb.bg_color = GameStyle.DIFFICULTY_COLORS[diff]
+		sb.border_color = GameStyle.INK
 		sb.set_border_width_all(3)
 		sb.set_corner_radius_all(6)
 		swatch.add_theme_stylebox_override("panel", sb)
 		item.add_child(swatch)
-		var legend_label := TropicalStyle.make_label("", 22)
+		var legend_label := GameStyle.make_label("", 22)
 		legend_label.set_meta("difficulty", diff)
 		item.add_child(legend_label)
 		_legend_labels.append(legend_label)
 		legend.add_child(item)
 	card_box.add_child(legend)
 
-	play_button = TropicalStyle.make_button("", true, 40)
-	play_button.add_theme_font_override("font", TropicalStyle.title_font())
+	play_button = GameStyle.make_button("", true, 40)
+	play_button.add_theme_font_override("font", GameStyle.title_font())
 	play_button.pressed.connect(_on_play_pressed)
 	box.add_child(play_button)
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(spacer)
-	month_label = TropicalStyle.make_label("", 26)
+	month_label = GameStyle.make_title("", 26)
 	box.add_child(month_label)
-	countdown_label = TropicalStyle.make_label("", 24)
+	countdown_label = GameStyle.make_title("", 24)
 	box.add_child(countdown_label)
 
 
@@ -122,7 +122,7 @@ func refresh() -> void:
 		var r := GameState.result(key)
 		var cell: Button = grid.get_child(i)
 		var diff := Rules.difficulty_for(i)
-		_style_cell(cell, TropicalStyle.DIFFICULTY_COLORS[diff], r.completed)
+		_style_cell(cell, GameStyle.DIFFICULTY_COLORS[diff], r.completed)
 		if r.completed:
 			done += 1
 			cell.text = "%d pts" % r.best_points
@@ -165,11 +165,11 @@ func _style_cell(cell: Button, fill: Color, done: bool) -> void:
 			b.bg_color = b.bg_color.darkened(0.1)
 		if state == "focus":
 			b.draw_center = false
-		b.border_color = TropicalStyle.INK if state != "focus" else Color(TropicalStyle.INK, 0.0)
+		b.border_color = GameStyle.INK if state != "focus" else Color(GameStyle.INK, 0.0)
 		b.set_border_width_all(4)
 		b.set_corner_radius_all(18)
 		cell.add_theme_stylebox_override(state, b)
-	cell.add_theme_color_override("font_color", TropicalStyle.INK)
-	cell.add_theme_color_override("font_hover_color", TropicalStyle.INK)
-	cell.add_theme_color_override("font_pressed_color", TropicalStyle.INK)
-	cell.add_theme_color_override("font_focus_color", TropicalStyle.INK)
+	cell.add_theme_color_override("font_color", GameStyle.INK)
+	cell.add_theme_color_override("font_hover_color", GameStyle.INK)
+	cell.add_theme_color_override("font_pressed_color", GameStyle.INK)
+	cell.add_theme_color_override("font_focus_color", GameStyle.INK)

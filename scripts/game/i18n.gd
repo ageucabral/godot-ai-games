@@ -103,6 +103,21 @@ const STRINGS := {
 	"PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d": [
 		"AD\n(simulation)\n\nThe AdMob ad will show here.\n\n%d",
 		"ANUNCIO\n(simulación)\n\nAquí aparecerá el anuncio de AdMob.\n\n%d"],
+	# hub e visual novo
+	"Poção de Cores": ["Color Potion", "Poción de Colores"],
+	"Escolha um jogo": ["Choose a game", "Elige un juego"],
+	"Jogar": ["Play", "Jugar"],
+	"Em breve": ["Coming soon", "Muy pronto"],
+	"Novo jogo": ["New game", "Nuevo juego"],
+	"Jogos": ["Games", "Juegos"],
+	"Ranking": ["Ranking", "Ranking"],
+	"Início": ["Home", "Inicio"],
+	"Desafios": ["Challenges", "Desafíos"],
+	"Perfil": ["Profile", "Perfil"],
+	"Pausa": ["Pause", "Pausa"],
+	"Perfeito!": ["Perfect!", "¡Perfecto!"],
+	"Muito bem!": ["Well done!", "¡Muy bien!"],
+	"Desafio %d / %d": ["Challenge %d / %d", "Desafío %d / %d"],
 	# datas
 	"{day} de {month}": ["{month} {day}", "{day} de {month}"],
 	"janeiro": ["January", "enero"], "fevereiro": ["February", "febrero"], "março": ["March", "marzo"],

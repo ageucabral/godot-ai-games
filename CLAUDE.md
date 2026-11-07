@@ -97,7 +97,7 @@ no GitHub Pages a cada mudança na `main` (precisa do Pages ligado com origem "G
 Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre garrafinhas
 (Android / Google Play). Estilo visual escolhido: **Feira Tropical** (garrafinhas de vidro com
 tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + Nunito).
-Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/tropical_style.gd`.
+Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/game_style.gd`.
 - `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
   +5 jogadas por propaganda, datas no horário de Brasília).
 - Só os desafios de HOJE podem ser jogados (Ageu, 7/11/2026); dias anteriores ficam encerrados.

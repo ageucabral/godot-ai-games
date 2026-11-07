@@ -35,7 +35,7 @@ func show_rewarded(on_reward: Callable) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_override("font", TropicalStyle.body_font(800))
+	label.add_theme_font_override("font", GameStyle.body_font(800))
 	label.add_theme_font_size_override("font_size", 34)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	shade.add_child(label)
