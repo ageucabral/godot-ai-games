@@ -96,7 +96,7 @@ func test_level_continue_without_points_does_not_nag() -> void:
 	var level := SPARE.duplicate(true)
 	level.mode = "level"
 	level.level = 1
-	level.full_points = Rules.LEVEL_POINTS
+	level.full_points = 2  # poucos pontos, para zerar rápido
 	screen.open_with(level)
 	for pair in [[0, 2], [2, 3], [3, 2]]:
 		screen.tap_bottle(pair[0])
@@ -184,3 +184,29 @@ func test_win_title_depends_on_points() -> void:
 	assert_eq(game_screen.win_title(10, 10), "Perfeito!")
 	assert_eq(game_screen.win_title(7, 10), "Muito bem!")
 	assert_eq(game_screen.win_title(0, 2), "Muito bem!")
+
+
+func test_covered_bottle_cannot_be_used_until_color_done() -> void:
+	# garrafa 3 coberta, abre quando a cor 1 ficar completa
+	var data := {"date": "2026-11-07", "index": 0, "difficulty": "medium", "full_points": 6,
+		"par": 3, "hidden": false, "tubes": [[0, 0, 0, 1], [1, 1, 1, 0], [], [2, 2, 2, 2]], "covers": [-1, -1, -1, 1]}
+	screen.open_with(data)
+	screen.tap_bottle(3)
+	assert_eq(screen.selected, -1, "coberta não pode ser escolhida")
+	screen.tap_bottle(0)
+	screen.tap_bottle(3)
+	assert_eq(screen.puzzle.tubes[3], [2, 2, 2, 2], "coberta não recebe líquido")
+	assert_true(screen.puzzle.is_covered(3))
+	for pair in [[0, 2], [1, 0], [2, 1]]:
+		screen.tap_bottle(pair[0])
+		screen.tap_bottle(pair[1])
+	assert_false(screen.puzzle.is_covered(3), "completar a cor 1 tira o pano")
+
+
+func test_points_drop_live_after_par() -> void:
+	_waste_three_moves()
+	screen.dialog.press("+5 jogadas")
+	assert_eq(screen._points_value.text, "10")
+	screen.tap_bottle(2)
+	screen.tap_bottle(3)
+	assert_eq(screen._points_value.text, "9", "cada jogada a mais tira 1 na hora")

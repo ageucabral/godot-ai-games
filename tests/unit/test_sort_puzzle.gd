@@ -50,3 +50,30 @@ func test_solved() -> void:
 func test_min_moves_small() -> void:
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0, 0]]), 0, "já resolvido")
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0, 1], [1, 1, 1, 0], []]), 3)
+
+
+func test_cover_opens_when_key_color_completes() -> void:
+	var p := SortPuzzle.new([[0, 0, 0], [0], [1, 1, 1, 1]], false, [-1, -1, 0])
+	assert_false(p.can_pour(1, 2), "coberta não recebe")
+	assert_false(p.can_pour(2, 1), "coberta não dá")
+	p.pour(1, 0)
+	assert_false(p.is_covered(2), "completou a cor 0: abriu")
+	assert_eq(p.last_revealed, [2])
+
+
+func test_two_covers_same_color_open_one_at_a_time() -> void:
+	var covers := [-1, -1, -1, -1, 0, 0]
+	var p := SortPuzzle.new([[0, 0, 0], [0], [0, 0, 0], [0], [2], [3]], false, covers)
+	p.pour(1, 0)
+	assert_eq(p.last_revealed, [4], "1ª garrafa completa abre o 1º pano")
+	assert_true(p.is_covered(5))
+	p.pour(3, 2)
+	assert_eq(p.last_revealed, [5], "2ª garrafa completa abre o 2º pano")
+
+
+func test_solver_respects_covers() -> void:
+	# com o pano, a garrafa coberta só entra no jogo depois de completar a cor 0
+	var tubes := [[0, 0, 0, 1], [1, 1, 1, 0], []]
+	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [0], [1, 1, 1, 1]], 1000, [-1, -1, 0]), 1)
+	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [1], [1, 1, 1, 0]], 1000, [-1, -1, 0]), -1, "a chave está debaixo do pano")
+	assert_true(SortPuzzle.min_moves(tubes) > 0)

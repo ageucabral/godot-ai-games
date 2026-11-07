@@ -40,7 +40,6 @@ const STRINGS := {
 	"Fácil": ["Easy", "Fácil"],
 	"Médio": ["Medium", "Medio"],
 	"Difícil": ["Hard", "Difícil"],
-	"%s · %d pts": ["%s · %d pts", "%s · %d pts"],
 	# perfil e configurações
 	"Seu perfil": ["Your profile", "Tu perfil"],
 	"Nível atual: %d\nPontos em %s: %d\nDesafios de hoje: %d de %d": [
@@ -58,9 +57,9 @@ const STRINGS := {
 	"Entrar com Google (em breve)": ["Sign in with Google (soon)", "Entrar con Google (pronto)"],
 	"Entrar com Facebook (em breve)": ["Sign in with Facebook (soon)", "Entrar con Facebook (pronto)"],
 	"Como jogar": ["How to play", "Cómo jugar"],
-	"Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nNíveis: sem fim, cada vez mais difíceis, valem %d pontos cada.\nDesafios do dia: 20 novos à meia-noite, valem 10, 25 ou 50 pontos.\nCada jogada além do número exato tira 1 ponto.": [
-		"Tap a bottle, then another one to pour. You can only pour onto the same color or into an empty bottle. Leave each bottle with a single color.\n\nLevels: endless, harder and harder, worth %d points each.\nDaily challenges: 20 new ones at midnight, worth 10, 25 or 50 points.\nEach move beyond the exact number costs 1 point.",
-		"Toca una botella y luego otra para verter. Solo puedes verter sobre el mismo color o en una botella vacía. Deja cada botella con un solo color.\n\nNiveles: infinitos, cada vez más difíciles, valen %d puntos cada uno.\nDesafíos del día: 20 nuevos a medianoche, valen 10, 25 o 50 puntos.\nCada jugada más allá del número exacto quita 1 punto."],
+	"Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nCada fase vale o dobro das jogadas necessárias: se pede 11 jogadas, vale 22 pontos.\nCada jogada além disso tira 1 ponto, e você vê o placar caindo na hora.\n\nNíveis: sem fim, cada vez mais difíceis.\nDesafios do dia: 20 novos à meia-noite.": [
+		"Tap a bottle, then another one to pour. You can only pour onto the same color or into an empty bottle. Leave each bottle with a single color.\n\nEach stage is worth twice the moves it needs: if it needs 11 moves, it is worth 22 points.\nEach extra move costs 1 point, and you see the score drop right away.\n\nLevels: endless, harder and harder.\nDaily challenges: 20 new ones at midnight.",
+		"Toca una botella y luego otra para verter. Solo puedes verter sobre el mismo color o en una botella vacía. Deja cada botella con un solo color.\n\nCada fase vale el doble de las jugadas necesarias: si pide 11 jugadas, vale 22 puntos.\nCada jugada de más quita 1 punto, y ves el marcador bajar al instante.\n\nNiveles: infinitos, cada vez más difíciles.\nDesafíos del día: 20 nuevos a medianoche."],
 	"Fechar": ["Close", "Cerrar"],
 	"Entendi": ["Got it", "Entendido"],
 	# partida
