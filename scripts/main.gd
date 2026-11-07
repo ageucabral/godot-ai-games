@@ -27,8 +27,14 @@ func show_screen(screen: Control) -> void:
 		screen.refresh()
 
 
-## Abre um desafio. A primeira tentativa é grátis; as próximas pedem propaganda.
+## Abre um desafio de hoje. A primeira tentativa é grátis; as próximas pedem propaganda.
 func request_play(date: String, index: int) -> void:
+	if date != GameState.today():
+		# só os desafios de hoje podem ser jogados
+		dialog.open("Desafio encerrado", "Este desafio era de %s. Agora só valem os desafios de hoje." % Rules.pretty_date(date), [
+			["Ver desafios de hoje", func() -> void: show_screen(home), true],
+		])
+		return
 	var key := ChallengeGenerator.key_for(date, index)
 	if GameState.attempts(key) == 0:
 		_start(date, index)

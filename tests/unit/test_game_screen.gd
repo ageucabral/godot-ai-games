@@ -14,6 +14,7 @@ var screen: Control
 func before_each() -> void:
 	GameState.save_path = "user://test_progress_screen.cfg"
 	GameState.reset_all()
+	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
 	screen = load("res://scenes/game/game_screen.tscn").instantiate()
 	screen.animate = false
@@ -23,6 +24,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	screen.free()
+	GameState.fixed_unix = -1
 	Ads.instant = false
 
 
@@ -99,6 +101,21 @@ func test_restart_needs_ad_and_new_attempt() -> void:
 	assert_eq(screen.puzzle.moves_used(), 0)
 
 
+func test_restart_after_midnight_is_closed() -> void:
+	screen.open_challenge("2026-11-07", 0)
+	GameState.fixed_unix += 86400  # virou o dia com a partida aberta
+	screen.get_node("%RestartButton").pressed.emit()
+	screen.dialog.press("Assistir e recomeçar")
+	assert_eq(screen.dialog.title_label.text, "Desafio encerrado")
+	assert_eq(GameState.attempts("2026-11-07#0"), 1, "não gasta tentativa de dia encerrado")
+
+
+func test_open_challenge_from_past_day_is_refused() -> void:
+	screen.open_challenge("2026-11-06", 0)
+	assert_eq(GameState.attempts("2026-11-06#0"), 0)
+	assert_true(screen.dialog.visible, "avisa que acabou")
+
+
 func test_flow_segments_halfway() -> void:
 	var segs: Array = screen.flow_segments([[0, 1.0, false], [1, 1.0, false]], [], 1, 1, 0.5)
 	assert_eq(segs[0], [[0, 1.0, false], [1, 0.5, false]], "origem pela metade")
@@ -122,3 +139,16 @@ func test_next_skips_solved_challenges() -> void:
 	for i in Rules.DAILY_COUNT:
 		GameState.save_result("2026-11-07#%d" % i, 1, 5)
 	assert_eq(screen.next_unsolved_after("2026-11-07", 0), -1, "todos resolvidos")
+
+
+func test_touch_plus_emulated_click_selects_once() -> void:
+	# No Android um toque gera InputEventScreenTouch e também um clique emulado.
+	var bottle: BottleView = screen.get_node("%RowTop").get_child(0)
+	var touch := InputEventScreenTouch.new()
+	touch.pressed = true
+	bottle._gui_input(touch)
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	bottle._gui_input(click)
+	assert_eq(screen.selected, 0, "garrafa escolhida (não foi solta logo em seguida)")

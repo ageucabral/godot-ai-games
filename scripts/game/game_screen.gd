@@ -44,6 +44,8 @@ func _ready() -> void:
 ## Abre um desafio do dia e começa uma tentativa nova.
 ## (Quem chama decide se a tentativa precisa de propaganda; veja main.gd.)
 func open_challenge(date: String, index: int) -> void:
+	if _show_if_closed(date):
+		return  # o dia virou (ex.: durante a propaganda): não abre nem gasta tentativa
 	var data := ChallengeGenerator.generate(date, index)
 	if data.is_empty():
 		# o gerador falhou: volta ao menu sem gastar a tentativa
@@ -216,6 +218,8 @@ func _on_restart_pressed() -> void:
 
 
 func _restart_with_ad() -> void:
+	if _show_if_closed(challenge.date):
+		return  # não pede propaganda para um desafio que já encerrou
 	Ads.show_rewarded(func() -> void: open_challenge(challenge.date, challenge.index))
 
 
@@ -238,6 +242,16 @@ func _show_zero_points() -> void:
 		["Recomeçar", _restart_with_ad, true],
 		["Menu", func() -> void: back_requested.emit()],
 	])
+
+
+## Só os desafios de hoje podem ser jogados. Se o desafio é de outro dia, avisa e devolve true.
+func _show_if_closed(date: String) -> bool:
+	if date == GameState.today():
+		return false
+	dialog.open("Desafio encerrado", "Este desafio era de %s. Agora só valem os desafios de hoje." % Rules.pretty_date(date), [
+		["Ver desafios de hoje", func() -> void: back_requested.emit(), true],
+	])
+	return true
 
 
 ## Próximo desafio ainda não resolvido do mesmo dia, depois deste (dá a volta). -1 se não houver.

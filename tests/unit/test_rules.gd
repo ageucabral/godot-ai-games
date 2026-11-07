@@ -32,10 +32,7 @@ func test_brasilia_date() -> void:
 	assert_eq(Rules.seconds_to_next_day(NOON_BRT), 12 * 3600)
 
 
-func test_available_dates_and_month() -> void:
-	var dates := Rules.available_dates(NOON_BRT)
-	assert_eq(dates.size(), 7)
-	assert_eq(dates[0], "2026-11-01")
+func test_month() -> void:
 	assert_eq(Rules.month_for(NOON_BRT), "2026-11")
 	assert_eq(Rules.days_left_in_month(NOON_BRT), 24)
 	assert_eq(Rules.pretty_date("2026-11-07"), "7 de novembro")

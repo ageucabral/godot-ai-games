@@ -59,15 +59,6 @@ static func seconds_to_next_day(unix: int) -> int:
 	return 86400 - posmod(unix + BRASILIA_OFFSET_SECONDS, 86400)
 
 
-## Dias do mês atual com desafios liberados (do dia 1 até hoje).
-static func available_dates(unix: int) -> Array[String]:
-	var d := _local(unix)
-	var out: Array[String] = []
-	for day in range(1, d.day + 1):
-		out.append("%04d-%02d-%02d" % [d.year, d.month, day])
-	return out
-
-
 static func days_in_month(year: int, month: int) -> int:
 	if month == 2:
 		return 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28
