@@ -15,8 +15,8 @@
   (sem C#, sem GDExtension).
 - Renderizador **Compatibility** (`gl_compatibility`) — obrigatório para exportar para Web.
   Não troque para Forward+ ou Mobile.
-- Jogos **2D**. Resolução base 1280x720, `stretch/mode = canvas_items`, filtro de textura
-  "Nearest" (bom para pixel art; mude em `project.godot` se a arte for lisa).
+- Jogos **2D** para celular **em pé**: resolução base 720x1280, `stretch/mode = canvas_items`,
+  `aspect = expand`, filtro de textura "Linear" (a arte é lisa, não pixel art).
 - Exportação Web **sem threads** (`variant/thread_support=false`), para funcionar em
   qualquer hospedagem (ex.: GitHub Pages, itch.io) sem cabeçalhos especiais.
 
@@ -28,7 +28,8 @@ Se faltar, rode manualmente:
 
 ```bash
 tools/install_godot.sh              # motor (para testes)
-tools/install_godot.sh --templates  # + modelos de exportação Web (~1,3 GB de download)
+tools/install_godot.sh --templates  # + modelos de exportação Web e Android (~1,3 GB de download)
+tools/install_android_sdk.sh        # Android SDK mínimo (para gerar APK)
 ```
 
 ## Comandos do dia a dia
@@ -37,6 +38,7 @@ tools/install_godot.sh --templates  # + modelos de exportação Web (~1,3 GB de 
 | Rodar todos os testes | `tools/run_tests.sh` |
 | Rodar só alguns testes | `tools/run_tests.sh game_state` (filtra pelo nome do arquivo) |
 | Exportar para Web | `tools/export_web.sh` → `build/web/` |
+| Gerar APK de teste para Android | `tools/export_android.sh` → `build/android/na-lata-teste.apk` |
 | Abrir o jogo Web num navegador sem tela e tirar foto | `tools/web_smoke_test.sh` → `build/web_screenshot.png` |
 | Executar o Godot direto | `tools/godot.sh --headless --path . <args>` |
 
@@ -86,9 +88,15 @@ build/        Saída da exportação (ignorada pelo git)
   exportação, `tools/export_web.sh` + `tools/web_smoke_test.sh` e olhar a captura.
 
 ## Integração contínua
-`.github/workflows/godot.yml` roda testes e exportação Web a cada PR e guarda o jogo
-exportado como artefato `jogo-web`.
+`.github/workflows/godot.yml` roda testes e exportações a cada PR e guarda os artefatos
+`jogo-web` e `jogo-android` (APK de teste). `.github/workflows/pages.yml` publica a versão Web
+no GitHub Pages a cada mudança na `main` (precisa do Pages ligado com origem "GitHub Actions").
 
 ## Estado atual
-Apenas a base técnica está pronta. A cena `scenes/main/main.tscn` é provisória.
-O jogo definitivo ainda não foi definido.
+Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre garrafinhas
+(Android / Google Play). Estilo visual escolhido: **Feira Tropical** (garrafinhas de vidro com
+tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + Nunito).
+Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/tropical_style.gd`.
+- `scripts/game/sort_puzzle.gd`: regras (despejar, desfazer, vitória) e resolvedor `min_moves`.
+- `scenes/game/game_screen.tscn` (cena principal): partida com um desafio de exemplo.
+- Ainda não existem: menu dos 20 desafios do dia, ranking, login, anúncios (AdMob).

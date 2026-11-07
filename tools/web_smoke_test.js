@@ -1,12 +1,13 @@
 // Abre o jogo exportado (build/web) num navegador Chromium sem tela,
-// confere se o Godot iniciou sem erros e salva uma captura em build/web_screenshot.png.
+// confere se o Godot iniciou sem erros e salva uma captura em build/web_screenshot.png
+// (janela em pé, do tamanho de um celular).
 // Uso: tools/web_smoke_test.sh
 const { chromium } = require('playwright');
 const url = process.argv[2] || 'http://localhost:8060/index.html';
 const shot = process.argv[3] || 'build/web_screenshot.png';
 (async () => {
   const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const page = await browser.newPage({ viewport: { width: 432, height: 768 } });
   const logs = [];
   const errors = [];
   page.on('console', (m) => { logs.push(m.text()); if (m.type() === 'error') errors.push(m.text()); });

@@ -3,7 +3,7 @@
 #
 # Uso:
 #   tools/install_godot.sh              # só o editor/motor (para testes)
-#   tools/install_godot.sh --templates  # também os modelos de exportação Web
+#   tools/install_godot.sh --templates  # também os modelos de exportação Web e Android
 #
 # Instala em $GODOT_HOME (padrão: ~/.local/share/godot-ci) e cria o atalho
 # ~/.local/bin/godot. Se já estiver instalado na versão certa, não faz nada.
@@ -45,16 +45,16 @@ else
 fi
 ln -sf "$GODOT_HOME/$BIN_NAME" "$BIN_DIR/godot"
 
-# 2) Modelos de exportação (só os arquivos Web, para economizar espaço)
+# 2) Modelos de exportação (só Web e Android, para economizar espaço)
 if [[ $WANT_TEMPLATES -eq 1 ]]; then
-  if [[ -f "$TEMPLATES_DIR/web_nothreads_release.zip" ]]; then
-    echo "Modelos de exportação Web já instalados em $TEMPLATES_DIR"
+  if [[ -f "$TEMPLATES_DIR/web_nothreads_release.zip" && -f "$TEMPLATES_DIR/android_debug.apk" ]]; then
+    echo "Modelos de exportação Web e Android já instalados em $TEMPLATES_DIR"
   else
     tmp="$(mktemp -d)"
     echo "(o pacote de modelos tem ~1,3 GB; pode demorar alguns minutos)"
     download "$BASE_URL/Godot_v${TAG}_export_templates.tpz" "$tmp/templates.tpz" "$GODOT_TEMPLATES_SHA512"
     mkdir -p "$TEMPLATES_DIR"
-    unzip -q -o -j "$tmp/templates.tpz" 'templates/web*' 'templates/version.txt' -d "$TEMPLATES_DIR"
+    unzip -q -o -j "$tmp/templates.tpz" 'templates/web*' 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/version.txt' -d "$TEMPLATES_DIR"
     rm -rf "$tmp"
   fi
 fi

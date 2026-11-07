@@ -1,0 +1,47 @@
+name: Publicar jogo Web no GitHub Pages
+
+# Publica a versão Web a cada mudança na main (ou manualmente).
+# Precisa do GitHub Pages ligado no repositório com a origem "GitHub Actions".
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache do Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot-ci
+            ~/.local/share/godot/export_templates
+          key: godot-${{ hashFiles('tools/godot_version.env', 'tools/install_godot.sh') }}
+
+      - name: Exportar para Web
+        run: tools/export_web.sh
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

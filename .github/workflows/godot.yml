@@ -1,4 +1,4 @@
-name: Godot - testes e exportação Web
+name: Godot - testes, Web e Android
 
 on:
   push:
@@ -19,9 +19,14 @@ jobs:
           path: |
             ~/.local/share/godot-ci
             ~/.local/share/godot/export_templates
-          key: godot-${{ hashFiles('tools/godot_version.env') }}
+          key: godot-${{ hashFiles('tools/godot_version.env', 'tools/install_godot.sh') }}
 
-      - name: Instalar Godot e modelos Web
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Godot e modelos Web/Android
         run: tools/install_godot.sh --templates
 
       - name: Rodar testes automatizados
@@ -35,3 +40,12 @@ jobs:
         with:
           name: jogo-web
           path: build/web
+
+      - name: Gerar APK de teste (Android)
+        run: tools/export_android.sh
+
+      - name: Guardar o APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: jogo-android
+          path: build/android/na-lata-teste.apk

@@ -1,0 +1,209 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/game/game_screen.gd" id="1_screen"]
+[ext_resource type="Texture2D" path="res://assets/ui/azulejo_tile.svg" id="2_tile"]
+
+[node name="GameScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_screen")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.905882, 0.690196, 1)
+
+[node name="Tiles" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_tile")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 56.0
+offset_right = -28.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 18
+
+[node name="Hud" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="ChallengeChip" type="PanelContainer" parent="Layout/Hud"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Layout/Hud/ChallengeChip"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Layout/Hud/ChallengeChip/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "DESAFIO"
+horizontal_alignment = 1
+
+[node name="ChallengeValue" type="Label" parent="Layout/Hud/ChallengeChip/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Exemplo"
+horizontal_alignment = 1
+
+[node name="MovesChip" type="PanelContainer" parent="Layout/Hud"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Layout/Hud/MovesChip"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Layout/Hud/MovesChip/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "JOGADAS"
+horizontal_alignment = 1
+
+[node name="MovesValue" type="Label" parent="Layout/Hud/MovesChip/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "0 / 0"
+horizontal_alignment = 1
+
+[node name="PointsChip" type="PanelContainer" parent="Layout/Hud"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Layout/Hud/PointsChip"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Layout/Hud/PointsChip/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PONTOS"
+horizontal_alignment = 1
+
+[node name="PointsValue" type="Label" parent="Layout/Hud/PointsChip/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "0"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Médio · 5 cores"
+horizontal_alignment = 1
+
+[node name="Board" type="VBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 28
+
+[node name="RowTop" type="HBoxContainer" parent="Layout/Board"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 34
+
+[node name="RowBottom" type="HBoxContainer" parent="Layout/Board"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 34
+
+[node name="Actions" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="UndoButton" type="Button" parent="Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Desfazer"
+
+[node name="RestartButton" type="Button" parent="Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Recomeçar"
+
+[node name="ExtraButton" type="Button" parent="Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MainButton"
+text = "+5 jogadas"
+
+[node name="WinOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.227451, 0.133333, 0.0745098, 0.55)
+
+[node name="Center" type="CenterContainer" parent="WinOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="WinOverlay/Center"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="WinOverlay/Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="WinTitle" type="Label" parent="WinOverlay/Center/Card/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.262745, 0.184314, 1)
+theme_override_font_sizes/font_size = 84
+text = "Na Lata!"
+horizontal_alignment = 1
+
+[node name="WinText" type="Label" parent="WinOverlay/Center/Card/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="PlayAgainButton" type="Button" parent="WinOverlay/Center/Card/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MainButton"
+text = "Jogar de novo"
