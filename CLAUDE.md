@@ -28,7 +28,8 @@ Se faltar, rode manualmente:
 
 ```bash
 tools/install_godot.sh              # motor (para testes)
-tools/install_godot.sh --templates  # + modelos de exportação Web (~1,3 GB de download)
+tools/install_godot.sh --templates  # + modelos de exportação Web e Android (~1,3 GB de download)
+tools/install_android_sdk.sh        # Android SDK mínimo (para gerar APK)
 ```
 
 ## Comandos do dia a dia
@@ -37,6 +38,7 @@ tools/install_godot.sh --templates  # + modelos de exportação Web (~1,3 GB de 
 | Rodar todos os testes | `tools/run_tests.sh` |
 | Rodar só alguns testes | `tools/run_tests.sh game_state` (filtra pelo nome do arquivo) |
 | Exportar para Web | `tools/export_web.sh` → `build/web/` |
+| Gerar APK de teste para Android | `tools/export_android.sh` → `build/android/na-lata-teste.apk` |
 | Abrir o jogo Web num navegador sem tela e tirar foto | `tools/web_smoke_test.sh` → `build/web_screenshot.png` |
 | Executar o Godot direto | `tools/godot.sh --headless --path . <args>` |
 
@@ -86,8 +88,9 @@ build/        Saída da exportação (ignorada pelo git)
   exportação, `tools/export_web.sh` + `tools/web_smoke_test.sh` e olhar a captura.
 
 ## Integração contínua
-`.github/workflows/godot.yml` roda testes e exportação Web a cada PR e guarda o jogo
-exportado como artefato `jogo-web`.
+`.github/workflows/godot.yml` roda testes e exportações a cada PR e guarda os artefatos
+`jogo-web` e `jogo-android` (APK de teste). `.github/workflows/pages.yml` publica a versão Web
+no GitHub Pages a cada mudança na `main` (precisa do Pages ligado com origem "GitHub Actions").
 
 ## Estado atual
 Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre garrafinhas
