@@ -81,18 +81,18 @@ func test_past_days_cannot_be_played() -> void:
 func test_home_shows_level_and_daily_buttons() -> void:
 	var home: Control = main.get_node("Home")
 	assert_eq(home.level_button.text, "Nível 1")
-	assert_eq(home.daily_button.text, "Desafios do dia · 0/20")
-	assert_eq(home.podium.countdown, "23d 12h", "ranking acaba no fim de novembro")
+	assert_eq(home.daily_badge.counter, "0/20")
+	assert_eq(home.ranking_badge.caption, "23d 12h", "ranking acaba no fim de novembro")
 
 
 func test_home_follows_midnight_without_looping() -> void:
 	var home: Control = main.get_node("Home")
 	GameState.save_result("2026-11-07#0", 10, 5)
-	assert_eq(home.daily_button.text, "Desafios do dia · 1/20")
+	assert_eq(home.daily_badge.counter, "1/20")
 	# meia-noite em ponto: antes, refresh e a contagem se chamavam sem fim
 	GameState.fixed_unix = 1794106800
 	home.refresh()
-	assert_eq(home.daily_button.text, "Desafios do dia · 0/20")
+	assert_eq(home.daily_badge.counter, "0/20")
 	# app volta do segundo plano já depois da meia-noite: também percebe o dia novo
 	GameState.fixed_unix = 1794106800 + 86400 + 1800
 	home._update_countdown()
@@ -127,9 +127,9 @@ func test_finishing_level_unlocks_next_and_counts_in_ranking() -> void:
 
 func test_settings_language_switch() -> void:
 	var home: Control = main.get_node("Home")
-	home.open_settings()
+	Menus.open_settings(home.dialog)
 	assert_true(home.dialog.visible)
-	home.open_language()
+	Menus.open_language(home.dialog)
 	home.dialog.press("English")
 	assert_eq(GameState.language(), "en")
 	assert_eq(home.level_button.text, "Level 1")
@@ -185,3 +185,26 @@ func test_leaving_level_resumes_same_game() -> void:
 	game.back_requested.emit()
 	main.get_node("Home").level_requested.emit()
 	assert_eq(game.puzzle.moves_used(), 1, "voltar pelo Menu não recomeça de graça")
+
+
+func test_app_opens_on_hub_and_enters_game() -> void:
+	assert_true(main.get_node("Hub").visible, "abre no hub Na Lata")
+	main.get_node("Hub").cards["potion"].pressed.emit()
+	assert_true(main.get_node("Home").visible, "entra no Poção de Cores")
+	var splash: Node = null
+	for c in main.get_children():
+		if c is SplashOverlay:
+			splash = c
+	assert_not_null(splash, "mostra a tela de abertura")
+	splash.close()
+	main.get_node("Home").nav.tab_pressed.emit("games")
+	assert_true(main.get_node("Hub").visible, "aba Jogos volta ao hub")
+
+
+func test_pause_menu_returns_home() -> void:
+	main.get_node("Home").level_requested.emit()
+	var game: Control = main.get_node("Game")
+	game.get_node("%MenuButton").pressed.emit()
+	assert_eq(game.dialog.title_label.text, "Pausa")
+	game.dialog.press("Menu")
+	assert_true(main.get_node("Home").visible)

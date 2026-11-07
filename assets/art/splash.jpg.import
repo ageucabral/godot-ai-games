@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xtbtqfj8p0nj"
-path="res://.godot/imported/azulejo_tile.svg-b6910558304f371f8a3be17c516f2072.ctex"
+uid="uid://bn7puwddxdr5a"
+path="res://.godot/imported/splash.jpg-6f528c7a207362d9304eb979582f45af.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/azulejo_tile.svg"
-dest_files=["res://.godot/imported/azulejo_tile.svg-b6910558304f371f8a3be17c516f2072.ctex"]
+source_file="res://assets/art/splash.jpg"
+dest_files=["res://.godot/imported/splash.jpg-6f528c7a207362d9304eb979582f45af.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

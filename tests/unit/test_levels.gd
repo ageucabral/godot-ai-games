@@ -33,7 +33,7 @@ func test_difficulty_grows() -> void:
 		last_par = s.min_par
 	assert_false(Rules.level_setup(29).hidden)
 	assert_true(Rules.level_setup(30).hidden, "camadas escondidas a partir do 30")
-	assert_true(Rules.level_setup(1000).colors <= TropicalStyle.LIQUIDS.size(), "não passa das cores que existem")
+	assert_true(Rules.level_setup(1000).colors <= GameStyle.LIQUIDS.size(), "não passa das cores que existem")
 
 
 func test_levels_are_solvable() -> void:
@@ -61,7 +61,7 @@ func test_daily_puzzles_unchanged_by_new_color() -> void:
 	for i in Rules.DAILY_COUNT:
 		for tube in ChallengeGenerator.generate("2026-11-07", i).tubes:
 			for c in tube:
-				assert_true(c < TropicalStyle.DAILY_LIQUIDS)
+				assert_true(c < GameStyle.DAILY_LIQUIDS)
 
 
 func test_month_countdown() -> void:
@@ -71,6 +71,6 @@ func test_month_countdown() -> void:
 	assert_eq(Rules.seconds_to_month_end(1794063600 + 23 * 86400), 12 * 3600)
 
 
-func test_mascot_blinks() -> void:
-	assert_eq(MascotView.eyes_open(1.0), 1.0)
-	assert_true(MascotView.eyes_open(3.1) < 0.5)
+func test_mascot_floats_and_hops() -> void:
+	assert_eq(MascotView.float_offset(0.0, 0.0), 0.0)
+	assert_true(MascotView.float_offset(0.0, 1.0) < -40.0, "pulinho sobe")

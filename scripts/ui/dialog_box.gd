@@ -5,10 +5,11 @@ extends ColorRect
 var title_label: Label
 var text_label: Label
 var _buttons: VBoxContainer
+var _card: PanelContainer
 
 
 func _init() -> void:
-	color = Color(0.227, 0.133, 0.075, 0.55)
+	color = Color(0.06, 0.03, 0.18, 0.62)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
@@ -16,16 +17,43 @@ func _init() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(560, 0)
-	card.add_theme_stylebox_override("panel", TropicalStyle.card_box())
+	card.custom_minimum_size = Vector2(580, 0)
+	var card_style := GameStyle.card_box()
+	card_style.content_margin_top = 0
+	card_style.content_margin_left = 0
+	card_style.content_margin_right = 0
+	card_style.content_margin_bottom = 24
+	card.add_theme_stylebox_override("panel", card_style)
 	center.add_child(card)
+	_card = card
+	card.resized.connect(func() -> void: card.pivot_offset = card.size * 0.5)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 18)
+	card.add_child(outer)
+	var header := PanelContainer.new()
+	var head_style := StyleBoxFlat.new()
+	head_style.bg_color = GameStyle.PURPLE
+	head_style.corner_radius_top_left = 26
+	head_style.corner_radius_top_right = 26
+	head_style.border_color = GameStyle.INK
+	head_style.border_width_bottom = 5
+	head_style.content_margin_top = 14
+	head_style.content_margin_bottom = 14
+	head_style.content_margin_left = 20
+	head_style.content_margin_right = 20
+	header.add_theme_stylebox_override("panel", head_style)
+	outer.add_child(header)
+	title_label = GameStyle.make_title("", 58)
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	header.add_child(title_label)
+	var margin := MarginContainer.new()
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 28)
+	outer.add_child(margin)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
-	card.add_child(box)
-	title_label = TropicalStyle.make_label("", 64, true, TropicalStyle.ACCENT)
-	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(title_label)
-	text_label = TropicalStyle.make_label("", 30)
+	margin.add_child(box)
+	text_label = GameStyle.make_label("", 30)
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(text_label)
 	_buttons = VBoxContainer.new()
@@ -40,13 +68,19 @@ func open(title: String, text: String, buttons: Array) -> void:
 	for b in _buttons.get_children():
 		b.queue_free()
 	for spec in buttons:
-		var b := TropicalStyle.make_button(spec[0], spec[2] if spec.size() > 2 else false)
+		var b := GameStyle.make_button(spec[0], spec[2] if spec.size() > 2 else false, 32)
+		b.custom_minimum_size = Vector2(0, 92)
 		var action: Callable = spec[1]
 		b.pressed.connect(func() -> void:
 			close()
 			action.call())
 		_buttons.add_child(b)
+	text_label.visible = text != ""
 	visible = true
+	# entra com um pulinho
+	if is_inside_tree():
+		_card.scale = Vector2(0.85, 0.85)
+		create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_property(_card, "scale", Vector2.ONE, 0.22)
 
 
 func close() -> void:

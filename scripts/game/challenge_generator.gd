@@ -42,7 +42,7 @@ static func _generate(date: String, index: int) -> Dictionary:
 	rng.seed = seed_for(key_for(date, index))
 	var color_options: Array = setup.colors
 	var n_colors: int = color_options[index % color_options.size()]
-	var puzzle := build_puzzle(rng, n_colors, setup.empty, setup.min_par, TropicalStyle.DAILY_LIQUIDS, false)
+	var puzzle := build_puzzle(rng, n_colors, setup.empty, setup.min_par, GameStyle.DAILY_LIQUIDS, false)
 	if puzzle.is_empty():
 		push_error("Não consegui gerar o desafio %s" % key_for(date, index))
 		return {}

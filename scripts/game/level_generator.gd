@@ -30,7 +30,7 @@ static func _generate(level: int) -> Dictionary:
 	# um nível que nunca gera deixaria o jogador preso nele para sempre
 	for _try in 3:
 		puzzle = ChallengeGenerator.build_puzzle(rng, setup.colors, setup.empty, setup.min_par,
-			TropicalStyle.LIQUIDS.size(), true)
+			GameStyle.LIQUIDS.size(), true)
 		if not puzzle.is_empty():
 			break
 	if puzzle.is_empty():
