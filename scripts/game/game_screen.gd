@@ -30,6 +30,8 @@ var busy: bool = false
 var dialog: DialogBox
 var _bottles: Array[BottleView] = []
 var _finished: bool = false
+## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
+var _zero_accepted: bool = false
 var _pour_tween: Tween
 
 
@@ -66,6 +68,11 @@ func open_level(level: int) -> void:
 	open_with(data)
 
 
+## A partida aberta é este nível, ainda sem terminar (dá para continuar de onde parou).
+func can_resume_level(level: int) -> bool:
+	return is_level() and challenge.level == level and not _finished and puzzle != null
+
+
 func is_level() -> bool:
 	return challenge.get("mode", "daily") == "level"
 
@@ -80,6 +87,7 @@ func open_with(data: Dictionary) -> void:
 	selected = -1
 	busy = false
 	_finished = false
+	_zero_accepted = false
 	dialog.close()
 	_build_bottles()
 	_refresh()
@@ -187,7 +195,7 @@ func _after_pour() -> void:
 	_refresh()
 	if puzzle.is_solved():
 		_finish()
-	elif current_points() == 0:
+	elif current_points() == 0 and not _zero_accepted:
 		_show_zero_points()
 	elif out_of_moves():
 		_show_out_of_moves()
@@ -269,7 +277,7 @@ func _show_zero_points() -> void:
 		# nos níveis dá para terminar sem pontos e seguir em frente
 		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
 			["Recomeçar", _restart_with_ad, true],
-			["Continuar sem pontos", func() -> void: pass],
+			["Continuar sem pontos", func() -> void: _zero_accepted = true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
 		return

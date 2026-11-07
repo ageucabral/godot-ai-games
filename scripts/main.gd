@@ -36,10 +36,13 @@ func show_screen(screen: Control) -> void:
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).
+## Se o jogador saiu no meio do nível, volta para a mesma partida (recomeçar do zero pede propaganda).
 func play_level() -> void:
 	_return_screen = home
+	var resume: bool = game.can_resume_level(GameState.current_level())
 	show_screen(game)
-	game.open_level(GameState.current_level())
+	if not resume:
+		game.open_level(GameState.current_level())
 
 
 ## Abre um desafio de hoje. A primeira tentativa é grátis; as próximas pedem propaganda.

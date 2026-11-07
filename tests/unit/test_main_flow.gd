@@ -85,6 +85,20 @@ func test_home_shows_level_and_daily_buttons() -> void:
 	assert_eq(home.podium.countdown, "23d 12h", "ranking acaba no fim de novembro")
 
 
+func test_home_follows_midnight_without_looping() -> void:
+	var home: Control = main.get_node("Home")
+	GameState.save_result("2026-11-07#0", 10, 5)
+	assert_eq(home.daily_button.text, "Desafios do dia · 1/20")
+	# meia-noite em ponto: antes, refresh e a contagem se chamavam sem fim
+	GameState.fixed_unix = 1794106800
+	home.refresh()
+	assert_eq(home.daily_button.text, "Desafios do dia · 0/20")
+	# app volta do segundo plano já depois da meia-noite: também percebe o dia novo
+	GameState.fixed_unix = 1794106800 + 86400 + 1800
+	home._update_countdown()
+	assert_eq(home._shown_day, "2026-11-09")
+
+
 func test_level_button_opens_current_level() -> void:
 	main.get_node("Home").level_requested.emit()
 	var game: Control = main.get_node("Game")
@@ -153,3 +167,21 @@ func _shortest_path(start: Array) -> Array:
 						moves.append([a, b])
 						queue.append([next, moves])
 	return []
+
+
+func test_leaving_level_resumes_same_game() -> void:
+	main.get_node("Home").level_requested.emit()
+	var game: Control = main.get_node("Game")
+	game.animate = false
+	for i in game.puzzle.tubes.size():
+		if not (game.puzzle.tubes[i] as Array).is_empty():
+			for j in game.puzzle.tubes.size():
+				if game.puzzle.can_pour(i, j):
+					game.tap_bottle(i)
+					game.tap_bottle(j)
+					break
+			break
+	assert_eq(game.puzzle.moves_used(), 1)
+	game.back_requested.emit()
+	main.get_node("Home").level_requested.emit()
+	assert_eq(game.puzzle.moves_used(), 1, "voltar pelo Menu não recomeça de graça")

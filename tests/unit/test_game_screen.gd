@@ -92,6 +92,31 @@ func test_extra_moves_cost_points() -> void:
 	assert_eq(GameState.result("2026-11-07#1").best_points, 8, "10 - 2")
 
 
+func test_level_continue_without_points_does_not_nag() -> void:
+	var level := SPARE.duplicate(true)
+	level.mode = "level"
+	level.level = 1
+	level.full_points = Rules.LEVEL_POINTS
+	screen.open_with(level)
+	for pair in [[0, 2], [2, 3], [3, 2]]:
+		screen.tap_bottle(pair[0])
+		screen.tap_bottle(pair[1])
+	screen.dialog.press("+5 jogadas")
+	for pair in [[2, 3], [3, 2]]:
+		screen.tap_bottle(pair[0])
+		screen.tap_bottle(pair[1])
+	assert_eq(screen.dialog.title_label.text, "Pontuação zerada")
+	screen.dialog.press("Continuar sem pontos")
+	screen.tap_bottle(2)
+	screen.tap_bottle(3)
+	assert_false(screen.dialog.visible, "não repete o aviso a cada jogada")
+	for pair in [[1, 0], [3, 1]]:
+		screen.tap_bottle(pair[0])
+		screen.tap_bottle(pair[1])
+	assert_true(screen.puzzle.is_solved())
+	assert_eq(GameState.current_level(), 2, "terminou sem pontos e seguiu")
+
+
 func test_restart_needs_ad_and_new_attempt() -> void:
 	screen.open_challenge("2026-11-07", 0)
 	assert_eq(GameState.attempts("2026-11-07#0"), 1)

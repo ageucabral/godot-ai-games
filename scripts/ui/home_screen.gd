@@ -6,7 +6,7 @@ signal level_requested
 signal daily_requested
 signal ranking_requested
 
-const VERSION := "0.4"
+const VERSION := "0.4.0"  # igual a version/name em export_presets.cfg
 
 var points_label: Label
 var level_button: Button
@@ -17,6 +17,8 @@ var mascot: MascotView
 var avatar_button: IconButton
 var settings_button: IconButton
 var dialog: DialogBox
+## Dia mostrado nos botões (serve para perceber a meia-noite, mesmo se o app ficou em segundo plano).
+var _shown_day: String = ""
 
 
 func _ready() -> void:
@@ -128,6 +130,7 @@ func daily_done() -> int:
 
 
 func refresh() -> void:
+	_shown_day = GameState.today()
 	var month := Rules.month_for(GameState.now_unix())
 	points_label.text = str(GameState.month_total(month).points)
 	level_button.text = tr("Nível %d") % GameState.current_level()
@@ -140,8 +143,8 @@ func _update_countdown() -> void:
 	var secs := Rules.seconds_to_next_day(now)
 	countdown_label.text = tr("Novos desafios em %dh %02dmin") % [secs / 3600, (secs % 3600) / 60]
 	podium.countdown = Rules.short_countdown(Rules.seconds_to_month_end(now))
-	if secs >= 86399:
-		refresh()  # acabou de virar o dia: zera a contagem dos desafios
+	if _shown_day != "" and GameState.today() != _shown_day:
+		refresh()  # virou o dia: zera a contagem dos desafios (refresh guarda o dia novo, sem repetir)
 
 
 # ---------- janelas: perfil e configurações ----------

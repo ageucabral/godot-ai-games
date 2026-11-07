@@ -25,8 +25,14 @@ static func _generate(level: int) -> Dictionary:
 	var setup := Rules.level_setup(level)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = ChallengeGenerator.seed_for(key_for(level))
-	var puzzle := ChallengeGenerator.build_puzzle(rng, setup.colors, setup.empty, setup.min_par,
-		TropicalStyle.LIQUIDS.size(), true)
+	var puzzle: Dictionary = {}
+	# se nenhum sorteio servir, continua sorteando com a mesma semente (igual em todo aparelho);
+	# um nível que nunca gera deixaria o jogador preso nele para sempre
+	for _try in 3:
+		puzzle = ChallengeGenerator.build_puzzle(rng, setup.colors, setup.empty, setup.min_par,
+			TropicalStyle.LIQUIDS.size(), true)
+		if not puzzle.is_empty():
+			break
 	if puzzle.is_empty():
 		push_error("Não consegui gerar o nível %d" % level)
 		return {}

@@ -18,6 +18,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if not is_visible_in_tree():
+		return  # tela escondida (ex.: durante a partida): não redesenha à toa
 	_time += delta
 	queue_redraw()
 
