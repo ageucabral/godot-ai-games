@@ -210,3 +210,40 @@ func test_points_drop_live_after_par() -> void:
 	screen.tap_bottle(2)
 	screen.tap_bottle(3)
 	assert_eq(screen._points_value.text, "9", "cada jogada a mais tira 1 na hora")
+
+
+func test_points_show_in_one_place() -> void:
+	screen.open_with(EASY)
+	assert_eq(screen._points_value.text, "10", "o placar mostra quanto a fase vale")
+	assert_eq(screen._subtitle.text, "Fácil", "o subtítulo não repete os pontos")
+
+
+func test_extra_bottle_costs_one_point() -> void:
+	screen.open_with(EASY)
+	screen.get_node("%BottleButton").pressed.emit()
+	assert_true(screen.dialog.visible, "pede confirmação")
+	screen.dialog.press("Assistir e ganhar")
+	assert_eq(screen.puzzle.tubes.size(), 4, "ganhou uma garrafa vazia")
+	assert_eq(screen._points_value.text, "9", "custa 1 ponto")
+	assert_eq(screen.bottles_left, 0)
+	assert_true(screen.get_node("%BottleButton").disabled, "só um por fase")
+
+
+func test_shuffle_costs_one_point_and_keeps_colors() -> void:
+	var data := SPARE.duplicate(true)
+	data.tubes = [[0, 1, 0, 1], [1, 0, 1, 0], [], []]
+	screen.open_with(data)
+	var before: Array = []
+	for t in screen.puzzle.tubes:
+		before.append_array(t)
+	before.sort()
+	screen.get_node("%ShuffleButton").pressed.emit()
+	screen.dialog.press("Assistir e embaralhar")
+	var after: Array = []
+	for t in screen.puzzle.tubes:
+		after.append_array(t)
+	after.sort()
+	assert_eq(after, before, "as mesmas camadas, só misturadas")
+	assert_eq(screen.shuffles_left, Rules.SHUFFLES_PER_STAGE - 1)
+	assert_eq(screen._points_value.text, "9", "custa 1 ponto")
+	assert_true(SortPuzzle.min_moves(screen.puzzle.tubes) >= 0, "continua com solução")

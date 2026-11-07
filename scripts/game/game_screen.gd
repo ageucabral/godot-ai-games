@@ -20,7 +20,8 @@ const POINTS_OVER_COLOR := Color("e0303f")
 @onready var _subtitle: Label = %Subtitle
 @onready var _menu_button: Button = %MenuButton
 @onready var _restart_button: Button = %RestartButton
-@onready var _extra_button: Button = %ExtraButton
+@onready var _shuffle_button: BoosterButton = %ShuffleButton
+@onready var _bottle_button: BoosterButton = %BottleButton
 
 ## Desliga a animação (os testes usam para as jogadas acontecerem na hora).
 var animate: bool = true
@@ -35,6 +36,12 @@ var _finished: bool = false
 ## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
 var _zero_accepted: bool = false
 var _pour_tween: Tween
+## Ajudas usadas nesta tentativa: cada uma pede propaganda e tira 1 ponto (Ageu, 7/11/2026).
+var _penalty: int = 0
+var shuffles_left: int = 0
+var bottles_left: int = 0
+## Registro das ajudas ("shuffle"/"bottle"), para o servidor conferir no futuro junto das jogadas.
+var boosts: Array = []
 ## Pontos mostrados no placar (para perceber quando caem e animar o "-1").
 var _shown_points: int = -1
 
@@ -48,15 +55,23 @@ func _ready() -> void:
 	add_child(dialog)
 	_menu_button.pressed.connect(_open_pause)
 	_restart_button.pressed.connect(_on_restart_pressed)
-	_extra_button.pressed.connect(_on_extra_moves_pressed)
+	_shuffle_button.pressed.connect(_on_shuffle_pressed)
+	_bottle_button.pressed.connect(_on_bottle_pressed)
 
 
 func _style_hud() -> void:
+	# placar único da fase: moeda + pontos que ela ainda vale (caem ao vivo depois do número exato)
 	var pill := GameStyle.pill_box()
-	pill.content_margin_left = 8
+	pill.content_margin_left = 10
+	pill.content_margin_right = 26
+	pill.border_color = GameStyle.GOLD.darkened(0.2)
+	pill.set_border_width_all(4)
 	%PointsPill.add_theme_stylebox_override("panel", pill)
+	(%PointsPill.get_node("Row/Coin") as CoinIcon).radius = 28.0
+	(%PointsPill.get_node("Row/Coin") as CoinIcon).custom_minimum_size = Vector2(62, 64)
 	_points_value.add_theme_font_override("font", GameStyle.title_font())
 	_points_value.add_theme_color_override("font_color", POINTS_COLOR)
+	%PointsCaption.add_theme_color_override("font_color", Color("a0743a"))
 	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
 	GameStyle.apply_title_look(_challenge_value, Color.WHITE, 10)
 	_subtitle.add_theme_font_override("font", GameStyle.title_font())
@@ -79,7 +94,8 @@ func _style_hud() -> void:
 	bar.content_margin_top = 18
 	bar.content_margin_bottom = 18
 	%BoosterBar.add_theme_stylebox_override("panel", bar)
-	(_extra_button as BoosterButton).icon_kind = "plus"
+	_shuffle_button.icon_kind = "shuffle"
+	_bottle_button.icon_kind = "bottle"
 
 
 ## Pausa (engrenagem): continuar, recomeçar ou voltar ao menu.
@@ -137,6 +153,10 @@ func open_with(data: Dictionary) -> void:
 	_finished = false
 	_zero_accepted = false
 	_shown_points = -1
+	_penalty = 0
+	shuffles_left = Rules.SHUFFLES_PER_STAGE
+	bottles_left = Rules.EXTRA_BOTTLES_PER_STAGE
+	boosts = []
 	dialog.close()
 	_build_bottles()
 	_refresh()
@@ -149,7 +169,7 @@ func key() -> String:
 
 
 func current_points() -> int:
-	return Rules.score_for(challenge.full_points, challenge.par, puzzle.moves_used())
+	return maxi(0, Rules.score_for(challenge.full_points, challenge.par, puzzle.moves_used()) - _penalty)
 
 
 func out_of_moves() -> bool:
@@ -283,9 +303,11 @@ func _refresh() -> void:
 		_challenge_value.text = tr("Nível %d") % challenge.level
 	else:
 		_challenge_value.text = tr("Desafio %d / %d") % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
-	var diff: String = challenge.difficulty
-	_subtitle.text = tr("%s · vale %d pontos") % [tr(Rules.DIFFICULTY_NAMES[diff]), challenge.full_points]
-	_extra_button.disabled = not out_of_moves()
+	_subtitle.text = tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
+	_shuffle_button.badge = str(shuffles_left)
+	_shuffle_button.disabled = shuffles_left <= 0 or _finished
+	_bottle_button.badge = str(bottles_left)
+	_bottle_button.disabled = bottles_left <= 0 or _finished
 
 
 ## Placar ao vivo: quando passa do número exato de jogadas, cada jogada a mais tira 1 ponto
@@ -334,6 +356,57 @@ func _restart_with_ad() -> void:
 	if _show_if_closed(challenge.date):
 		return  # não pede propaganda para um desafio que já encerrou
 	Ads.show_rewarded(func() -> void: open_challenge(challenge.date, challenge.index))
+
+
+## Embaralhar: mistura de novo o líquido das garrafas abertas (sempre com solução).
+## Pede propaganda e tira 1 ponto. Até Rules.SHUFFLES_PER_STAGE vezes por fase.
+func _on_shuffle_pressed() -> void:
+	if busy or _finished or shuffles_left <= 0:
+		return
+	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
+		["Assistir e embaralhar", func() -> void: Ads.show_rewarded(apply_shuffle), true],
+		["Voltar", func() -> void: pass],
+	])
+
+
+## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira 1 ponto. 1 por fase.
+func _on_bottle_pressed() -> void:
+	if busy or _finished or bottles_left <= 0:
+		return
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto."), [
+		["Assistir e ganhar", func() -> void: Ads.show_rewarded(apply_extra_bottle), true],
+		["Voltar", func() -> void: pass],
+	])
+
+
+func apply_shuffle() -> void:
+	if _finished or shuffles_left <= 0:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	if not puzzle.shuffle(rng):
+		dialog.open("Embaralhar?", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
+		return
+	shuffles_left -= 1
+	_use_boost("shuffle")
+
+
+func apply_extra_bottle() -> void:
+	if _finished or bottles_left <= 0:
+		return
+	puzzle.add_empty_tube()
+	bottles_left -= 1
+	_build_bottles()
+	_use_boost("bottle")
+
+
+func _use_boost(kind: String) -> void:
+	_penalty += Rules.BOOST_COST
+	boosts.append([kind, puzzle.moves_used()])
+	selected = -1
+	_refresh()
+	if current_points() == 0 and not _zero_accepted:
+		_show_zero_points()
 
 
 func _on_extra_moves_pressed() -> void:

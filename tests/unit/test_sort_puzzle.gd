@@ -77,3 +77,13 @@ func test_solver_respects_covers() -> void:
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [0], [1, 1, 1, 1]], 1000, [-1, -1, 0]), 1)
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [1], [1, 1, 1, 0]], 1000, [-1, -1, 0]), -1, "a chave está debaixo do pano")
 	assert_true(SortPuzzle.min_moves(tubes) > 0)
+
+
+func test_shuffle_keeps_covered_and_complete_bottles() -> void:
+	var p := SortPuzzle.new([[0, 1, 0, 1], [1, 0, 1, 3], [2, 2, 2, 2], [3, 3, 3, 0], [], []], false, [-1, -1, -1, 2, -1, -1])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	assert_true(p.shuffle(rng))
+	assert_eq(p.tubes[2], [2, 2, 2, 2], "garrafa completa fica igual")
+	assert_eq(p.tubes[3], [3, 3, 3, 0], "garrafa coberta fica igual")
+	assert_eq(p.moves_used(), 0, "embaralhar não conta como jogada")

@@ -59,6 +59,47 @@ func pour(from: int, to: int) -> int:
 	return amount
 
 
+## Frasco extra: uma garrafa vazia a mais, no fim da fila.
+func add_empty_tube() -> void:
+	tubes.append([])
+	hidden.append([])
+	covers.append(-1)
+
+
+## Embaralhar: mistura as camadas das garrafas abertas que ainda não estão completas, mantendo
+## quanto cada uma tem. Só aceita um embaralhado diferente e com solução. Devolve false se não achou.
+func shuffle(rng: RandomNumberGenerator, tries: int = 10) -> bool:
+	var spots: Array = []
+	var pool: Array = []
+	for i in tubes.size():
+		if is_covered(i) or is_complete(tubes[i]):
+			continue
+		for j in (tubes[i] as Array).size():
+			spots.append([i, j])
+			pool.append(tubes[i][j])
+	if pool.size() < 2:
+		return false
+	for _t in tries:
+		var mixed: Array = pool.duplicate()
+		for k in range(mixed.size() - 1, 0, -1):
+			var r := rng.randi_range(0, k)
+			var tmp = mixed[k]
+			mixed[k] = mixed[r]
+			mixed[r] = tmp
+		if mixed == pool:
+			continue
+		var candidate: Array = copy_tubes(tubes)
+		for n in spots.size():
+			candidate[spots[n][0]][spots[n][1]] = mixed[n]
+		if is_solved_state(candidate):
+			continue
+		if min_moves(candidate, 150000, covers) < 0:
+			continue
+		tubes = candidate
+		return true
+	return false
+
+
 func is_solved() -> bool:
 	return is_solved_state(tubes)
 
