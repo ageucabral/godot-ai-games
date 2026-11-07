@@ -2,10 +2,12 @@ class_name SceneBackground
 extends Control
 ## Fundo animado. "sky": céu de fim de tarde com morros e nuvens andando (menu).
 ## "night": noite azul com brilho no meio e estrelas piscando (partida).
+## "hub": vila flutuante ao entardecer (menu Na Lata). "splash": tela de abertura.
 ## Usa a ilustração gerada (assets/art) e desenha por cima os brilhos animados.
 ## Sem a imagem, cai no desenho feito no código.
 
-const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg"}
+const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg",
+	"hub": "res://assets/art/hub_bg.jpg"}
 
 var kind: String = "sky"
 var _art: Texture2D
@@ -45,7 +47,8 @@ func _draw_art() -> void:
 	var k := maxf(size.x / tex_size.x, size.y / tex_size.y)
 	var draw_size := tex_size * k
 	draw_texture_rect(_art, Rect2((size - draw_size) * 0.5, draw_size), false)
-	for s in _stars.slice(0, 26):
+	for i in mini(14, _stars.size()):
+		var s: Array = _stars[i]
 		var p: Vector2 = s[0] * size
 		if kind == "sky":
 			p.y = fposmod(p.y - _time * 14.0 * s[1], size.y)

@@ -55,3 +55,13 @@ func test_progress_is_saved_to_disk() -> void:
 func test_autoloads_are_registered() -> void:
 	assert_true(ProjectSettings.has_setting("autoload/GameState"), "GameState")
 	assert_true(ProjectSettings.has_setting("autoload/Ads"), "Ads")
+
+
+func test_global_total_sums_games() -> void:
+	state.save_result("2026-11-02#0", 10, 6)
+	state.save_result("2026-11-03#1", 25, 9)
+	var g: Dictionary = state.global_month_total("2026-11")
+	assert_eq(g.points, 35)
+	assert_eq(g.moves, 15)
+	assert_eq(g.games.potion, 35, "pontos do Poção de Cores")
+	assert_eq(state.game_month_total("outro", "2026-11").points, 0, "jogo sem progresso")

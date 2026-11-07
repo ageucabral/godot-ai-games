@@ -51,8 +51,35 @@ func test_ranking_shows_month_points() -> void:
 	main.get_node("Home").ranking_requested.emit()
 	var ranking: Control = main.get_node("Ranking")
 	assert_true(ranking.visible)
-	assert_eq(ranking.title_label.text, "Ranking de novembro")
+	assert_eq(ranking.title_label.text, "Ranking do Poção de Cores")
 	assert_eq(ranking.points_label.text, "10 pts")
+	assert_false(ranking.prize_banner.visible, "o ranking do jogo não vale prêmio")
+	ranking.back_requested.emit()
+	assert_true(main.get_node("Home").visible, "volta ao menu do jogo")
+
+
+func test_global_ranking_opens_from_hub() -> void:
+	GameState.save_result("2026-11-02#0", 10, 6)
+	var hub: Control = main.get_node("Hub")
+	assert_eq(hub.rank_banner.points, 10, "a faixa do hub mostra os pontos globais")
+	assert_eq(hub.rank_banner.countdown, "23d 12h")
+	hub.rank_banner.pressed.emit()
+	var ranking: Control = main.get_node("Ranking")
+	assert_true(ranking.visible)
+	assert_eq(ranking.title_label.text, "Ranking Global")
+	assert_true(ranking.prize_banner.visible, "o global vale prêmio")
+	assert_eq(ranking.points_label.text, "10 pts")
+	ranking.back_requested.emit()
+	assert_true(hub.visible, "volta ao hub")
+
+
+func test_hub_banner_resets_when_month_turns() -> void:
+	GameState.save_result("2026-11-02#0", 10, 6)
+	var hub: Control = main.get_node("Hub")
+	assert_eq(hub.rank_banner.points, 10)
+	GameState.fixed_unix = 1794063600 + 24 * 86400  # 1/12/2026 meio-dia em Brasília
+	hub._update_countdown()
+	assert_eq(hub.rank_banner.points, 0, "mês novo começa do zero")
 
 
 func test_declining_ad_returns_to_menu() -> void:
@@ -81,21 +108,20 @@ func test_past_days_cannot_be_played() -> void:
 func test_home_shows_level_and_daily_buttons() -> void:
 	var home: Control = main.get_node("Home")
 	assert_eq(home.level_button.text, "Nível 1")
-	assert_eq(home.daily_badge.counter, "0/20")
-	assert_eq(home.ranking_badge.caption, "23d 12h", "ranking acaba no fim de novembro")
+	assert_eq(home.nav.counter("daily"), "0/20")
 
 
 func test_home_follows_midnight_without_looping() -> void:
 	var home: Control = main.get_node("Home")
 	GameState.save_result("2026-11-07#0", 10, 5)
-	assert_eq(home.daily_badge.counter, "1/20")
+	assert_eq(home.nav.counter("daily"), "1/20")
 	# meia-noite em ponto: antes, refresh e a contagem se chamavam sem fim
 	GameState.fixed_unix = 1794106800
 	home.refresh()
-	assert_eq(home.daily_badge.counter, "0/20")
+	assert_eq(home.nav.counter("daily"), "0/20")
 	# app volta do segundo plano já depois da meia-noite: também percebe o dia novo
 	GameState.fixed_unix = 1794106800 + 86400 + 1800
-	home._update_countdown()
+	home._check_new_day()
 	assert_eq(home._shown_day, "2026-11-09")
 
 

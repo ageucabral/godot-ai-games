@@ -1,6 +1,6 @@
 extends Control
-## Cena principal: hub Na Lata (lista de jogos) e, no Poção de Cores, o menu, os desafios do dia,
-## a partida e o ranking.
+## Cena principal: hub Na Lata (Ranking Global e lista de jogos) e, no Poção de Cores, o menu,
+## os desafios do dia, a partida e o ranking do jogo.
 
 @onready var hub: Control = $Hub
 @onready var home: Control = $Home
@@ -11,6 +11,8 @@ extends Control
 var dialog: DialogBox
 ## Para onde o botão Menu da partida volta (menu inicial ou desafios do dia).
 var _return_screen: Control
+## Para onde o Voltar do ranking leva (hub no Ranking Global, menu do jogo no ranking do jogo).
+var _ranking_return: Control
 
 
 func _ready() -> void:
@@ -18,17 +20,19 @@ func _ready() -> void:
 	dialog = DialogBox.new()
 	add_child(dialog)
 	_return_screen = home
+	_ranking_return = home
 	hub.game_requested.connect(open_game)
+	hub.global_ranking_requested.connect(open_global_ranking)
 	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
 	home.daily_requested.connect(func() -> void: show_screen(daily))
-	home.ranking_requested.connect(func() -> void: show_screen(ranking))
+	home.ranking_requested.connect(open_game_ranking)
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
 	game.back_requested.connect(func() -> void: show_screen(_return_screen))
 	game.next_requested.connect(request_play)
 	game.next_level_requested.connect(play_level)
-	ranking.back_requested.connect(func() -> void: show_screen(home))
+	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
 	show_screen(hub)
 
 
@@ -36,6 +40,20 @@ func _ready() -> void:
 func open_game(_game_id: String) -> void:
 	show_screen(home)
 	add_child(SplashOverlay.new())
+
+
+## Ranking Global (soma todos os jogos, vale prêmios), aberto pelo hub.
+func open_global_ranking() -> void:
+	_ranking_return = hub
+	ranking.open_mode("global")
+	show_screen(ranking)
+
+
+## Ranking só do Poção de Cores, aberto pelo menu do jogo.
+func open_game_ranking() -> void:
+	_ranking_return = home
+	ranking.open_mode("game", "potion")
+	show_screen(ranking)
 
 
 func show_screen(screen: Control) -> void:
