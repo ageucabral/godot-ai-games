@@ -30,30 +30,6 @@ theme_override_constants/separation = 16
 [node name="TopBar" type="HBoxContainer" parent="Layout"]
 layout_mode = 2
 
-[node name="PointsPill" type="PanelContainer" parent="Layout/TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 0)
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="Row" type="HBoxContainer" parent="Layout/TopBar/PointsPill"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Coin" type="Control" parent="Layout/TopBar/PointsPill/Row"]
-layout_mode = 2
-mouse_filter = 2
-script = ExtResource("4_coin")
-
-[node name="PointsValue" type="Label" parent="Layout/TopBar/PointsPill/Row"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 38
-text = "0"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="Spacer" type="Control" parent="Layout/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -82,28 +58,63 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Fácil · vale 2 pontos"
+text = "Fácil"
 horizontal_alignment = 1
 
 [node name="MovesRow" type="CenterContainer" parent="Layout"]
 layout_mode = 2
 
-[node name="MovesChip" type="PanelContainer" parent="Layout/MovesRow"]
+[node name="Stats" type="HBoxContainer" parent="Layout/MovesRow"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="PointsPill" type="PanelContainer" parent="Layout/MovesRow/Stats"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
 
-[node name="Row" type="HBoxContainer" parent="Layout/MovesRow/MovesChip"]
+[node name="Row" type="HBoxContainer" parent="Layout/MovesRow/Stats/PointsPill"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Coin" type="Control" parent="Layout/MovesRow/Stats/PointsPill/Row"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4_coin")
+
+[node name="PointsValue" type="Label" parent="Layout/MovesRow/Stats/PointsPill/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PointsCaption" type="Label" parent="Layout/MovesRow/Stats/PointsPill/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "PONTOS"
+vertical_alignment = 1
+
+[node name="MovesChip" type="PanelContainer" parent="Layout/MovesRow/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Row" type="HBoxContainer" parent="Layout/MovesRow/Stats/MovesChip"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="Caption" type="Label" parent="Layout/MovesRow/MovesChip/Row"]
+[node name="Caption" type="Label" parent="Layout/MovesRow/Stats/MovesChip/Row"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "JOGADAS"
 vertical_alignment = 1
 
-[node name="MovesValue" type="Label" parent="Layout/MovesRow/MovesChip/Row"]
+[node name="MovesValue" type="Label" parent="Layout/MovesRow/Stats/MovesChip/Row"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
@@ -145,8 +156,14 @@ layout_mode = 2
 text = "Recomeçar"
 script = ExtResource("3_booster")
 
-[node name="ExtraButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
+[node name="ShuffleButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "+5 jogadas"
+text = "Embaralhar"
+script = ExtResource("3_booster")
+
+[node name="BottleButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Frasco extra"
 script = ExtResource("3_booster")

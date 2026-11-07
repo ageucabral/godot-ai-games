@@ -105,7 +105,10 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - `scripts/game/rules.gd`: regras do documento do jogo (8+7+5 desafios por dia, +5 jogadas por propaganda,
   datas no horário de Brasília). **Pontos** (Ageu, 7/11/2026): toda fase (nível ou desafio) vale o dobro do
   número exato de jogadas (`Rules.full_points_for`: 11 jogadas → 22 pontos); cada jogada a mais tira 1 ponto,
-  e a partida mostra o placar caindo ao vivo (fica vermelho e sobe um "-1").
+  e a partida mostra o placar caindo ao vivo (fica vermelho e sobe um "-1"). O placar fica num lugar só
+  (moeda + "PONTOS", ao lado das jogadas). Ajudas na partida: **embaralhar** (3 por fase) e **frasco extra**
+  (1 por fase); cada uso pede propaganda e tira 1 ponto (`Rules.BOOST_COST`). O +5 jogadas aparece só no aviso
+  de "Acabaram as jogadas".
 - Só os desafios de HOJE podem ser jogados (Ageu, 7/11/2026); dias anteriores ficam encerrados.
 - `scripts/game/challenge_generator.gd`: gera os 20 desafios do dia, iguais para todos (semente
   FNV-1a de "AAAA-MM-DD#n"), com o número exato de jogadas calculado por `SortPuzzle.min_moves`.

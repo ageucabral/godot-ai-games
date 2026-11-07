@@ -77,3 +77,35 @@ func test_solver_respects_covers() -> void:
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [0], [1, 1, 1, 1]], 1000, [-1, -1, 0]), 1)
 	assert_eq(SortPuzzle.min_moves([[0, 0, 0], [1], [1, 1, 1, 0]], 1000, [-1, -1, 0]), -1, "a chave está debaixo do pano")
 	assert_true(SortPuzzle.min_moves(tubes) > 0)
+
+
+func test_shuffle_keeps_covered_and_complete_bottles() -> void:
+	var p := SortPuzzle.new([[0, 1, 0, 1], [1, 0, 1, 3], [2, 2, 2, 2], [3, 3, 3, 0], [], []], false, [-1, -1, -1, 2, -1, -1])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	assert_true(p.shuffle(rng))
+	assert_eq(p.tubes[2], [2, 2, 2, 2], "garrafa completa fica igual")
+	assert_eq(p.tubes[3], [3, 3, 3, 0], "garrafa coberta fica igual")
+	assert_eq(p.moves_used(), 0, "embaralhar não conta como jogada")
+
+
+func test_shuffle_keeps_hidden_layers_in_place() -> void:
+	var p := SortPuzzle.new([[0, 1, 0, 1], [1, 0, 1, 0], [], []], true)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var before: Array = SortPuzzle.copy_tubes(p.tubes)
+	p.shuffle(rng)
+	for i in 2:
+		for j in 3:
+			assert_eq(p.tubes[i][j], before[i][j], "camada \"?\" não muda de lugar")
+
+
+func test_shuffle_same_seed_same_result() -> void:
+	var tubes := [[0, 1, 2, 0], [1, 2, 0, 1], [2, 0, 1, 2], [], []]
+	var a := SortPuzzle.new(tubes)
+	var b := SortPuzzle.new(tubes)
+	var r1 := RandomNumberGenerator.new()
+	r1.seed = 42
+	var r2 := RandomNumberGenerator.new()
+	r2.seed = 42
+	assert_eq(a.shuffled_state(r1), b.shuffled_state(r2), "a semente refaz o mesmo embaralhado")
