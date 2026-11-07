@@ -47,7 +47,8 @@ func _draw_art() -> void:
 	var k := maxf(size.x / tex_size.x, size.y / tex_size.y)
 	var draw_size := tex_size * k
 	draw_texture_rect(_art, Rect2((size - draw_size) * 0.5, draw_size), false)
-	for s in _stars.slice(0, 14):
+	for i in mini(14, _stars.size()):
+		var s: Array = _stars[i]
 		var p: Vector2 = s[0] * size
 		if kind == "sky":
 			p.y = fposmod(p.y - _time * 14.0 * s[1], size.y)

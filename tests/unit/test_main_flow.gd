@@ -121,7 +121,7 @@ func test_home_follows_midnight_without_looping() -> void:
 	assert_eq(home.nav.counter("daily"), "0/20")
 	# app volta do segundo plano já depois da meia-noite: também percebe o dia novo
 	GameState.fixed_unix = 1794106800 + 86400 + 1800
-	home._update_countdown()
+	home._check_new_day()
 	assert_eq(home._shown_day, "2026-11-09")
 
 

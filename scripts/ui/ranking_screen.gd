@@ -134,7 +134,8 @@ func refresh() -> void:
 		me_box.bg_color = Color("e0662f")
 		points_label.text = tr("%d pts") % total.points
 		detail_label.text = tr("%d jogadas no mês") % total.moves
-		_fill_games(total.games)
+		if games_card.visible:
+			_fill_games(total.games)
 		info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.")
 	else:
 		var t := GameState.game_month_total(game_id, month)

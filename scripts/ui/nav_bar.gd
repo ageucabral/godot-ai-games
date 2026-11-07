@@ -70,7 +70,8 @@ class _Tab extends Button:
 			counter = value
 			queue_redraw()
 	var _counter_box: StyleBoxFlat
-	var _font: Font = GameStyle.body_font(800)
+	## Letra das abas: uma só para a barra inteira (body_font cria uma variação nova a cada chamada).
+	static var _font: Font
 
 	func _init() -> void:
 		flat = true
@@ -78,6 +79,8 @@ class _Tab extends Button:
 		_counter_box = StyleBoxFlat.new()
 		_counter_box.bg_color = Color("ff5a6e")
 		_counter_box.set_corner_radius_all(14)
+		if _font == null:
+			_font = GameStyle.body_font(800)
 
 	func _draw() -> void:
 		var c := Vector2(size.x * 0.5, 62 + (3.0 if is_pressed() else 0.0))
@@ -90,6 +93,8 @@ class _Tab extends Button:
 		draw_string(font, Vector2(0, size.y - 10), tr(label), HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, col)
 		if counter != "":
 			var w := font.get_string_size(counter, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 16
-			var r := Rect2(c + Vector2(14, -44), Vector2(w, 26))
+			# encosta no ícone, mas sem passar da borda direita da aba (ex.: "20/20")
+			var x := minf(c.x + 14, size.x - w - 2)
+			var r := Rect2(Vector2(x, c.y - 44), Vector2(w, 26))
 			draw_style_box(_counter_box, r)
 			draw_string(font, r.position + Vector2(0, 19), counter, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, Color.WHITE)

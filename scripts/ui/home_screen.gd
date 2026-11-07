@@ -31,7 +31,7 @@ func _ready() -> void:
 	var timer := Timer.new()
 	timer.wait_time = 1.0
 	timer.autostart = true
-	timer.timeout.connect(_update_countdown)
+	timer.timeout.connect(_check_new_day)
 	add_child(timer)
 
 
@@ -107,6 +107,6 @@ func refresh() -> void:
 	nav.set_counter("daily", "%d/%d" % [Menus.daily_done(), Rules.DAILY_COUNT])
 
 
-func _update_countdown() -> void:
+func _check_new_day() -> void:
 	if _shown_day != "" and GameState.today() != _shown_day:
 		refresh()  # virou o dia: zera a contagem dos desafios (refresh guarda o dia novo, sem repetir)
