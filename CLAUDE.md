@@ -98,6 +98,8 @@ Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre gar
 (Android / Google Play). O app abre no **hub Na Lata** (lista de jogos); o primeiro jogo é o
 **Poção de Cores**. Estilo visual: colorido e brilhante (frascos de poção, botões "de bala" com brilho,
 céu de fim de tarde no menu e noite estrelada na partida, contorno roxo-escuro, letras Lilita One + Nunito).
+**Colorido, mas clean, moderno e profissional** (Ageu, 7/11/2026): poucos botões, um caminho só para cada
+lugar (nada de selo + aba + avatar levando ao mesmo destino), textos curtos.
 Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_style.gd`; ícones em
 `scripts/ui/icons.gd` e fundos animados em `scripts/ui/scene_background.gd`.
 - `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
@@ -115,8 +117,8 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - `scripts/autoload/game_state.gd`: tentativas e melhor resultado salvos no aparelho.
 - `scripts/autoload/ads.gd`: propaganda **simulada** (3 s). O AdMob de verdade entra aqui depois.
 - Cena principal `scenes/main/main.tscn`: hub (`scenes/ui/hub_screen.tscn`), tela inicial do Poção de Cores
-  (`scenes/ui/home_screen.tscn`: perfil, pontos do mês, configurações, selos de ranking e desafios do dia,
-  mascote, botão "Nível N" e barra de baixo Jogos · Ranking · Início · Desafios · Perfil), desafios do dia
+  (`scenes/ui/home_screen.tscn`: pontos do mês, configurações, nome do jogo, mascote, botão "Nível N"
+  e barra de baixo Jogos · Ranking · Início · Desafios · Perfil, com a contagem dos desafios do dia), desafios do dia
   (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, com animação de despejo, pausa
   na engrenagem e confete na vitória) e ranking (`scenes/ui/ranking_screen.tscn`). Perfil e configurações
   ficam em `scripts/ui/menus.gd`.

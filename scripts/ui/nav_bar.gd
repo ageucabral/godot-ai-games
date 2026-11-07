@@ -1,7 +1,8 @@
 class_name NavBar
 extends Control
-## Barra de baixo da tela do jogo: Jogos · Ranking · Início · Desafios · Perfil.
-## A aba ativa fica maior e mais alta, com o nome embaixo.
+## Barra de baixo do menu do jogo: Jogos · Ranking · Início · Desafios · Perfil.
+## Visual limpo: barra escura de cantos redondos, ícone com o nome embaixo; a aba ativa ganha um
+## círculo roxo. Uma aba pode mostrar um contador pequeno (ex.: desafios do dia "3/20").
 
 signal tab_pressed(tab: String)
 
@@ -10,63 +11,85 @@ const TABS: Array = [["games", "Jogos", "games"], ["ranking", "Ranking", "trophy
 
 var active: String = "home"
 var buttons: Dictionary = {}
+var _bar_box: StyleBoxFlat = _make_bar_box()
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(0, 150)
+	custom_minimum_size = Vector2(0, 132)
 
 
 func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 12
+	row.offset_right = -12
 	row.add_theme_constant_override("separation", 0)
 	add_child(row)
 	for t in TABS:
 		var b := _Tab.new()
-		b.tab = t[0]
 		b.label = t[1]
 		b.icon_kind = t[2]
 		b.is_active = t[0] == active
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.size_flags_stretch_ratio = 1.4 if t[0] == active else 1.0
 		var id: String = t[0]
 		b.pressed.connect(func() -> void: tab_pressed.emit(id))
 		row.add_child(b)
 		buttons[id] = b
 
 
+## Contador pequeno sobre o ícone de uma aba ("" esconde).
+func set_counter(tab: String, text: String) -> void:
+	if buttons.has(tab):
+		buttons[tab].counter = text
+
+
+func counter(tab: String) -> String:
+	return buttons[tab].counter if buttons.has(tab) else ""
+
+
 func _draw() -> void:
-	var bar := Rect2(Vector2(0, 30), Vector2(size.x, size.y - 30))
-	GameStyle.draw_vertical_gradient(self, bar, Color("7b4ff0"), Color("4b25b8"))
-	draw_rect(Rect2(bar.position, Vector2(size.x, 6)), GameStyle.GOLD)
-	draw_line(bar.position, Vector2(size.x, bar.position.y), GameStyle.INK, 3.0)
+	draw_style_box(_bar_box, Rect2(Vector2(0, 14), Vector2(size.x, size.y - 14)))
+
+
+static func _make_bar_box() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("24164f", 0.94)
+	sb.corner_radius_top_left = 36
+	sb.corner_radius_top_right = 36
+	sb.shadow_color = Color(0, 0, 0, 0.3)
+	sb.shadow_size = 12
+	return sb
 
 
 class _Tab extends Button:
-	var tab: String = ""
 	var label: String = ""
 	var icon_kind: String = ""
 	var is_active: bool = false
+	var counter: String = "":
+		set(value):
+			counter = value
+			queue_redraw()
+	var _counter_box: StyleBoxFlat
+	var _font: Font = GameStyle.body_font(800)
 
 	func _init() -> void:
 		flat = true
 		focus_mode = Control.FOCUS_NONE
+		_counter_box = StyleBoxFlat.new()
+		_counter_box.bg_color = Color("ff5a6e")
+		_counter_box.set_corner_radius_all(14)
 
 	func _draw() -> void:
-		var font := GameStyle.title_font()
+		var c := Vector2(size.x * 0.5, 62 + (3.0 if is_pressed() else 0.0))
 		if is_active:
-			var r := Rect2(Vector2(6, 0), Vector2(size.x - 12, size.y))
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color("9a6bff")
-			sb.border_color = GameStyle.GOLD
-			sb.set_border_width_all(5)
-			sb.corner_radius_top_left = 30
-			sb.corner_radius_top_right = 30
-			draw_style_box(sb, r)
-			Icons.draw(self, icon_kind, Vector2(size.x * 0.5, 62), 34.0)
-			var text := tr(label)
-			draw_string_outline(font, Vector2(0, size.y - 18), text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 30, 8, GameStyle.INK)
-			draw_string(font, Vector2(0, size.y - 18), text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 30, Color.WHITE)
-		else:
-			draw_line(Vector2(size.x, 44), Vector2(size.x, size.y - 10), Color(0, 0, 0, 0.25), 3.0)
-			Icons.draw(self, icon_kind, Vector2(size.x * 0.5, 90 + (4.0 if is_pressed() else 0.0)), 28.0)
+			draw_circle(c, 40, GameStyle.PURPLE)
+			draw_circle(c + Vector2(0, -6), 30, Color(1, 1, 1, 0.1))
+		Icons.draw(self, icon_kind, c, 26.0 if is_active else 22.0)
+		var font := _font
+		var col := GameStyle.GOLD if is_active else Color(1, 1, 1, 0.7)
+		draw_string(font, Vector2(0, size.y - 10), tr(label), HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, col)
+		if counter != "":
+			var w := font.get_string_size(counter, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 16
+			var r := Rect2(c + Vector2(14, -44), Vector2(w, 26))
+			draw_style_box(_counter_box, r)
+			draw_string(font, r.position + Vector2(0, 19), counter, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, Color.WHITE)

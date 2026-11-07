@@ -125,7 +125,8 @@ func refresh() -> void:
 	subtitle_label.text = tr("%s · termina em %d dias · zera no dia 1") % [month_name, Rules.days_left_in_month(now)]
 	var global := mode == GLOBAL
 	prize_banner.visible = global
-	games_card.visible = global
+	# "Pontos por jogo" só aparece quando houver mais de um jogo
+	games_card.visible = global and GameState.GAME_IDS.size() > 1
 	if global:
 		var total := GameState.global_month_total(month)
 		title_label.text = tr("Ranking Global")
@@ -134,14 +135,14 @@ func refresh() -> void:
 		points_label.text = tr("%d pts") % total.points
 		detail_label.text = tr("%d jogadas no mês") % total.moves
 		_fill_games(total.games)
-		info_label.text = tr("O Ranking Global junta todos os jogos do Na Lata e é ele que define os prêmios do mês.\n\nEmpate: fica na frente quem usou menos jogadas.\nPrêmios e posições premiadas: definidos pelo administrador.\n\nA lista com todos os jogadores aparece quando ligarmos as contas e o servidor (próxima etapa).")
+		info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.")
 	else:
 		var t := GameState.game_month_total(game_id, month)
 		title_label.text = tr("Ranking do %s") % tr(game_name(game_id))
 		me_box.bg_color = GameStyle.PURPLE
 		points_label.text = tr("%d pts") % t.points
 		detail_label.text = tr("%d desafios e %d níveis · %d jogadas") % [t.completed, t.levels, t.moves]
-		info_label.text = tr("Este ranking mostra como você está só neste jogo.\nOs prêmios saem do Ranking Global, no menu do Na Lata.\n\nA lista com todos os jogadores aparece quando ligarmos as contas e o servidor (próxima etapa).")
+		info_label.text = tr("Os prêmios saem do Ranking Global, no menu do Na Lata.")
 
 
 func _fill_games(points_by_game: Dictionary) -> void:

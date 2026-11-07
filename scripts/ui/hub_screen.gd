@@ -5,11 +5,9 @@ extends Control
 signal game_requested(game_id: String)
 signal global_ranking_requested
 
-## [id, nome, liberado, ilustração]
-const GAMES: Array = [["potion", "Poção de Cores", true, "res://assets/art/potion_card.jpg"],
-	["soon_1", "Novo jogo", false, ""], ["soon_2", "Novo jogo", false, ""]]
+## [id, nome, liberado, ilustração]. Jogos ainda não liberados viram um aviso discreto "Mais jogos em breve".
+const GAMES: Array = [["potion", "Poção de Cores", true, "res://assets/art/potion_card.jpg"]]
 
-var points_label: Label
 var rank_banner: GlobalRankBanner
 var cards: Dictionary = {}
 var dialog: DialogBox
@@ -29,21 +27,11 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	add_child(box)
 
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 18)
-	box.add_child(top)
-	var avatar := IconButton.new("avatar")
-	avatar.pressed.connect(func() -> void: Menus.open_profile(dialog))
-	top.add_child(avatar)
-	var out: Array = []
-	top.add_child(Menus.make_coin_pill(out))
-	points_label = out[0]
-	var space := Control.new()
-	space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(space)
+	# só a engrenagem em cima: os pontos já aparecem na faixa do Ranking Global
 	var gear := IconButton.new("gear")
+	gear.size_flags_horizontal = Control.SIZE_SHRINK_END
 	gear.pressed.connect(func() -> void: Menus.open_settings(dialog))
-	top.add_child(gear)
+	box.add_child(gear)
 
 	var logo := GameStyle.make_title("Na Lata", 140, GameStyle.GOLD)
 	logo.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
@@ -52,7 +40,7 @@ func _ready() -> void:
 	rank_banner = GlobalRankBanner.new()
 	rank_banner.pressed.connect(func() -> void: global_ranking_requested.emit())
 	box.add_child(rank_banner)
-	box.add_child(GameStyle.make_title("Escolha um jogo", 38))
+	box.add_child(GameStyle.make_title("Jogos", 38))
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -72,6 +60,8 @@ func _ready() -> void:
 			card.pressed.connect(func() -> void: game_requested.emit(id))
 		list.add_child(card)
 		cards[id] = card
+	var soon := GameStyle.make_label("Mais jogos em breve", 26, false, Color(1, 1, 1, 0.75))
+	list.add_child(soon)
 
 	dialog = DialogBox.new()
 	add_child(dialog)
@@ -84,11 +74,10 @@ func _ready() -> void:
 	add_child(timer)
 
 
-## As moedas e a faixa do ranking mostram o total global (todos os jogos) do mês.
+## A faixa do ranking mostra o total global (todos os jogos) do mês.
 func refresh() -> void:
 	_month = Rules.month_for(GameState.now_unix())
 	var total := GameState.global_month_total(_month)
-	points_label.text = str(total.points)
 	rank_banner.points = total.points
 	_update_countdown()
 	for c in cards.values():

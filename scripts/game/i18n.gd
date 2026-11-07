@@ -31,12 +31,12 @@ const STRINGS := {
 	"%d jogadas no mês": ["%d moves this month", "%d jugadas en el mes"],
 	"Pontos por jogo": ["Points per game", "Puntos por juego"],
 	"%d desafios e %d níveis · %d jogadas": ["%d challenges and %d levels · %d moves", "%d desafíos y %d niveles · %d jugadas"],
-	"O Ranking Global junta todos os jogos do Na Lata e é ele que define os prêmios do mês.\n\nEmpate: fica na frente quem usou menos jogadas.\nPrêmios e posições premiadas: definidos pelo administrador.\n\nA lista com todos os jogadores aparece quando ligarmos as contas e o servidor (próxima etapa).": [
-		"The Global Ranking brings together every Na Lata game, and it decides the monthly prizes.\n\nTie: fewer moves goes first.\nPrizes and winning positions: set by the administrator.\n\nThe list with every player arrives when accounts and the server are turned on (next step).",
-		"El Ranking Global reúne todos los juegos de Na Lata y es el que define los premios del mes.\n\nEmpate: va primero quien usó menos jugadas.\nPremios y posiciones premiadas: los define el administrador.\n\nLa lista con todos los jugadores llegará cuando activemos las cuentas y el servidor (próxima etapa)."],
-	"Este ranking mostra como você está só neste jogo.\nOs prêmios saem do Ranking Global, no menu do Na Lata.\n\nA lista com todos os jogadores aparece quando ligarmos as contas e o servidor (próxima etapa).": [
-		"This ranking shows how you are doing in this game only.\nPrizes come from the Global Ranking, in the Na Lata menu.\n\nThe list with every player arrives when accounts and the server are turned on (next step).",
-		"Este ranking muestra cómo vas solo en este juego.\nLos premios salen del Ranking Global, en el menú de Na Lata.\n\nLa lista con todos los jugadores llegará cuando activemos las cuentas y el servidor (próxima etapa)."],
+	"Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.": [
+		"Tie: fewer moves goes first. The list with every player arrives with accounts.",
+		"Empate: va primero quien usó menos jugadas. La lista con todos los jugadores llega con las cuentas."],
+	"Os prêmios saem do Ranking Global, no menu do Na Lata.": [
+		"Prizes come from the Global Ranking, in the Na Lata menu.",
+		"Los premios salen del Ranking Global, en el menú de Na Lata."],
 	"Fácil": ["Easy", "Fácil"],
 	"Médio": ["Medium", "Medio"],
 	"Difícil": ["Hard", "Difícil"],
@@ -112,10 +112,9 @@ const STRINGS := {
 		"ANUNCIO\n(simulación)\n\nAquí aparecerá el anuncio de AdMob.\n\n%d"],
 	# hub e visual novo
 	"Poção de Cores": ["Color Potion", "Poción de Colores"],
-	"Escolha um jogo": ["Choose a game", "Elige un juego"],
 	"Jogar": ["Play", "Jugar"],
 	"Em breve": ["Coming soon", "Muy pronto"],
-	"Novo jogo": ["New game", "Nuevo juego"],
+	"Mais jogos em breve": ["More games coming soon", "Más juegos muy pronto"],
 	"Jogos": ["Games", "Juegos"],
 	"Ranking": ["Ranking", "Ranking"],
 	"Início": ["Home", "Inicio"],

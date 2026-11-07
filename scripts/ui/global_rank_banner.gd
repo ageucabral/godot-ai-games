@@ -48,11 +48,6 @@ func _draw() -> void:
 	draw_circle(c, 50, Color("7a2fd6"))
 	draw_circle(c + Vector2(0, -14), 38, Color(1, 1, 1, 0.12))
 	Icons.draw(self, "trophy", c + Vector2(0, 4), 42.0)
-	for i in 3:
-		var a := _time * 1.4 + i * TAU / 3.0
-		var p := c + Vector2(cos(a), sin(a)) * 74.0
-		var tw := 0.5 + 0.5 * sin(_time * 3.0 + i)
-		draw_colored_polygon(GameStyle.star_points(p, 9.0 + 5.0 * tw, 3.0, 4), Color(1, 1, 1, 0.6 + 0.4 * tw))
 
 	# textos
 	var font := _font
