@@ -8,8 +8,8 @@ signal back_requested
 
 const GLOBAL := "global"
 const GAME := "game"
-## Nome mostrado de cada jogo (o mesmo do hub).
-const GAME_NAMES := {"potion": "Poção de Cores"}
+## Lista de jogos do hub: daqui sai o nome mostrado de cada jogo.
+const HubScreen := preload("res://scripts/ui/hub_screen.gd")
 
 var mode: String = GAME
 var game_id: String = "potion"
@@ -137,7 +137,7 @@ func refresh() -> void:
 		info_label.text = tr("O Ranking Global junta todos os jogos do Na Lata e é ele que define os prêmios do mês.\n\nEmpate: fica na frente quem usou menos jogadas.\nPrêmios e posições premiadas: definidos pelo administrador.\n\nA lista com todos os jogadores aparece quando ligarmos as contas e o servidor (próxima etapa).")
 	else:
 		var t := GameState.game_month_total(game_id, month)
-		title_label.text = tr("Ranking do %s") % tr(GAME_NAMES.get(game_id, game_id))
+		title_label.text = tr("Ranking do %s") % tr(game_name(game_id))
 		me_box.bg_color = GameStyle.PURPLE
 		points_label.text = tr("%d pts") % t.points
 		detail_label.text = tr("%d desafios e %d níveis · %d jogadas") % [t.completed, t.levels, t.moves]
@@ -149,7 +149,7 @@ func _fill_games(points_by_game: Dictionary) -> void:
 		c.queue_free()
 	for id in points_by_game:
 		var row := HBoxContainer.new()
-		var name_label := GameStyle.make_label(GAME_NAMES.get(id, id), 28)
+		var name_label := GameStyle.make_label(game_name(id), 28)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_label)
@@ -157,3 +157,11 @@ func _fill_games(points_by_game: Dictionary) -> void:
 		pts.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		row.add_child(pts)
 		games_list.add_child(row)
+
+
+## Nome do jogo como aparece no hub (o próprio id se não estiver na lista).
+static func game_name(id: String) -> String:
+	for g in HubScreen.GAMES:
+		if g[0] == id:
+			return g[1]
+	return id

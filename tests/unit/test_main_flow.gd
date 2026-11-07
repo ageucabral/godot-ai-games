@@ -73,6 +73,16 @@ func test_global_ranking_opens_from_hub() -> void:
 	assert_true(hub.visible, "volta ao hub")
 
 
+func test_hub_banner_resets_when_month_turns() -> void:
+	GameState.save_result("2026-11-02#0", 10, 6)
+	var hub: Control = main.get_node("Hub")
+	assert_eq(hub.rank_banner.points, 10)
+	GameState.fixed_unix = 1794063600 + 24 * 86400  # 1/12/2026 meio-dia em Brasília
+	hub._update_countdown()
+	assert_eq(hub.rank_banner.points, 0, "mês novo começa do zero")
+	assert_eq(hub.points_label.text, "0")
+
+
 func test_declining_ad_returns_to_menu() -> void:
 	main.request_play("2026-11-07", 0)
 	main.request_play("2026-11-07", 0)

@@ -109,8 +109,10 @@ func _draw_art(area: Rect2) -> void:
 	var uvs := PackedVector2Array()
 	for p in pts:
 		uvs.append((p - area.position) / area.size)
-	# a arte é quadrada: mostra o meio dela na janela (sem deformar)
-	var k := area.size / maxf(area.size.x, area.size.y)
+	# mostra o meio da arte na janela, cortando as sobras (sem deformar)
+	var tex := _art.get_size()
+	var cover := maxf(area.size.x / tex.x, area.size.y / tex.y)
+	var k := area.size / (tex * cover)
 	for i in uvs.size():
 		uvs[i] = Vector2(0.5, 0.5) + (uvs[i] - Vector2(0.5, 0.5)) * k
 	draw_colored_polygon(pts, Color.WHITE, uvs, _art)

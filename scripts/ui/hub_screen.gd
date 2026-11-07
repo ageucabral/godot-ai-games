@@ -13,6 +13,8 @@ var points_label: Label
 var rank_banner: GlobalRankBanner
 var cards: Dictionary = {}
 var dialog: DialogBox
+## Mês mostrado agora: quando vira o mês, os pontos voltam a zero junto com a contagem.
+var _month: String = ""
 
 
 func _ready() -> void:
@@ -84,7 +86,8 @@ func _ready() -> void:
 
 ## As moedas e a faixa do ranking mostram o total global (todos os jogos) do mês.
 func refresh() -> void:
-	var total := GameState.global_month_total(Rules.month_for(GameState.now_unix()))
+	_month = Rules.month_for(GameState.now_unix())
+	var total := GameState.global_month_total(_month)
 	points_label.text = str(total.points)
 	rank_banner.points = total.points
 	_update_countdown()
@@ -93,4 +96,7 @@ func refresh() -> void:
 
 
 func _update_countdown() -> void:
+	if Rules.month_for(GameState.now_unix()) != _month:
+		refresh()
+		return
 	rank_banner.countdown = Rules.short_countdown(Rules.seconds_to_month_end(GameState.now_unix()))

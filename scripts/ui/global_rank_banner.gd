@@ -15,6 +15,7 @@ var countdown: String = "":
 var _time: float = 0.0
 ## Caixas do desenho: criadas uma vez (a faixa redesenha a cada quadro por causa do brilho).
 var _boxes: Dictionary = _make_boxes()
+var _font: Font = GameStyle.title_font()
 
 
 func _init() -> void:
@@ -54,7 +55,7 @@ func _draw() -> void:
 		draw_colored_polygon(GameStyle.star_points(p, 9.0 + 5.0 * tw, 3.0, 4), Color(1, 1, 1, 0.6 + 0.4 * tw))
 
 	# textos
-	var font := GameStyle.title_font()
+	var font := _font
 	var x := c.x + 84
 	var w := body.end.x - x - 20
 	_outlined(font, Vector2(x, body.position.y + 66), tr("Ranking Global"), w, 50, Color.WHITE, 11)
@@ -64,7 +65,7 @@ func _draw() -> void:
 	var line := tr("%d pts") % points
 	if countdown != "":
 		line = "%s  ·  %s" % [line, countdown]
-	draw_string(GameStyle.title_font(), pill.position + Vector2(0, 37), line, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, 28, GameStyle.INK)
+	draw_string(font, pill.position + Vector2(0, 37), line, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, 28, GameStyle.INK)
 
 
 ## Faixa de luz inclinada que atravessa a faixa a cada 3,5 s.

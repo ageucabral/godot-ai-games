@@ -120,5 +120,12 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, com animação de despejo, pausa
   na engrenagem e confete na vitória) e ranking (`scenes/ui/ranking_screen.tscn`). Perfil e configurações
   ficam em `scripts/ui/menus.gd`.
+- **Dois rankings** (Ageu, 7/11/2026): cada jogo tem o seu ranking (aberto pelo menu do jogo) e o
+  **Ranking Global** soma todos os jogos e é o que vale prêmios (faixa dourada no hub,
+  `scripts/ui/global_rank_banner.gd`). `ranking_screen.gd` tem os dois modos (`open_mode`);
+  `GameState.global_month_total` soma os jogos de `GameState.GAME_IDS`. Hoje todo o progresso salvo é do
+  Poção de Cores: o segundo jogo vai precisar separar os pontos por jogo no salvamento.
+- Ilustrações (OpenRouter/Nano Banana) em `assets/art/`: hub_bg, home_bg, game_bg (1080x1920), splash,
+  mascot e potion_card (cartão do jogo no hub).
 - Ainda não existem: contas e servidor (Supabase), login Google/Facebook ("Salvar progresso" mostra
   "em breve"), ranking com todos os jogadores, AdMob real, sons.
