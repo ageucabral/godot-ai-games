@@ -15,8 +15,8 @@
   (sem C#, sem GDExtension).
 - Renderizador **Compatibility** (`gl_compatibility`) — obrigatório para exportar para Web.
   Não troque para Forward+ ou Mobile.
-- Jogos **2D**. Resolução base 1280x720, `stretch/mode = canvas_items`, filtro de textura
-  "Nearest" (bom para pixel art; mude em `project.godot` se a arte for lisa).
+- Jogos **2D** para celular **em pé**: resolução base 720x1280, `stretch/mode = canvas_items`,
+  `aspect = expand`, filtro de textura "Linear" (a arte é lisa, não pixel art).
 - Exportação Web **sem threads** (`variant/thread_support=false`), para funcionar em
   qualquer hospedagem (ex.: GitHub Pages, itch.io) sem cabeçalhos especiais.
 
@@ -90,5 +90,10 @@ build/        Saída da exportação (ignorada pelo git)
 exportado como artefato `jogo-web`.
 
 ## Estado atual
-Apenas a base técnica está pronta. A cena `scenes/main/main.tscn` é provisória.
-O jogo definitivo ainda não foi definido.
+Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre garrafinhas
+(Android / Google Play). Estilo visual escolhido: **Feira Tropical** (garrafinhas de vidro com
+tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + Nunito).
+Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/tropical_style.gd`.
+- `scripts/game/sort_puzzle.gd`: regras (despejar, desfazer, vitória) e resolvedor `min_moves`.
+- `scenes/game/game_screen.tscn` (cena principal): partida com um desafio de exemplo.
+- Ainda não existem: menu dos 20 desafios do dia, ranking, login, anúncios (AdMob).

@@ -17,11 +17,10 @@ func test_main_scene_instantiates() -> void:
 	var scene := packed.instantiate()
 	add_child(scene)
 	await get_tree().process_frame
-	var label: Label = scene.get_node("CanvasLayer/Label")
-	assert_true(label.text.begins_with("Projeto pronto!"), "texto de boas-vindas")
+	assert_eq(scene.get_node("%RowTop").get_child_count() + scene.get_node("%RowBottom").get_child_count(), 7, "7 garrafinhas na tela")
 	scene.queue_free()
 
 
-func test_welcome_text() -> void:
-	var main_script := load("res://scripts/main.gd")
-	assert_eq(main_script.build_welcome_text({"major": 4, "minor": 7, "patch": 2}), "Projeto pronto! Godot 4.7.2")
+func test_portrait_phone_layout() -> void:
+	assert_eq(ProjectSettings.get_setting("display/window/size/viewport_width"), 720, "largura")
+	assert_eq(ProjectSettings.get_setting("display/window/size/viewport_height"), 1280, "altura (celular em pé)")
