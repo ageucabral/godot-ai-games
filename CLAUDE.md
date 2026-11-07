@@ -102,15 +102,20 @@ céu de fim de tarde no menu e noite estrelada na partida, contorno roxo-escuro,
 lugar (nada de selo + aba + avatar levando ao mesmo destino), textos curtos.
 Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_style.gd`; ícones em
 `scripts/ui/icons.gd` e fundos animados em `scripts/ui/scene_background.gd`.
-- `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
-  +5 jogadas por propaganda, datas no horário de Brasília).
+- `scripts/game/rules.gd`: regras do documento do jogo (8+7+5 desafios por dia, +5 jogadas por propaganda,
+  datas no horário de Brasília). **Pontos** (Ageu, 7/11/2026): toda fase (nível ou desafio) vale o dobro do
+  número exato de jogadas (`Rules.full_points_for`: 11 jogadas → 22 pontos); cada jogada a mais tira 1 ponto,
+  e a partida mostra o placar caindo ao vivo (fica vermelho e sobe um "-1").
 - Só os desafios de HOJE podem ser jogados (Ageu, 7/11/2026); dias anteriores ficam encerrados.
 - `scripts/game/challenge_generator.gd`: gera os 20 desafios do dia, iguais para todos (semente
   FNV-1a de "AAAA-MM-DD#n"), com o número exato de jogadas calculado por `SortPuzzle.min_moves`.
-- **Modo por níveis** (Ageu, 7/11/2026): níveis sem fim, dificuldade crescente (`Rules.level_setup`:
-  3→7 cores, camadas "?" a partir do nível 30), iguais para todos (`scripts/game/level_generator.gd`,
-  semente "nivel#N"). Vale `Rules.LEVEL_POINTS` (2) pontos fixos, mesma regra de -1 por jogada a mais;
-  os pontos entram no ranking do mês em que o nível foi resolvido. Não dá para rejogar nível passado.
+- **Modo por níveis** (Ageu, 7/11/2026): níveis sem fim, iguais para todos (`scripts/game/level_generator.gd`,
+  semente "nivel#N"), com a dificuldade subindo aos poucos em degraus (`Rules.LEVEL_STEPS`): mais cores/frascos,
+  **frasco coberto** a partir do 10 (pano com selo de uma cor; abre quando uma garrafa daquela cor fica completa,
+  como na foto que o Ageu mandou), **cor repetida** (duas garrafas da mesma cor) a partir do 15 e camadas "?" a
+  partir do 30. Os pontos entram no ranking do mês em que o nível foi resolvido. Não dá para rejogar nível passado.
+- Frascos cobertos ficam em `SortPuzzle.covers` (o resolvedor respeita); a cor do selo nunca fica debaixo de um
+  pano. Desafios médios têm 1 pano e difíceis 2.
 - Idiomas: português (padrão), inglês e espanhol em `scripts/game/i18n.gd` (o texto em português é a
   chave). Textos montados com números usam `tr("...") % valores`.
 - `scripts/game/sort_puzzle.gd`: regras de despejar, camadas escondidas ("?") e lista de jogadas.

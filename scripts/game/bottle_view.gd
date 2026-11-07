@@ -40,6 +40,18 @@ var stream_on: bool = false:
 var stream_color: Color = Color.WHITE
 var stream_end: Vector2 = Vector2.ZERO
 
+## Pano por cima da garrafa coberta: cor que a abre (-1 = sem pano) e quanto do pano ainda aparece
+## (1 = cobre tudo, 0 = já saiu). Ao abrir, o pano sobe e some.
+var cover_key: int = -1:
+	set(value):
+		cover_key = value
+		queue_redraw()
+var cover_amount: float = 0.0:
+	set(value):
+		cover_amount = value
+		queue_redraw()
+var _cover_tween: Tween
+
 var _lift: float = 0.0:
 	set(value):
 		_lift = value
@@ -71,6 +83,22 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		tapped.emit(index)
 		accept_event()
+
+
+## Cobre (true) ou descobre (false) a garrafa. Descobrir anima o pano subindo, se `animated`.
+func set_covered(covered: bool, animated: bool = true) -> void:
+	if covered:
+		if _cover_tween:
+			_cover_tween.kill()
+		cover_amount = 1.0
+		return
+	if cover_amount <= 0.0 or (_cover_tween and _cover_tween.is_running()):
+		return
+	if not animated or not is_inside_tree():
+		cover_amount = 0.0
+		return
+	_cover_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_cover_tween.tween_property(self, "cover_amount", 0.0, 0.6)
 
 
 ## Balança de leve quando a jogada não é permitida.
@@ -177,6 +205,9 @@ func _draw() -> void:
 	draw_rect(Rect2(18, 3, 24, 6), Color("2a3a7a"))
 	draw_rect(Rect2(18, 3, 24, 6), GameStyle.GLASS_EDGE, false, 2.0)
 
+	if cover_amount > 0.0 and cover_key >= 0:
+		_draw_cover(xf)
+
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if stream_on:
 		var from := xf * MOUTH
@@ -184,3 +215,33 @@ func _draw() -> void:
 		var w := 7.0 * design_scale()
 		draw_line(from, Vector2(from.x, to.y), stream_color, w, true)
 		draw_circle(from, w * 0.5, stream_color)
+
+
+## Pano claro por cima do frasco, com dobras e um selo com a garrafinha da cor que o abre.
+## Ao sair, sobe e fica transparente.
+func _draw_cover(xf: Transform2D) -> void:
+	var a := cover_amount
+	var rise := (1.0 - a) * -50.0
+	draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(0, rise)))
+	var cloth := PackedVector2Array()
+	for p in GameStyle.bottle_outline():
+		cloth.append(Vector2(30 + (p.x - 30) * 1.12, p.y - 2))
+	draw_colored_polygon(cloth, Color(0.96, 0.9, 0.93, a))
+	# dobras do pano
+	for x in [16.0, 30.0, 44.0]:
+		draw_line(Vector2(x, 40), Vector2(x + 2, 150), Color(0.8, 0.68, 0.75, 0.7 * a), 2.0, true)
+	var closed := cloth.duplicate()
+	closed.append(cloth[0])
+	draw_polyline(closed, Color(0.55, 0.42, 0.55, a), 2.0, true)
+	# selo com a garrafinha da cor-chave
+	var c := Vector2(30, 92)
+	draw_circle(c, 17, Color(1, 1, 1, a))
+	draw_arc(c, 17, 0, TAU, 24, Color(GameStyle.INK, a), 2.5, true)
+	draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(0, rise)) * Transform2D(0.0, Vector2(0.17, 0.17), 0.0, c - Vector2(30, 80) * 0.17))
+	var icon := GameStyle.bottle_outline()
+	var col := GameStyle.liquid_color(cover_key)
+	draw_colored_polygon(icon, Color(col, a))
+	var icon_closed := icon.duplicate()
+	icon_closed.append(icon[0])
+	draw_polyline(icon_closed, Color(GameStyle.INK, a), 10.0, true)
+	draw_set_transform_matrix(xf)

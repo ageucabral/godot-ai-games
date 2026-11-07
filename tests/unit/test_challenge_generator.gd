@@ -19,11 +19,22 @@ func test_every_daily_challenge_is_valid() -> void:
 	for i in Rules.DAILY_COUNT:
 		var c := ChallengeGenerator.generate("2026-11-07", i)
 		assert_eq(c.difficulty, Rules.difficulty_for(i), "dificuldade %d" % i)
-		assert_eq(c.full_points, Rules.FULL_POINTS[c.difficulty])
-		assert_eq(SortPuzzle.min_moves(c.tubes), c.par, "par confere %d" % i)
+		assert_eq(c.full_points, Rules.full_points_for(c.par), "vale o dobro das jogadas %d" % i)
+		assert_eq(SortPuzzle.min_moves(c.tubes, 400000, c.covers), c.par, "par confere %d" % i)
 		assert_true(c.par >= ChallengeGenerator.SETUP[c.difficulty].min_par, "não é fácil demais %d" % i)
 		assert_eq(c.hidden, c.difficulty == Rules.HARD, "camadas escondidas só nos difíceis")
 		var layers := 0
 		for t in c.tubes:
 			layers += (t as Array).size()
 		assert_eq(layers % SortPuzzle.CAPACITY, 0, "camadas completas %d" % i)
+
+
+func test_cover_key_color_never_under_a_cloth() -> void:
+	for i in Rules.DAILY_COUNT:
+		var c := ChallengeGenerator.generate("2026-11-07", i)
+		for t in c.tubes.size():
+			if int(c.covers[t]) < 0:
+				continue
+			for other in c.tubes.size():
+				if int(c.covers[other]) >= 0:
+					assert_false(c.covers[t] in c.tubes[other], "a cor-chave fica fora dos panos (%d)" % i)

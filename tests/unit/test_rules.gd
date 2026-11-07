@@ -20,8 +20,11 @@ func test_daily_mix() -> void:
 	assert_eq(counts, {Rules.EASY: 8, Rules.MEDIUM: 7, Rules.HARD: 5})
 
 
-func test_full_points_table() -> void:
-	assert_eq(Rules.FULL_POINTS, {Rules.EASY: 10, Rules.MEDIUM: 25, Rules.HARD: 50})
+func test_full_points_are_double_the_moves() -> void:
+	assert_eq(Rules.full_points_for(11), 22, "11 jogadas valem 22 pontos")
+	assert_eq(Rules.full_points_for(5), 10, "5 jogadas valem 10 pontos")
+	assert_eq(Rules.score_for(Rules.full_points_for(11), 11, 11), 22, "no número exato garante tudo")
+	assert_eq(Rules.score_for(Rules.full_points_for(11), 11, 14), 19, "3 jogadas a mais tiram 3")
 
 
 func test_brasilia_date() -> void:

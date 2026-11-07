@@ -18,7 +18,7 @@ func test_same_level_same_puzzle() -> void:
 	var b := LevelGenerator.generate(5)
 	assert_eq(a.tubes, b.tubes, "nível igual para todos")
 	assert_eq(a.par, b.par)
-	assert_eq(a.full_points, Rules.LEVEL_POINTS)
+	assert_eq(a.full_points, Rules.full_points_for(a.par), "vale o dobro das jogadas")
 	assert_eq(a.mode, "level")
 
 
@@ -37,10 +37,12 @@ func test_difficulty_grows() -> void:
 
 
 func test_levels_are_solvable() -> void:
-	for level in [1, 2, 9, 20]:
+	for level in [1, 2, 9, 12, 16, 20]:
 		var data := LevelGenerator.generate(level)
 		assert_false(data.is_empty(), "gerou o nível %d" % level)
-		assert_eq(data.tubes.size(), Rules.level_setup(level).colors + 2)
+		var s := Rules.level_setup(level)
+		assert_eq(data.tubes.size(), s.colors + s.repeats + s.empty)
+		assert_eq(SortPuzzle.min_moves(data.tubes, 400000, data.covers), data.par, "par confere no nível %d" % level)
 		assert_true(data.par > 0, "nível %d tem solução" % level)
 
 
@@ -74,3 +76,24 @@ func test_month_countdown() -> void:
 func test_mascot_floats_and_hops() -> void:
 	assert_eq(MascotView.float_offset(0.0, 0.0), 0.0)
 	assert_true(MascotView.float_offset(0.0, 1.0) < -40.0, "pulinho sobe")
+
+
+func test_new_kinds_of_play_appear_gradually() -> void:
+	assert_eq(Rules.level_setup(9).covers, 0, "sem pano no começo")
+	assert_eq(Rules.level_setup(10).covers, 1, "o pano aparece no nível 10")
+	assert_eq(Rules.level_setup(14).repeats, 0)
+	assert_eq(Rules.level_setup(15).repeats, 1, "a cor repetida aparece no nível 15")
+	var last_covers := 0
+	for level in range(1, 200):
+		var s := Rules.level_setup(level)
+		assert_true(s.covers >= last_covers, "panos não diminuem no nível %d" % level)
+		last_covers = s.covers
+
+
+func test_covered_levels_have_covers() -> void:
+	var data := LevelGenerator.generate(12)
+	var covered := 0
+	for c in data.covers:
+		if int(c) >= 0:
+			covered += 1
+	assert_eq(covered, 1, "nível 12 tem um frasco coberto")

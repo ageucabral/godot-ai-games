@@ -12,7 +12,7 @@ static func key_for(level: int) -> String:
 	return "nivel#%d" % level
 
 
-## Devolve {mode, level, difficulty, tubes, par, full_points, hidden} ou {} se falhar.
+## Devolve {mode, level, difficulty, tubes, covers, par, full_points, hidden} ou {} se falhar.
 static func generate(level: int) -> Dictionary:
 	if level < 1:
 		return {}
@@ -28,9 +28,11 @@ static func _generate(level: int) -> Dictionary:
 	var puzzle: Dictionary = {}
 	# se nenhum sorteio servir, continua sorteando com a mesma semente (igual em todo aparelho);
 	# um nível que nunca gera deixaria o jogador preso nele para sempre
-	for _try in 3:
-		puzzle = ChallengeGenerator.build_puzzle(rng, setup.colors, setup.empty, setup.min_par,
-			GameStyle.LIQUIDS.size(), true)
+	# a cada duas rodadas sem sucesso, um pano a menos (a última rodada fica sem panos)
+	for _try in 6:
+		var shape: Dictionary = setup.duplicate()
+		shape.covers = maxi(0, int(setup.covers) - _try / 2) if _try < 5 else 0
+		puzzle = ChallengeGenerator.build_puzzle(rng, shape, GameStyle.LIQUIDS.size(), true)
 		if not puzzle.is_empty():
 			break
 	if puzzle.is_empty():
@@ -38,5 +40,5 @@ static func _generate(level: int) -> Dictionary:
 		return {}
 	return {
 		"mode": "level", "level": level, "difficulty": Rules.level_difficulty(level),
-		"tubes": puzzle.tubes, "par": puzzle.par, "full_points": Rules.LEVEL_POINTS, "hidden": setup.hidden,
+		"tubes": puzzle.tubes, "covers": puzzle.covers, "par": puzzle.par, "full_points": Rules.full_points_for(puzzle.par), "hidden": setup.hidden,
 	}

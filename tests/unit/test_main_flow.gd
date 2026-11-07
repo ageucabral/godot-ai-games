@@ -131,7 +131,7 @@ func test_level_button_opens_current_level() -> void:
 	assert_true(game.visible, "abriu a partida")
 	assert_true(game.is_level())
 	assert_eq(game.challenge.level, 1)
-	assert_eq(game.challenge.full_points, Rules.LEVEL_POINTS)
+	assert_eq(game.challenge.full_points, Rules.full_points_for(game.challenge.par))
 	game.back_requested.emit()
 	assert_true(main.get_node("Home").visible, "Menu da partida volta ao início")
 
@@ -144,7 +144,7 @@ func test_finishing_level_unlocks_next_and_counts_in_ranking() -> void:
 	assert_eq(GameState.current_level(), 2)
 	assert_true(game.dialog.visible, "mostra a vitória")
 	assert_eq(game.dialog.button_texts()[0], "Próximo nível")
-	assert_eq(GameState.month_total("2026-11").points, Rules.LEVEL_POINTS)
+	assert_eq(GameState.month_total("2026-11").points, Rules.full_points_for(LevelGenerator.generate(1).par))
 	assert_eq(GameState.month_total("2026-11").levels, 1)
 	game.dialog.press("Próximo nível")
 	assert_eq(game.challenge.level, 2)

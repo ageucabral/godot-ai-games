@@ -49,7 +49,7 @@ static func open_save_progress(dialog: DialogBox) -> void:
 
 
 static func open_how_to_play(dialog: DialogBox) -> void:
-	dialog.open("Como jogar", I18n.t("Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nNíveis: sem fim, cada vez mais difíceis, valem %d pontos cada.\nDesafios do dia: 20 novos à meia-noite, valem 10, 25 ou 50 pontos.\nCada jogada além do número exato tira 1 ponto.") % Rules.LEVEL_POINTS, [
+	dialog.open("Como jogar", I18n.t("Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nCada fase vale o dobro das jogadas necessárias: se pede 11 jogadas, vale 22 pontos.\nCada jogada além disso tira 1 ponto, e você vê o placar caindo na hora.\n\nNíveis: sem fim, cada vez mais difíceis.\nDesafios do dia: 20 novos à meia-noite."), [
 		["Entendi", func() -> void: pass, true],
 	])
 

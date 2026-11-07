@@ -8,6 +8,9 @@ signal next_level_requested
 const POUR_MOVE_TIME: float = 0.22
 const POUR_FLOW_TIME: float = 0.38
 const POUR_ANGLE_DEG: float = 72.0
+## Cor dos pontos no placar: normal e quando já passou do número exato de jogadas.
+const POINTS_COLOR := Color("6b3d10")
+const POINTS_OVER_COLOR := Color("e0303f")
 
 @onready var _row_top: HBoxContainer = %RowTop
 @onready var _row_bottom: HBoxContainer = %RowBottom
@@ -32,6 +35,8 @@ var _finished: bool = false
 ## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
 var _zero_accepted: bool = false
 var _pour_tween: Tween
+## Pontos mostrados no placar (para perceber quando caem e animar o "-1").
+var _shown_points: int = -1
 
 
 func _ready() -> void:
@@ -51,7 +56,7 @@ func _style_hud() -> void:
 	pill.content_margin_left = 8
 	%PointsPill.add_theme_stylebox_override("panel", pill)
 	_points_value.add_theme_font_override("font", GameStyle.title_font())
-	_points_value.add_theme_color_override("font_color", Color("6b3d10"))
+	_points_value.add_theme_color_override("font_color", POINTS_COLOR)
 	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
 	GameStyle.apply_title_look(_challenge_value, Color.WHITE, 10)
 	_subtitle.add_theme_font_override("font", GameStyle.title_font())
@@ -125,12 +130,13 @@ func open_with(data: Dictionary) -> void:
 	if _pour_tween and _pour_tween.is_valid():
 		_pour_tween.kill()  # um despejo da partida anterior não pode mexer na nova
 	challenge = data
-	puzzle = SortPuzzle.new(data.tubes, data.get("hidden", false))
+	puzzle = SortPuzzle.new(data.tubes, data.get("hidden", false), data.get("covers", []))
 	move_limit = data.par
 	selected = -1
 	busy = false
 	_finished = false
 	_zero_accepted = false
+	_shown_points = -1
 	dialog.close()
 	_build_bottles()
 	_refresh()
@@ -156,6 +162,11 @@ func tap_bottle(i: int) -> void:
 		return
 	if out_of_moves():
 		_show_out_of_moves()
+		return
+	if puzzle.is_covered(i):
+		_bottles[i].shake()  # coberta: só abre ao completar a cor do selo
+		selected = -1
+		_refresh()
 		return
 	if selected == -1:
 		if not (puzzle.tubes[i] as Array).is_empty():
@@ -262,10 +273,12 @@ func _refresh() -> void:
 	for i in _bottles.size():
 		_bottles[i].segments = BottleView.segments_from(puzzle.tubes[i], puzzle.hidden[i])
 		_bottles[i].selected = (i == selected)
+		_bottles[i].cover_key = SortPuzzle.cover_color(puzzle.covers[i])
+		_bottles[i].set_covered(puzzle.is_covered(i), animate)
 	var used: int = puzzle.moves_used()
 	_moves_value.text = "%d / %d" % [used, move_limit]
 	_moves_value.add_theme_color_override("font_color", Color("ff7a8a") if used > challenge.par else Color.WHITE)
-	_points_value.text = str(current_points())
+	_show_points(current_points())
 	if is_level():
 		_challenge_value.text = tr("Nível %d") % challenge.level
 	else:
@@ -273,6 +286,32 @@ func _refresh() -> void:
 	var diff: String = challenge.difficulty
 	_subtitle.text = tr("%s · vale %d pontos") % [tr(Rules.DIFFICULTY_NAMES[diff]), challenge.full_points]
 	_extra_button.disabled = not out_of_moves()
+
+
+## Placar ao vivo: quando passa do número exato de jogadas, cada jogada a mais tira 1 ponto
+## na hora; o placar fica vermelho, dá um pulinho e sobe um "-1".
+func _show_points(points: int) -> void:
+	var dropped := _shown_points >= 0 and points < _shown_points
+	var lost := _shown_points - points
+	_shown_points = points
+	_points_value.text = str(points)
+	var over: bool = puzzle.moves_used() > int(challenge.par)
+	_points_value.add_theme_color_override("font_color", POINTS_OVER_COLOR if over else POINTS_COLOR)
+	if not dropped or not animate or not is_inside_tree():
+		return
+	var pill: Control = %PointsPill
+	pill.pivot_offset = pill.size * 0.5
+	var t := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(pill, "scale", Vector2(1.15, 1.15), 0.1)
+	t.tween_property(pill, "scale", Vector2.ONE, 0.2)
+	var minus := GameStyle.make_title("-%d" % lost, 44, Color("ff5a6e"))
+	minus.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	add_child(minus)
+	minus.position = pill.global_position - global_position + Vector2(pill.size.x - 30, pill.size.y - 10)
+	var f := create_tween().set_parallel()
+	f.tween_property(minus, "position:y", minus.position.y + 70, 0.8)
+	f.tween_property(minus, "modulate:a", 0.0, 0.8).set_delay(0.3)
+	f.chain().tween_callback(minus.queue_free)
 
 
 # ---------- botões e avisos ----------

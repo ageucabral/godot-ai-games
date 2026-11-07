@@ -133,7 +133,7 @@ func refresh() -> void:
 	progress_label.text = tr("%d de %d") % [done, Rules.DAILY_COUNT]
 	for l in _legend_labels:
 		var diff: String = l.get_meta("difficulty")
-		l.text = tr("%s · %d pts") % [tr(Rules.DIFFICULTY_NAMES[diff]), Rules.FULL_POINTS[diff]]
+		l.text = tr(Rules.DIFFICULTY_NAMES[diff])
 	var next := next_unsolved()
 	play_button.text = tr("Jogar desafio %d") % (next + 1) if next >= 0 else tr("Todos resolvidos!")
 	play_button.disabled = next < 0
