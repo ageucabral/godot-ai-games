@@ -58,7 +58,7 @@ func test_invalid_pour_keeps_puzzle() -> void:
 func test_win_saves_full_points() -> void:
 	_solve()
 	assert_true(screen.puzzle.is_solved())
-	assert_true(screen.dialog.title_label.text in ["Perfeito!", "Muito bem!"])
+	assert_eq(screen.dialog.title_label.text, "Perfeito!", "pontuação cheia")
 	assert_eq(GameState.result("2026-11-07#0").best_points, 10)
 	assert_true("Próximo desafio" in screen.dialog.button_texts())
 
@@ -177,3 +177,10 @@ func test_touch_plus_emulated_click_selects_once() -> void:
 	click.button_index = MOUSE_BUTTON_LEFT
 	bottle._gui_input(click)
 	assert_eq(screen.selected, 0, "garrafa escolhida (não foi solta logo em seguida)")
+
+
+func test_win_title_depends_on_points() -> void:
+	var game_screen: GDScript = load("res://scripts/game/game_screen.gd")
+	assert_eq(game_screen.win_title(10, 10), "Perfeito!")
+	assert_eq(game_screen.win_title(7, 10), "Muito bem!")
+	assert_eq(game_screen.win_title(0, 2), "Muito bem!")

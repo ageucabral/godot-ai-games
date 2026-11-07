@@ -114,12 +114,19 @@ static func make_label(text: String, font_size: int, title: bool = false, color:
 ## Título branco com contorno roxo (como nas placas dos exemplos).
 static func make_title(text: String, font_size: int, color: Color = Color.WHITE) -> Label:
 	var l := make_label(text, font_size, true, color)
-	l.add_theme_color_override("font_outline_color", INK)
-	l.add_theme_constant_override("outline_size", maxi(6, font_size / 7))
+	apply_title_look(l, color, maxi(6, font_size / 7))
 	l.add_theme_color_override("font_shadow_color", Color(INK, 0.6))
 	l.add_theme_constant_override("shadow_offset_x", 0)
 	l.add_theme_constant_override("shadow_offset_y", maxi(3, font_size / 16))
 	return l
+
+
+## Letra de título com contorno roxo num rótulo que já existe (ex.: os da cena da partida).
+static func apply_title_look(l: Label, color: Color, outline: int) -> void:
+	l.add_theme_font_override("font", title_font())
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", INK)
+	l.add_theme_constant_override("outline_size", outline)
 
 
 ## Botão "de bala". main = verde (ação principal); senão roxo. color força outra cor.

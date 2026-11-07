@@ -53,7 +53,7 @@ func _style_hud() -> void:
 	_points_value.add_theme_font_override("font", GameStyle.title_font())
 	_points_value.add_theme_color_override("font_color", Color("6b3d10"))
 	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
-	_title_look(_challenge_value, 10)
+	GameStyle.apply_title_look(_challenge_value, Color.WHITE, 10)
 	_subtitle.add_theme_font_override("font", GameStyle.title_font())
 	_subtitle.add_theme_color_override("font_color", Color("c9d4ff"))
 	var chip := GameStyle.plate_box()
@@ -64,7 +64,7 @@ func _style_hud() -> void:
 	chip.content_margin_right = 26
 	%MovesChip.add_theme_stylebox_override("panel", chip)
 	%Caption.add_theme_color_override("font_color", Color("9aa6e8"))
-	_title_look(_moves_value, 8)
+	GameStyle.apply_title_look(_moves_value, Color.WHITE, 8)
 	var bar := GameStyle.plate_box()
 	bar.bg_color = Color("2e2470")
 	bar.border_color = Color("5a3fc0")
@@ -75,13 +75,6 @@ func _style_hud() -> void:
 	bar.content_margin_bottom = 18
 	%BoosterBar.add_theme_stylebox_override("panel", bar)
 	(_extra_button as BoosterButton).icon_kind = "plus"
-
-
-static func _title_look(l: Label, outline: int) -> void:
-	l.add_theme_font_override("font", GameStyle.title_font())
-	l.add_theme_color_override("font_color", Color.WHITE)
-	l.add_theme_color_override("font_outline_color", GameStyle.INK)
-	l.add_theme_constant_override("outline_size", outline)
 
 
 ## Pausa (engrenagem): continuar, recomeçar ou voltar ao menu.
@@ -198,7 +191,6 @@ func _animate_pour(src: BottleView, dst: BottleView, src_before: Array, dst_befo
 	var target := dst_mouth + Vector2(-dir * 4.0, -40.0)
 	var offset := target - src.mouth_global(angle, Vector2.ZERO)
 	src.z_index = 10
-	dst.cap_open = true
 	src.stream_color = GameStyle.liquid_color(color)
 	src.stream_end = dst.surface_global()
 
@@ -214,7 +206,6 @@ func _animate_pour(src: BottleView, dst: BottleView, src_before: Array, dst_befo
 	t.parallel().tween_property(src, "pour_angle", 0.0, POUR_MOVE_TIME)
 	t.tween_callback(func() -> void:
 		src.z_index = 0
-		dst.cap_open = false
 		busy = false
 		_after_pour())
 
@@ -420,4 +411,4 @@ func _celebrate() -> void:
 	p.z_index = 50
 	add_child(p)
 	p.emitting = true
-	get_tree().create_timer(3.5).timeout.connect(p.queue_free)
+	p.finished.connect(p.queue_free)

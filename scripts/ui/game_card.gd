@@ -3,9 +3,16 @@ extends Button
 ## Cartão de um jogo no hub Na Lata: arte do jogo, nome e "Jogar" (ou "Em breve" com cadeado).
 
 var game_name: String = ""
-var locked: bool = false
+## Bloqueado ("Em breve"): também fica desligado, para não afundar ao ser tocado sem fazer nada.
+var locked: bool = false:
+	set(value):
+		locked = value
+		disabled = value
+		queue_redraw()
 var art: String = "potion"
 var _time: float = 0.0
+## Caixas do desenho: criadas uma vez (o cartão liberado redesenha a cada quadro).
+var _boxes: Dictionary = {}
 
 
 func _init() -> void:
@@ -23,22 +30,13 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var sink := 6.0 if is_pressed() else 0.0
 	var r := Rect2(Vector2(0, sink), Vector2(size.x, size.y - 12))
-	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0, 0, 0, 0.3)
-	shadow.set_corner_radius_all(36)
-	draw_style_box(shadow, Rect2(Vector2(0, 12), Vector2(size.x, size.y - 12)))
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("3b2a8f") if not locked else Color("5d5878")
-	sb.border_color = GameStyle.GOLD if not locked else Color("2b2840")
-	sb.set_border_width_all(6)
-	sb.set_corner_radius_all(36)
-	draw_style_box(sb, r)
+	if _boxes.is_empty() or _boxes.locked != locked:
+		_boxes = _make_boxes(locked)
+	draw_style_box(_boxes.shadow, Rect2(Vector2(0, 12), Vector2(size.x, size.y - 12)))
+	draw_style_box(_boxes.card, r)
 	# janela da arte
 	var art_rect := Rect2(r.position + Vector2(20, 20), Vector2(r.size.x * 0.46, r.size.y - 40))
-	var inner := StyleBoxFlat.new()
-	inner.bg_color = GameStyle.NIGHT_TOP if not locked else Color("3a3750")
-	inner.set_corner_radius_all(24)
-	draw_style_box(inner, art_rect)
+	draw_style_box(_boxes.inner, art_rect)
 	if locked:
 		_draw_lock(art_rect.get_center())
 	else:
@@ -49,16 +47,31 @@ func _draw() -> void:
 	draw_string_outline(font, Vector2(text_x, r.position.y + 90), tr(game_name), HORIZONTAL_ALIGNMENT_CENTER, text_w, 44, 10, GameStyle.INK)
 	draw_string(font, Vector2(text_x, r.position.y + 90), tr(game_name), HORIZONTAL_ALIGNMENT_CENTER, text_w, 44, Color.WHITE)
 	var pill := Rect2(Vector2(text_x + 10, r.end.y - 110), Vector2(text_w - 20, 80))
-	var pb := StyleBoxFlat.new()
-	pb.bg_color = GameStyle.GREEN if not locked else Color("7d7896")
-	pb.border_color = GameStyle.INK
-	pb.set_border_width_all(4)
-	pb.border_width_bottom = 10
-	pb.set_corner_radius_all(26)
-	draw_style_box(pb, pill)
+	draw_style_box(_boxes.pill, pill)
 	var label := tr("Jogar") if not locked else tr("Em breve")
 	draw_string_outline(font, pill.position + Vector2(0, 50), label, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, 36, 9, GameStyle.INK)
 	draw_string(font, pill.position + Vector2(0, 50), label, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, 36, Color.WHITE)
+
+
+static func _make_boxes(is_locked: bool) -> Dictionary:
+	var shadow := StyleBoxFlat.new()
+	shadow.bg_color = Color(0, 0, 0, 0.3)
+	shadow.set_corner_radius_all(36)
+	var card := StyleBoxFlat.new()
+	card.bg_color = Color("3b2a8f") if not is_locked else Color("5d5878")
+	card.border_color = GameStyle.GOLD if not is_locked else Color("2b2840")
+	card.set_border_width_all(6)
+	card.set_corner_radius_all(36)
+	var inner := StyleBoxFlat.new()
+	inner.bg_color = GameStyle.NIGHT_TOP if not is_locked else Color("3a3750")
+	inner.set_corner_radius_all(24)
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = GameStyle.GREEN if not is_locked else Color("7d7896")
+	pill.border_color = GameStyle.INK
+	pill.set_border_width_all(4)
+	pill.border_width_bottom = 10
+	pill.set_corner_radius_all(26)
+	return {"locked": is_locked, "shadow": shadow, "card": card, "inner": inner, "pill": pill}
 
 
 func _draw_potions(area: Rect2) -> void:

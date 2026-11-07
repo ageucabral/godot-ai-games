@@ -10,10 +10,8 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
 	# menu e telas
-	"Separe as cores. Acerte em cheio.": ["Sort the colors. Nail it.", "Separa los colores. Da en el blanco."],
 	"Nível %d": ["Level %d", "Nivel %d"],
 	"Desafios do dia": ["Daily challenges", "Desafíos del día"],
-	"Desafios do dia · %d/%d": ["Daily challenges · %d/%d", "Desafíos del día · %d/%d"],
 	"Hoje, %s": ["Today, %s", "Hoy, %s"],
 	"%d de %d": ["%d of %d", "%d de %d"],
 	"Jogar desafio %d": ["Play challenge %d", "Jugar desafío %d"],

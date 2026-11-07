@@ -95,9 +95,11 @@ no GitHub Pages a cada mudança na `main` (precisa do Pages ligado com origem "G
 
 ## Estado atual
 Jogo: **Na Lata**, quebra-cabeça de separar cores despejando líquido entre garrafinhas
-(Android / Google Play). Estilo visual escolhido: **Feira Tropical** (garrafinhas de vidro com
-tampinha vermelha, fundo de azulejo, contorno marrom forte, letras Lilita One + Nunito).
-Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/game_style.gd`.
+(Android / Google Play). O app abre no **hub Na Lata** (lista de jogos); o primeiro jogo é o
+**Poção de Cores**. Estilo visual: colorido e brilhante (frascos de poção, botões "de bala" com brilho,
+céu de fim de tarde no menu e noite estrelada na partida, contorno roxo-escuro, letras Lilita One + Nunito).
+Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_style.gd`; ícones em
+`scripts/ui/icons.gd` e fundos animados em `scripts/ui/scene_background.gd`.
 - `scripts/game/rules.gd`: regras do documento do jogo (pontos 10/25/50, 8+7+5 desafios por dia,
   +5 jogadas por propaganda, datas no horário de Brasília).
 - Só os desafios de HOJE podem ser jogados (Ageu, 7/11/2026); dias anteriores ficam encerrados.
@@ -112,9 +114,11 @@ Cores, letras, tema e o desenho da garrafa ficam em `scripts/game/game_style.gd`
 - `scripts/game/sort_puzzle.gd`: regras de despejar, camadas escondidas ("?") e lista de jogadas.
 - `scripts/autoload/game_state.gd`: tentativas e melhor resultado salvos no aparelho.
 - `scripts/autoload/ads.gd`: propaganda **simulada** (3 s). O AdMob de verdade entra aqui depois.
-- Cena principal `scenes/main/main.tscn`: tela inicial inspirada no exemplo do Ageu (`scenes/ui/home_screen.tscn`:
-  perfil, pontos do mês, configurações, mascote, pódio do ranking com contagem, botões "Nível N" e
-  "Desafios do dia"), desafios do dia (`scenes/ui/daily_screen.tscn`), partida
-  (`scenes/game/game_screen.tscn`, com animação de despejo) e ranking (`scenes/ui/ranking_screen.tscn`).
+- Cena principal `scenes/main/main.tscn`: hub (`scenes/ui/hub_screen.tscn`), tela inicial do Poção de Cores
+  (`scenes/ui/home_screen.tscn`: perfil, pontos do mês, configurações, selos de ranking e desafios do dia,
+  mascote, botão "Nível N" e barra de baixo Jogos · Ranking · Início · Desafios · Perfil), desafios do dia
+  (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, com animação de despejo, pausa
+  na engrenagem e confete na vitória) e ranking (`scenes/ui/ranking_screen.tscn`). Perfil e configurações
+  ficam em `scripts/ui/menus.gd`.
 - Ainda não existem: contas e servidor (Supabase), login Google/Facebook ("Salvar progresso" mostra
   "em breve"), ranking com todos os jogadores, AdMob real, sons.

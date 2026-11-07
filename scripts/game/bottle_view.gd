@@ -8,6 +8,7 @@ signal tapped(index: int)
 const LIFT: float = 34.0
 const MOUTH := Vector2(30, 4)       # boca do frasco na grade 60 x 160
 const PIVOT := Vector2(30, 80)      # centro de giro ao inclinar
+const SURFACE_MAX_Y: float = 138.0  # abaixo daqui o fundo do frasco começa a arredondar
 
 var index: int = 0
 var capacity: int = SortPuzzle.CAPACITY
@@ -37,11 +38,6 @@ var stream_on: bool = false:
 		stream_on = value
 		queue_redraw()
 var stream_color: Color = Color.WHITE
-## Sem tampinha (enquanto recebe ou derrama líquido).
-var cap_open: bool = false:
-	set(value):
-		cap_open = value
-		queue_redraw()
 var stream_end: Vector2 = Vector2.ZERO
 
 var _lift: float = 0.0:
@@ -138,6 +134,7 @@ func _draw() -> void:
 	var h := layer_height()
 	var level := 0.0
 	var font := GameStyle.title_font()
+	var top_col: Color = Color.WHITE
 	for seg in segments:
 		var amount: float = seg[1]
 		if amount <= 0.001:
@@ -145,10 +142,12 @@ func _draw() -> void:
 		var y_bottom := GameStyle.LIQUID_BOTTOM - level * h
 		var y_top := GameStyle.LIQUID_BOTTOM - (level + amount) * h
 		var col: Color = GameStyle.HIDDEN_LAYER if seg[2] else GameStyle.liquid_color(seg[0])
-		for poly in GameStyle.band_polygons(y_top, y_bottom + 0.5):
+		top_col = col  # cor da camada de cima que aparece de verdade (ignora as vazias do despejo)
+		var band := GameStyle.band_polygons(y_top, y_bottom + 0.5)
+		for poly in band:
 			draw_colored_polygon(poly, col)
 		# sombra na lateral direita (volume)
-		for poly in GameStyle.band_polygons(y_top, y_bottom + 0.5):
+		for poly in band:
 			var shade := PackedVector2Array()
 			for v in poly:
 				shade.append(Vector2(maxf(v.x, 44.0), v.y))
@@ -156,9 +155,11 @@ func _draw() -> void:
 		if seg[2] and amount > 0.6:
 			draw_string(font, Vector2(0, (y_top + y_bottom) * 0.5 + 8), "?", HORIZONTAL_ALIGNMENT_CENTER, 60, 22, Color("c9c3ff"))
 		level += amount
-	if level > 0.01:  # superfície do líquido (elipse clara, dá a ideia de cilindro)
-		var y := GameStyle.LIQUID_BOTTOM - level * h
-		var top_col: Color = GameStyle.HIDDEN_LAYER if segments[-1][2] else GameStyle.liquid_color(segments[-1][0])
+	var surface_y := GameStyle.LIQUID_BOTTOM - level * h
+	# superfície do líquido (elipse clara, dá a ideia de cilindro); perto do fundo arredondado
+	# a elipse sairia para fora do vidro, então só aparece onde o corpo do frasco é reto
+	if level > 0.01 and surface_y <= SURFACE_MAX_Y:
+		var y := surface_y
 		draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(1.0, 0.22), 0.0, Vector2(0, y * 0.78)))
 		draw_circle(Vector2(30, y), 23, top_col.lightened(0.28))
 		draw_set_transform_matrix(xf)

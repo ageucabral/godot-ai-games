@@ -14,6 +14,8 @@ var counter: String = "":
 		queue_redraw()
 var ring: Color = Color("f2a93b")
 var _time: float = 0.0
+## Faixa do texto: criada uma vez (o selo redesenha a cada quadro por causa do balanço).
+var _caption_box: StyleBoxFlat = _make_caption_box()
 
 
 func _init(kind: String = "podium") -> void:
@@ -45,11 +47,15 @@ func _draw() -> void:
 		draw_string(font, bc + Vector2(-60, 10), counter, HORIZONTAL_ALIGNMENT_CENTER, 120, 28, Color.WHITE)
 	if caption != "":
 		var r := Rect2(Vector2(6, 104 + bob), Vector2(size.x - 12, 40))
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("3d5bd9")
-		sb.border_color = GameStyle.INK
-		sb.set_border_width_all(3)
-		sb.set_corner_radius_all(12)
-		draw_style_box(sb, r)
+		draw_style_box(_caption_box, r)
 		draw_string_outline(font, r.position + Vector2(0, 29), caption, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 24, 6, GameStyle.INK)
 		draw_string(font, r.position + Vector2(0, 29), caption, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 24, Color.WHITE)
+
+
+static func _make_caption_box() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("3d5bd9")
+	sb.border_color = GameStyle.INK
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(12)
+	return sb
