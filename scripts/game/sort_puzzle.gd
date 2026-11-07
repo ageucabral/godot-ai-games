@@ -1,22 +1,30 @@
 class_name SortPuzzle
 extends RefCounted
 ## Regras do quebra-cabeça de separar cores.
-## Cada garrafa é um Array[int] de cores, do fundo (índice 0) para o topo.
+## Cada garrafa é um Array de cores (números), do fundo (índice 0) para o topo.
+## `hidden` guarda, para cada camada, se ela ainda aparece como "?" (desafios difíceis).
 ## Esta classe não depende da árvore de cenas: dá para testar sozinha.
 
 const CAPACITY: int = 4
 
 var tubes: Array = []
-var _history: Array = []  # cada item: [de, para, quantidade]
+var hidden: Array = []
+## Lista de jogadas feitas, cada uma [de, para]. Vai para o servidor conferir no futuro.
+var moves: Array = []
 
 
-func _init(start_tubes: Array = []) -> void:
+func _init(start_tubes: Array = [], hide_lower_layers: bool = false) -> void:
 	tubes = copy_tubes(start_tubes)
+	for t in tubes:
+		var flags: Array = []
+		for i in (t as Array).size():
+			flags.append(hide_lower_layers and i < (t as Array).size() - 1)
+		hidden.append(flags)
 
 
-## Quantas jogadas (despejos) valem neste momento. Desfazer devolve a jogada.
+## Quantas jogadas (despejos) já foram feitas nesta tentativa.
 func moves_used() -> int:
-	return _history.size()
+	return moves.size()
 
 
 func can_pour(from: int, to: int) -> bool:
@@ -28,28 +36,20 @@ func pour(from: int, to: int) -> int:
 	if not can_pour(from, to):
 		return 0
 	var amount: int = pour_in(tubes, from, to)
-	_history.append([from, to, amount])
+	for i in amount:
+		hidden[from].pop_back()
+		hidden[to].append(false)
+	if not (hidden[from] as Array).is_empty():
+		hidden[from][-1] = false  # a camada que ficou no topo aparece
+	moves.append([from, to])
 	return amount
-
-
-func can_undo() -> bool:
-	return not _history.is_empty()
-
-
-func undo() -> bool:
-	if _history.is_empty():
-		return false
-	var last: Array = _history.pop_back()
-	for i in last[2]:
-		tubes[last[0]].append(tubes[last[1]].pop_back())
-	return true
 
 
 func is_solved() -> bool:
 	return is_solved_state(tubes)
 
 
-# ---------- funções estáticas (usadas também pelo resolvedor) ----------
+# ---------- funções estáticas (usadas também pelo gerador e pelo resolvedor) ----------
 
 static func copy_tubes(src: Array) -> Array:
 	var out: Array = []
@@ -103,7 +103,7 @@ static func is_solved_state(state: Array) -> bool:
 
 ## Menor número de jogadas para resolver (busca em largura).
 ## Devolve -1 se não houver solução ou se passar de `max_states` estados.
-static func min_moves(start: Array, max_states: int = 200000) -> int:
+static func min_moves(start: Array, max_states: int = 400000) -> int:
 	var first: Array = copy_tubes(start)
 	if is_solved_state(first):
 		return 0
