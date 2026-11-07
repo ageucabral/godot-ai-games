@@ -14,6 +14,7 @@ var screen: Control
 func before_each() -> void:
 	GameState.save_path = "user://test_progress_screen.cfg"
 	GameState.reset_all()
+	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
 	screen = load("res://scenes/game/game_screen.tscn").instantiate()
 	screen.animate = false
@@ -23,6 +24,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	screen.free()
+	GameState.fixed_unix = -1
 	Ads.instant = false
 
 
@@ -97,6 +99,21 @@ func test_restart_needs_ad_and_new_attempt() -> void:
 	screen.dialog.press("Assistir e recomeçar")
 	assert_eq(GameState.attempts("2026-11-07#0"), 2, "recomeçar gasta uma tentativa")
 	assert_eq(screen.puzzle.moves_used(), 0)
+
+
+func test_restart_after_midnight_is_closed() -> void:
+	screen.open_challenge("2026-11-07", 0)
+	GameState.fixed_unix += 86400  # virou o dia com a partida aberta
+	screen.get_node("%RestartButton").pressed.emit()
+	screen.dialog.press("Assistir e recomeçar")
+	assert_eq(screen.dialog.title_label.text, "Desafio encerrado")
+	assert_eq(GameState.attempts("2026-11-07#0"), 1, "não gasta tentativa de dia encerrado")
+
+
+func test_open_challenge_from_past_day_is_refused() -> void:
+	screen.open_challenge("2026-11-06", 0)
+	assert_eq(GameState.attempts("2026-11-06#0"), 0)
+	assert_true(screen.dialog.visible, "avisa que acabou")
 
 
 func test_flow_segments_halfway() -> void:

@@ -4,6 +4,7 @@ extends Control
 signal play_requested(date: String, index: int)
 signal ranking_requested
 
+## Dia mostrado: sempre hoje (atualizado em refresh; serve também para perceber a meia-noite).
 var date: String = ""
 var day_label: Label
 var progress_label: Label
@@ -11,8 +12,6 @@ var play_button: Button
 var month_label: Label
 var countdown_label: Label
 var grid: GridContainer
-## Dia de hoje da última atualização (para perceber a virada da meia-noite).
-var _today: String = ""
 
 
 func _ready() -> void:
@@ -125,8 +124,7 @@ func next_unsolved() -> int:
 func refresh() -> void:
 	if date == "":
 		return
-	_today = GameState.today()
-	date = _today  # só os desafios de hoje podem ser jogados
+	date = GameState.today()  # só os desafios de hoje podem ser jogados
 	day_label.text = "Hoje, " + Rules.pretty_date(date)
 	var done := 0
 	for i in Rules.DAILY_COUNT:
@@ -159,8 +157,7 @@ func _on_play_pressed() -> void:
 
 
 func _update_countdown() -> void:
-	var today := GameState.today()
-	if _today != "" and today != _today:
+	if date != "" and GameState.today() != date:
 		refresh()  # virou o dia com o menu aberto: mostra os desafios novos
 		return
 	var secs := Rules.seconds_to_next_day(GameState.now_unix())
