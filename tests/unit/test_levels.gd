@@ -71,6 +71,6 @@ func test_month_countdown() -> void:
 	assert_eq(Rules.seconds_to_month_end(1794063600 + 23 * 86400), 12 * 3600)
 
 
-func test_mascot_blinks() -> void:
-	assert_eq(MascotView.eyes_open(1.0), 1.0)
-	assert_true(MascotView.eyes_open(3.1) < 0.5)
+func test_mascot_floats_and_hops() -> void:
+	assert_eq(MascotView.float_offset(0.0, 0.0), 0.0)
+	assert_true(MascotView.float_offset(0.0, 1.0) < -40.0, "pulinho sobe")

@@ -94,7 +94,7 @@ static func band_polygons(y_top: float, y_bottom: float) -> Array[PackedVector2A
 static func add_background(parent: Control, kind: String = "sky") -> SceneBackground:
 	var bg := SceneBackground.new()
 	bg.kind = kind
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(bg)
 	return bg

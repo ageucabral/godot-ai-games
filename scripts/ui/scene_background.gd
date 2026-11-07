@@ -2,14 +2,20 @@ class_name SceneBackground
 extends Control
 ## Fundo animado. "sky": céu de fim de tarde com morros e nuvens andando (menu).
 ## "night": noite azul com brilho no meio e estrelas piscando (partida).
-## (Arte provisória desenhada no código; as ilustrações geradas entram por cima depois.)
+## Usa a ilustração gerada (assets/art) e desenha por cima os brilhos animados.
+## Sem a imagem, cai no desenho feito no código.
+
+const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg"}
 
 var kind: String = "sky"
+var _art: Texture2D
 var _time: float = 0.0
 var _stars: Array = []  # [posição relativa, tamanho, fase]
 
 
 func _ready() -> void:
+	if ART.has(kind) and ResourceLoader.exists(ART[kind]):
+		_art = load(ART[kind])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	for i in 70:
@@ -24,10 +30,27 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if _art:
+		_draw_art()
+		return
 	if kind == "night":
 		_draw_night()
 	else:
 		_draw_sky()
+
+
+## Imagem cobrindo a tela toda (corta as sobras, sem deformar) e brilhinhos piscando por cima.
+func _draw_art() -> void:
+	var tex_size := _art.get_size()
+	var k := maxf(size.x / tex_size.x, size.y / tex_size.y)
+	var draw_size := tex_size * k
+	draw_texture_rect(_art, Rect2((size - draw_size) * 0.5, draw_size), false)
+	for s in _stars.slice(0, 26):
+		var p: Vector2 = s[0] * size
+		if kind == "sky":
+			p.y = fposmod(p.y - _time * 14.0 * s[1], size.y)
+		var tw := 0.5 + 0.5 * sin(_time * 1.8 + s[2])
+		draw_colored_polygon(GameStyle.star_points(p, s[1] * 2.6 * tw + 1.0, s[1] * 0.5, 4), Color(1, 1, 0.9, 0.75 * tw))
 
 
 func _draw_night() -> void:

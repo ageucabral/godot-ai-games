@@ -6,10 +6,12 @@ config_version=5
 [application]
 
 config/name="Na Lata"
-config/description="Separe as cores. Acerte em cheio."
+config/description="Hub de jogos Na Lata. Primeiro jogo: Poção de Cores."
 run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.05, 0.08, 0.25, 1)
+boot_splash/show_image=false
 
 [autoload]
 

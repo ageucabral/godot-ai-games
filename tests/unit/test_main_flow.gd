@@ -191,6 +191,12 @@ func test_app_opens_on_hub_and_enters_game() -> void:
 	assert_true(main.get_node("Hub").visible, "abre no hub Na Lata")
 	main.get_node("Hub").cards["potion"].pressed.emit()
 	assert_true(main.get_node("Home").visible, "entra no Poção de Cores")
+	var splash: Node = null
+	for c in main.get_children():
+		if c is SplashOverlay:
+			splash = c
+	assert_not_null(splash, "mostra a tela de abertura")
+	splash.close()
 	main.get_node("Home").nav.tab_pressed.emit("games")
 	assert_true(main.get_node("Hub").visible, "aba Jogos volta ao hub")
 
