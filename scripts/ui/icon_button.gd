@@ -1,6 +1,6 @@
 class_name IconButton
 extends GlossButton
-## Botão quadrado roxo e brilhante com um ícone no meio ("gear", "avatar"...).
+## Botão quadrado roxo e brilhante com um ícone no meio (a engrenagem, "gear").
 
 var kind: String = "gear"
 

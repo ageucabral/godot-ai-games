@@ -9,7 +9,7 @@ var locked: bool = false:
 		locked = value
 		disabled = value
 		queue_redraw()
-## Ilustração do jogo (vazio = desenho dos frascos feito no código).
+## Ilustração do jogo (em assets/art).
 var art_path: String = "":
 	set(value):
 		art_path = value
@@ -47,8 +47,6 @@ func _draw() -> void:
 		_draw_lock(art_rect.get_center())
 	elif _art:
 		_draw_art(art_rect)
-	else:
-		_draw_potions(art_rect)
 	var font := GameStyle.title_font()
 	var text_x := art_rect.end.x + 20
 	var text_w := r.end.x - text_x - 20
@@ -80,27 +78,6 @@ static func _make_boxes(is_locked: bool) -> Dictionary:
 	pill.border_width_bottom = 10
 	pill.set_corner_radius_all(26)
 	return {"locked": is_locked, "shadow": shadow, "card": card, "inner": inner, "pill": pill}
-
-
-func _draw_potions(area: Rect2) -> void:
-	var cols := [[0, 1, 0, 2], [2, 2, 1, 4], [4, 0, 3, 3]]
-	for i in 3:
-		var k := area.size.y / 200.0
-		var bob := sin(_time * 2.0 + i) * 5.0
-		var origin := area.position + Vector2(18 + i * area.size.x * 0.3, 20 + bob)
-		var xf := Transform2D(0.0, Vector2(k, k), 0.0, origin)
-		draw_set_transform_matrix(xf)
-		var outline := GameStyle.bottle_outline()
-		draw_colored_polygon(outline, GameStyle.GLASS)
-		var h := GameStyle.layer_height(4)
-		for j in 4:
-			var yb := GameStyle.LIQUID_BOTTOM - j * h
-			for poly in GameStyle.band_polygons(yb - h, yb + 0.5):
-				draw_colored_polygon(poly, GameStyle.liquid_color(cols[i][j]))
-		var closed := outline.duplicate()
-		closed.append(outline[0])
-		draw_polyline(closed, GameStyle.GLASS_EDGE, 2.5, true)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 ## Ilustração recortada com cantos redondos e brilhinhos subindo por cima.
