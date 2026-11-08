@@ -7,6 +7,7 @@ var main: Control
 func before_each() -> void:
 	GameState.save_path = "user://test_progress_main.cfg"
 	GameState.reset_all()
+	GameState.set_setting("tutorial_done", true)  # a partida guiada tem testes próprios
 	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
 	main = load("res://scenes/main/main.tscn").instantiate()
@@ -258,6 +259,6 @@ func test_daily_button_below_level_shows_progress() -> void:
 func test_profile_lives_in_settings() -> void:
 	var home: Control = main.get_node("Home")
 	Menus.open_settings(home.dialog)
-	assert_true("Seu perfil" in home.dialog.button_texts())
-	home.dialog.press("Seu perfil")
-	assert_eq(home.dialog.title_label.text, "Seu perfil")
+	assert_true("Sua conta" in home.dialog.button_texts())
+	home.dialog.press("Sua conta")
+	assert_eq(home.dialog.title_label.text, "Sua conta")

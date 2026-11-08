@@ -231,12 +231,24 @@ static func is_solved_state(state: Array) -> bool:
 ## Menor número de jogadas para resolver (busca em largura), respeitando as garrafas cobertas.
 ## Devolve -1 se não houver solução ou se passar de `max_states` estados.
 static func min_moves(start: Array, max_states: int = 400000, start_covers: Array = []) -> int:
+	return int(_shortest(start, start_covers, max_states)[0])
+
+
+## Primeira jogada de um caminho mais curto até resolver ([de, para]); [] se não achar.
+## Usada na primeira partida guiada (fases pequenas).
+static func hint_move(start: Array, start_covers: Array = [], max_states: int = 60000) -> Array:
+	return _shortest(start, start_covers, max_states)[1]
+
+
+## Busca em largura do caminho mais curto. Devolve [jogadas, primeira jogada]: [0, []] se já está
+## resolvido; [-1, []] se não há solução ou se passou de `max_states` estados.
+static func _shortest(start: Array, start_covers: Array, max_states: int) -> Array:
 	var first: Array = copy_tubes(start)
 	var first_covers: Array = normalized_covers(start_covers, first.size())
 	if is_solved_state(first):
-		return 0
+		return [0, []]
 	var seen: Dictionary = {_key(first, first_covers): true}
-	var frontier: Array = [[first, first_covers]]
+	var frontier: Array = [[first, first_covers, []]]
 	var depth: int = 0
 	while not frontier.is_empty():
 		depth += 1
@@ -264,14 +276,15 @@ static func min_moves(start: Array, max_states: int = 400000, start_covers: Arra
 					var k: String = _key(child, child_cov)
 					if seen.has(k):
 						continue
+					var first_move: Array = node[2] if depth > 1 else [from, to]
 					if is_solved_state(child):
-						return depth
+						return [depth, first_move]
 					seen[k] = true
-					next.append([child, child_cov])
+					next.append([child, child_cov, first_move])
 					if seen.size() > max_states:
-						return -1
+						return [-1, []]
 		frontier = next
-	return -1
+	return [-1, []]
 
 
 ## Chave do estado: as garrafas descobertas são intercambiáveis (sem ordem); as cobertas entram

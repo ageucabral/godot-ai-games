@@ -9,6 +9,8 @@ const DEPENDENCIES := [
 	"androidx.credentials:credentials-play-services-auth:1.3.0",
 	"com.google.android.libraries.identity.googleid:googleid:1.1.1",
 	"org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1",
+	"com.google.android.play:integrity:1.4.0",
+	"com.android.installreferrer:installreferrer:2.2",
 ]
 
 

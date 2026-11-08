@@ -14,6 +14,7 @@ var screen: Control
 func before_each() -> void:
 	GameState.save_path = "user://test_progress_screen.cfg"
 	GameState.reset_all()
+	GameState.set_setting("tutorial_done", true)  # a partida guiada tem testes próprios
 	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
 	screen = load("res://scenes/game/game_screen.tscn").instantiate()

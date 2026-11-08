@@ -1,6 +1,9 @@
 package app.nalata.godot
 
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
@@ -9,6 +12,8 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
+import com.android.installreferrer.api.InstallReferrerClient
+import com.android.installreferrer.api.InstallReferrerStateListener
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
@@ -20,6 +25,8 @@ import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.IntegrityTokenRequest
 import java.util.concurrent.Executors
 import org.godotengine.godot.Godot
 import org.godotengine.godot.plugin.GodotPlugin
@@ -30,6 +37,8 @@ import org.godotengine.godot.plugin.UsedByGodot
  * Plugin do Na Lata para o Godot (singleton "NaLata").
  * - Login com Google (Credential Manager): devolve o idToken para o servidor conferir (POST /auth/google).
  * - Propaganda premiada do AdMob com SSV: `customData` = rewardId do servidor, `userId` = id do jogador.
+ * - Play Integrity (o servidor confere se é o app original da Play num aparelho íntegro).
+ * - Convite: lê o código que veio no link da Play (install referrer) e abre o "compartilhar" do Android.
  * Tudo responde por sinais, na linha principal do Godot.
  */
 class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
@@ -46,6 +55,10 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         SignalInfo("rewarded_finished", java.lang.Boolean::class.java, String::class.java),
         // idToken ("" se não entrou), erro ("" | "cancelled" | "no_account" | mensagem)
         SignalInfo("google_signed_in", String::class.java, String::class.java),
+        // token ("" se não deu), erro ("" se deu certo)
+        SignalInfo("integrity_token", String::class.java, String::class.java),
+        // texto do referrer da Play (ex.: "code=ABC123"; "" se não houver)
+        SignalInfo("install_referrer", String::class.java),
     )
 
     private fun act(): Activity? = activity
@@ -165,6 +178,80 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
                 Log.w(tag, "getCredential: ${e.message}")
                 done("", e.message ?: "error")
             }
+        }
+    }
+
+    // ---------- Play Integrity ----------
+
+    /**
+     * Pede um token do Play Integrity (API clássica) com o `nonce` do servidor. `cloudProjectNumber` = número do
+     * projeto Google Cloud ligado ao app na Play Console. Responde com `integrity_token(token, erro)`.
+     */
+    @UsedByGodot
+    fun integrityToken(nonce: String, cloudProjectNumber: Long) {
+        val a = act() ?: return emitSignal("integrity_token", "", "no_activity")
+        try {
+            IntegrityManagerFactory.create(a.applicationContext)
+                .requestIntegrityToken(
+                    IntegrityTokenRequest.builder().setNonce(nonce).setCloudProjectNumber(cloudProjectNumber).build()
+                )
+                .addOnSuccessListener { emitSignal("integrity_token", it.token(), "") }
+                .addOnFailureListener {
+                    Log.w(tag, "integrity: ${it.message}")
+                    emitSignal("integrity_token", "", it.message ?: "error")
+                }
+        } catch (e: Exception) {
+            emitSignal("integrity_token", "", e.message ?: "error")
+        }
+    }
+
+    // ---------- Convite ----------
+
+    /** Lê o referrer da instalação (o link do convite manda "code=<código>"). Responde com `install_referrer(texto)`. */
+    @UsedByGodot
+    fun installReferrer() {
+        val a = act() ?: return emitSignal("install_referrer", "")
+        val client = InstallReferrerClient.newBuilder(a.applicationContext).build()
+        try {
+            client.startConnection(object : InstallReferrerStateListener {
+                override fun onInstallReferrerSetupFinished(code: Int) {
+                    var text = ""
+                    if (code == InstallReferrerClient.InstallReferrerResponse.OK) {
+                        text = try { client.installReferrer.installReferrer ?: "" } catch (e: Exception) { "" }
+                    }
+                    try { client.endConnection() } catch (_: Exception) {}
+                    emitSignal("install_referrer", text)
+                }
+
+                override fun onInstallReferrerServiceDisconnected() {}
+            })
+        } catch (e: Exception) {
+            emitSignal("install_referrer", "")
+        }
+    }
+
+    /** Abre o "compartilhar" do Android com o texto do convite. */
+    @UsedByGodot
+    fun share(text: String) {
+        val a = act() ?: return
+        a.runOnUiThread {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+            }
+            a.startActivity(Intent.createChooser(send, null))
+        }
+    }
+
+    /** País do chip (ex.: "BR"; "" sem chip). Ajuda a sugerir o país e o antifraude do resgate. */
+    @UsedByGodot
+    fun simCountry(): String {
+        val a = act() ?: return ""
+        return try {
+            val tm = a.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            (tm.simCountryIso ?: "").uppercase()
+        } catch (e: Exception) {
+            ""
         }
     }
 }

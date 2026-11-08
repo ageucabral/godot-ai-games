@@ -6,6 +6,8 @@ extends Control
 ## só os pontos deste aparelho.
 
 signal back_requested
+signal invite_requested
+signal claim_requested(payout_id: String)
 
 const GLOBAL := "global"
 const GAME := "game"
@@ -29,6 +31,11 @@ var top_card: PanelContainer
 var top_list: VBoxContainer
 ## Linhas vindas do servidor para cada ranking ("global" / "game"): [posição, apelido, pontos, sou_eu].
 var server_rows: Dictionary = {}
+## Do GET /ranking (Global): prêmios do mês em linhas e o texto da regra para o jogador.
+var prize_lines: Array[String] = []
+var rule_text: String = ""
+var claim_button: GlossButton
+var invite_button: GlossButton
 
 
 func _ready() -> void:
@@ -75,6 +82,15 @@ func _ready() -> void:
 	prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	prize_banner.add_child(prize_label)
 
+	# resgatar prêmio (só quando há um a resgatar) e convidar amigos (regra para concorrer)
+	claim_button = GameStyle.make_button("Resgatar prêmio", true, 32, GameStyle.GOLD)
+	claim_button.pulse = true
+	claim_button.pressed.connect(func() -> void:
+		var pending := Prizes.pending_payouts()
+		if not pending.is_empty():
+			claim_requested.emit(str(pending[0].get("id", ""))))
+	box.add_child(claim_button)
+
 	# cartão "Você"
 	var me := PanelContainer.new()
 	me_box = StyleBoxFlat.new()
@@ -116,9 +132,15 @@ func _ready() -> void:
 	var info := PanelContainer.new()
 	info.add_theme_stylebox_override("panel", GameStyle.card_box())
 	box.add_child(info)
+	var info_box := VBoxContainer.new()
+	info_box.add_theme_constant_override("separation", 16)
+	info.add_child(info_box)
 	info_label = GameStyle.make_label("", 26)
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.add_child(info_label)
+	info_box.add_child(info_label)
+	invite_button = GameStyle.make_button("Convidar amigos", false, 30)
+	invite_button.pressed.connect(func() -> void: invite_requested.emit())
+	info_box.add_child(invite_button)
 
 	GameState.progress_changed.connect(refresh)
 	refresh()
@@ -140,6 +162,10 @@ func _fetch_rows(which: String) -> void:
 	if not res.ok or not is_inside_tree():
 		return
 	server_rows[which] = ApiClient.ranking_rows(res.data)
+	if which == GLOBAL:
+		prize_lines = ApiClient.prize_lines(res.data.get("prizes"))
+		var me: Variant = res.data.get("me")
+		rule_text = ApiClient.rule_text(me if me is Dictionary else {}, Server.config.get("rules", {}))
 	if mode == which:
 		refresh()
 
@@ -152,25 +178,29 @@ func refresh() -> void:
 	var global := mode == GLOBAL
 	_fill_top(server_rows.get(mode, []))
 	prize_banner.visible = global
+	var online := Server.online()
+	claim_button.visible = global and online and not Prizes.pending_payouts().is_empty()
+	invite_button.visible = global and online
 	# "Pontos por jogo" só aparece quando houver mais de um jogo
 	games_card.visible = global and GameState.GAME_IDS.size() > 1
 	if global:
 		var total := GameState.global_month_total(month)
 		title_label.text = tr("Ranking Global")
 		prize_label.text = tr("Vale prêmios! Soma os pontos de todos os jogos do Na Lata.")
+		if not prize_lines.is_empty():
+			prize_label.text = tr("Prêmios do mês") + "\n" + "\n".join(prize_lines)
 		me_box.bg_color = Color("e0662f")
 		points_label.text = tr("%d pts") % total.points
 		detail_label.text = tr("%d jogadas no mês") % total.moves
 		if games_card.visible:
 			_fill_games(total.games)
+		# sem servidor (Web) a lista completa fica no app da Play; no Android sem posição é só porque ainda não conectou
+		info_label.text = tr("Empate: fica na frente quem usou menos jogadas." if Server.enabled
+				else "Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
 		if total.has("position"):
 			detail_label.text = _position_text(total.position)
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
-		elif Server.enabled:
-			# no Android já é o app da Play: sem posição é só porque ainda não conectou ao servidor
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
-		else:
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
+			if not rule_text.is_empty():
+				info_label.text = rule_text + "\n\n" + info_label.text
 	else:
 		var t := GameState.game_month_total(game_id, month)
 		title_label.text = tr("Ranking do %s") % tr(game_name(game_id))

@@ -34,8 +34,19 @@ var config: Dictionary = {}
 ## Espera usada entre tentativas de confirmar a propaganda (os testes zeram).
 var retry_wait_s: float = REWARD_RETRY_WAIT_S
 
+## Espera máxima pelo token do Play Integrity (sem ele o login segue; o servidor decide o que fazer).
+const INTEGRITY_TIMEOUT_S := 10.0
+## Código de convite que veio no link da Play (install referrer), para a tela da idade.
+var invite_code: String = ""
+## Idade mínima que bloqueou este aparelho (a conta foi apagada pelo servidor); 0 = livre.
+var age_blocked: int = 0
+## Para testes: manda os eventos na hora (sem esperar juntar).
+var events_now: bool = false
+
 var _cfg := ConfigFile.new()
 var _logging_in: bool = false
+var _events: Array = []
+var _events_flushing: bool = false
 
 
 func _ready() -> void:
@@ -54,6 +65,8 @@ func _load_session() -> void:
 	token = _cfg.get_value("session", "token", "")
 	profile = _cfg.get_value("session", "profile", {})
 	device_hash = _cfg.get_value("session", "device_hash", "")
+	invite_code = _cfg.get_value("session", "invite_code", "")
+	age_blocked = _cfg.get_value("session", "age_blocked", 0)
 	if device_hash.is_empty():
 		device_hash = _new_device_hash()
 		_cfg.set_value("session", "device_hash", device_hash)
@@ -64,6 +77,8 @@ func _save_session() -> void:
 	_cfg.set_value("session", "token", token)
 	_cfg.set_value("session", "profile", profile)
 	_cfg.set_value("session", "device_hash", device_hash)
+	_cfg.set_value("session", "invite_code", invite_code)
+	_cfg.set_value("session", "age_blocked", age_blocked)
 	_cfg.save(session_path)
 
 
@@ -78,6 +93,14 @@ func native() -> Object:
 	if native_override:
 		return native_override
 	return Engine.get_singleton(NATIVE_SINGLETON) if Engine.has_singleton(NATIVE_SINGLETON) else null
+
+
+## O plugin, se ele tiver o sinal `signal_name` (null se não). No Android o `has_method` não enxerga as
+## funções do plugin Java (elas não ficam no ClassDB), mas os sinais, sim. `share` e `simCountry` vieram
+## na mesma versão do plugin que o sinal "install_referrer".
+func native_with(signal_name: String) -> Object:
+	var plugin := native()
+	return plugin if plugin != null and plugin.has_signal(signal_name) else null
 
 
 ## Ainda é visitante (não entrou com Google).
@@ -127,7 +150,7 @@ func sign_in_google() -> Dictionary:
 	var id_token: String = str(out[0])
 	if id_token.is_empty():
 		return ApiClient.error_result(0, "GOOGLE_CANCELLED" if out[1] == "cancelled" else "GOOGLE_FAILED", str(out[1]))
-	var body := _login_body()
+	var body: Dictionary = await _login_body()
 	body["idToken"] = id_token
 	var res: Dictionary = await _send("POST", "/auth/google", body, false)
 	if not res.ok:
@@ -140,12 +163,102 @@ func sign_in_google() -> Dictionary:
 
 
 func _login_body() -> Dictionary:
-	return {
+	var body := {
 		"deviceHash": device_hash,
 		"lang": GameState.language(),
 		"tz": "America/Sao_Paulo",
 		"device": {"model": OS.get_model_name().left(80), "os": ("%s %s" % [OS.get_name(), OS.get_version()]).left(80)},
 	}
+	var integrity: String = await integrity_token()
+	if not integrity.is_empty():
+		body["integrityToken"] = integrity
+	return body
+
+
+## Token do Play Integrity para o login ("" sem o plugin ou se o Google não respondeu).
+func integrity_token() -> String:
+	var plugin := native_with("integrity_token")
+	if plugin == null:
+		return ""
+	var nonce := ApiClient.integrity_nonce(device_hash, int(Time.get_unix_time_from_system() * 1000.0))
+	plugin.integrityToken(nonce, ApiClient.CLOUD_PROJECT_NUMBER)
+	var out: Array = await wait_signal(Signal(plugin, "integrity_token"), INTEGRITY_TIMEOUT_S, ["", "timeout"])
+	return str(out[0])
+
+
+## Lê uma vez o código de convite do link da Play (só no Android com o plugin).
+func load_install_referrer() -> void:
+	var plugin := native_with("install_referrer")
+	if plugin == null or _cfg.get_value("session", "referrer_checked", false):
+		return
+	plugin.installReferrer()
+	var out: Array = await wait_signal(Signal(plugin, "install_referrer"), 15.0, [null, null])
+	if out[0] == null:
+		return  # sem resposta: tenta de novo na próxima abertura
+	var code := ApiClient.invite_code_from_referrer(str(out[0]))
+	if not code.is_empty():
+		invite_code = code
+	_cfg.set_value("session", "referrer_checked", true)
+	_save_session()
+
+
+## Marca guardada na sessão deste aparelho (ex.: "nick_asked").
+func get_flag(key: String) -> bool:
+	return bool(_cfg.get_value("flags", key, false))
+
+
+func set_flag(key: String, value: bool = true) -> void:
+	_cfg.set_value("flags", key, value)
+	_save_session()
+
+
+## Troca o perfil guardado (resposta de /me/age, /me/country, /me/nickname).
+func set_profile(p: Dictionary) -> void:
+	profile = p
+	_save_session()
+
+
+## Apaga a conta no servidor (DELETE /me) e esquece a sessão. Devolve {ok, code}.
+func delete_account() -> Dictionary:
+	var res: Dictionary = await call_api("DELETE", "/me")
+	if res.ok:
+		sign_out()
+	return res
+
+
+## O servidor apagou a conta por causa da idade: o aparelho fica bloqueado.
+func block_by_age(min_age: int) -> void:
+	token = ""
+	profile = {}
+	home = {}
+	age_blocked = maxi(min_age, 1)
+	_save_session()
+
+
+## Medição (POST /events): junta alguns eventos e manda de uma vez. Só jogando pelo servidor.
+func track(event_name: String, props: Dictionary = {}) -> void:
+	if not online():
+		return
+	_events.append({"name": event_name, "props": props})
+	if events_now:
+		await flush_events()
+		return
+	if _events_flushing:
+		return
+	_events_flushing = true
+	await get_tree().create_timer(3.0).timeout
+	# manda em lotes de até 20, incluindo os que chegaram enquanto o lote anterior ia para o servidor
+	while not _events.is_empty() and online():
+		await flush_events()
+	_events_flushing = false
+
+
+func flush_events() -> void:
+	if _events.is_empty() or not online():
+		return
+	var batch := _events.slice(0, 20)
+	_events = _events.slice(20)
+	await call_api("POST", "/events", {"events": batch})
 
 
 func sign_out() -> void:
@@ -155,6 +268,8 @@ func sign_out() -> void:
 	token = ""
 	profile = {}
 	home = {}
+	if _cfg.has_section("flags"):
+		_cfg.erase_section("flags")
 	_save_session()
 
 
@@ -175,8 +290,11 @@ func ensure_session() -> bool:
 		var g: Dictionary = await sign_in_google()
 		_logging_in = false
 		return g.ok
+	if age_blocked > 0:
+		return false  # a conta deste aparelho foi apagada pela idade: não cria outra
 	_logging_in = true
-	var res: Dictionary = await _send("POST", "/auth/guest", _login_body(), false)
+	var guest_body: Dictionary = await _login_body()
+	var res: Dictionary = await _send("POST", "/auth/guest", guest_body, false)
 	_logging_in = false
 	if not token.is_empty():
 		return true  # entrou com Google enquanto esperava: não troca a conta pelo visitante
