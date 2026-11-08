@@ -87,9 +87,7 @@ static func build_puzzle(rng: RandomNumberGenerator, shape: Dictionary, palette_
 ## as camadas dela que caíram numa garrafa coberta trocam de lugar com camadas de garrafas abertas.
 ## Mexe em `tubes`. Devolve a lista de panos (uma entrada por garrafa).
 static func _pick_covers(rng: RandomNumberGenerator, tubes: Array, palette: Array, count: int) -> Array:
-	var covers: Array = []
-	for t in tubes:
-		covers.append(-1)
+	var covers: Array = _no_covers(tubes.size())
 	if count <= 0:
 		return covers
 	var filled: Array = []
@@ -160,7 +158,7 @@ static func _shuffled_tubes(rng: RandomNumberGenerator, palette: Array, empty: i
 
 static func _has_finished_tube(tubes: Array) -> bool:
 	for t in tubes:
-		if (t as Array).size() == SortPuzzle.CAPACITY and SortPuzzle.top_run(t) == SortPuzzle.CAPACITY:
+		if SortPuzzle.is_complete(t):
 			return true
 	return false
 

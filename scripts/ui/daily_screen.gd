@@ -90,7 +90,6 @@ func _build() -> void:
 	card_box.add_child(legend)
 
 	play_button = GameStyle.make_button("", true, 40)
-	play_button.add_theme_font_override("font", GameStyle.title_font())
 	play_button.pressed.connect(_on_play_pressed)
 	box.add_child(play_button)
 

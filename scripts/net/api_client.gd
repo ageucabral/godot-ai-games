@@ -77,7 +77,7 @@ static func to_ints(value: Variant) -> Variant:
 
 
 ## Partida do servidor (PocaoMatch) → o formato que a tela da partida usa (o mesmo dos geradores),
-## com `match_id`, as regras gravadas (`params`) e o estado atual (`state`).
+## com `match_id` e as regras gravadas (`params`).
 static func challenge_from_match(m: Dictionary) -> Dictionary:
 	var params: Dictionary = m.get("params", {})
 	var data := {
@@ -96,8 +96,6 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 			"boost_cost": int(params.get("boostCost", Rules.BOOST_COST)),
 			"extra_moves": int(params.get("extraMoves", Rules.EXTRA_MOVES)),
 		},
-		"moves": to_ints(m.get("moves", [])),
-		"boosts": m.get("boosts", []),
 	}
 	if m.get("level") != null:
 		data["level"] = int(m.level)
@@ -105,23 +103,17 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		data["date"] = str(m.date)
 	if m.get("index") != null:
 		data["index"] = int(m.index)
-	if m.get("attempt") != null:
-		data["attempt"] = int(m.attempt)
 	return data
 
 
-## Estado da partida devolvido pelo servidor depois de uma ajuda (tubes, moveLimit, points…), com inteiros.
+## Estado da partida devolvido pelo servidor depois de uma ajuda (só o que a tela usa), com inteiros.
 static func state_from_match(m: Dictionary) -> Dictionary:
 	var s: Dictionary = m.get("state", {})
 	return {
 		"tubes": to_ints(s.get("tubes", [])),
-		"covers": to_ints(s.get("covers", [])),
-		"moves_used": int(s.get("movesUsed", 0)),
 		"move_limit": int(s.get("moveLimit", 0)),
-		"points": int(s.get("points", 0)),
 		"shuffles_left": int(s.get("shufflesLeft", 0)),
 		"flasks_left": int(s.get("flasksLeft", 0)),
-		"solved": bool(s.get("solved", false)),
 	}
 
 
