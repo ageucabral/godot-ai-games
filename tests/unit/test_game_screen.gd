@@ -266,3 +266,15 @@ func test_levels_hide_difficulty() -> void:
 	assert_false(screen._subtitle.visible, "nível não mostra Fácil/Médio")
 	screen.open_with(EASY)
 	assert_true(screen._subtitle.visible, "desafio mostra a dificuldade")
+
+
+func test_boost_dialog_shows_real_cost() -> void:
+	screen.open_with(EASY)
+	screen.get_node("%BottleButton").pressed.emit()
+	assert_true(screen.dialog.text_label.text.ends_with("custa 1 ponto."), "custo padrão")
+	screen.dialog.press("Voltar")
+	var data := SPARE.duplicate(true)
+	data["params"] = {"boost_cost": 2}
+	screen.open_with(data)
+	screen.get_node("%ShuffleButton").pressed.emit()
+	assert_true(screen.dialog.text_label.text.ends_with("custa 2 pontos."), "custo das regras da partida")

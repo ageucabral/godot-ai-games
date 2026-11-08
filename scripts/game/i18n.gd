@@ -121,12 +121,14 @@ const STRINGS := {
 	"Frasco extra": ["Extra bottle", "Frasco extra"],
 	"Embaralhar?": ["Shuffle?", "¿Mezclar?"],
 	"Frasco extra?": ["Extra bottle?", "¿Frasco extra?"],
-	"Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto.": [
-		"Mixes the colors of the open bottles again.\nNeeds an ad and costs 1 point.",
-		"Mezcla de nuevo los colores de las botellas abiertas.\nPide un anuncio y cuesta 1 punto."],
-	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto.": [
-		"Get one more empty bottle.\nNeeds an ad and costs 1 point.",
-		"Gana una botella vacía más.\nPide un anuncio y cuesta 1 punto."],
+	"Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.": [
+		"Mixes the colors of the open bottles again.\nNeeds an ad and costs %s.",
+		"Mezcla de nuevo los colores de las botellas abiertas.\nPide un anuncio y cuesta %s."],
+	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.": [
+		"Get one more empty bottle.\nNeeds an ad and costs %s.",
+		"Gana una botella vacía más.\nPide un anuncio y cuesta %s."],
+	"1 ponto": ["1 point", "1 punto"],
+	"%d pontos": ["%d points", "%d puntos"],
 	"Assistir e embaralhar": ["Watch and shuffle", "Ver y mezclar"],
 	"Assistir e ganhar": ["Watch and get it", "Ver y ganar"],
 	"Não deu para embaralhar agora. Nada foi cobrado.": ["Couldn't shuffle right now. Nothing was charged.", "No se pudo mezclar ahora. No se cobró nada."],

@@ -166,6 +166,9 @@ func refresh() -> void:
 		if total.has("position"):
 			detail_label.text = _position_text(total.position)
 			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
+		elif Server.enabled:
+			# no Android já é o app da Play: sem posição é só porque ainda não conectou ao servidor
+			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
 		else:
 			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
 	else:

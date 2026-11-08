@@ -431,7 +431,7 @@ func _retry_daily_online() -> void:
 
 
 ## Embaralhar: mistura de novo o líquido das garrafas abertas (sempre com solução).
-## Pede propaganda e tira 1 ponto. Até Rules.SHUFFLES_PER_STAGE vezes por fase.
+## Pede propaganda e tira `boost_cost` ponto(s). Até Rules.SHUFFLES_PER_STAGE vezes por fase.
 func _on_shuffle_pressed() -> void:
 	if busy or _finished or shuffles_left <= 0 or not can_use_boost():
 		return
@@ -449,17 +449,17 @@ func _on_shuffle_pressed() -> void:
 			return
 		var at: int = puzzle.moves_used()
 		action = func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, at))
-	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
+	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
 		["Assistir e embaralhar", action, true],
 		["Voltar", func() -> void: pass],
 	])
 
 
-## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira 1 ponto. 1 por fase.
+## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
 func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
-	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto."), [
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
 		["Assistir e ganhar", func() -> void:
 			if is_online():
 				_boost_online("flask")
@@ -486,6 +486,11 @@ func apply_extra_bottle() -> void:
 	bottles_left -= 1
 	_build_bottles()
 	_use_boost()
+
+
+## Quanto cada ajuda custa, em texto ("1 ponto", "2 pontos"): no servidor vem das regras da partida.
+func boost_cost_text() -> String:
+	return tr("1 ponto") if boost_cost == 1 else tr("%d pontos") % boost_cost
 
 
 ## Nos desafios do dia, uma ajuda que zeraria os pontos obrigaria a recomeçar: não deixa usar.

@@ -154,7 +154,7 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   `userId` = id do jogador; bloco vem do `GET /config`). O `.aar` compilado fica em `addons/nalata_android/bin/`
   (refazer com `tools/build_android_plugin.sh` ao mudar o Kotlin) e entra no APK pelo `addons/nalata_android`
   (export plugin). Por isso o Android exporta com **Gradle build** (`android/build`, instalado pelo
-  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz "em breve".
+  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz que o login com Google fica no app da Play Store.
   Testes com plugin de mentira (`Server.native_override`).
 - Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
