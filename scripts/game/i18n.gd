@@ -19,6 +19,7 @@ const STRINGS := {
 	"O servidor não conseguiu conferir esta partida, então ela ficou sem pontos.": [
 		"The server couldn't verify this game, so it scored no points.",
 		"El servidor no pudo verificar esta partida, así que quedó sin puntos."],
+	"Visitante": ["Guest", "Invitado"],
 	"Jogue para entrar no ranking": ["Play to enter the ranking", "Juega para entrar en el ranking"],
 	"%dº lugar": ["#%d", "%dº lugar"],
 	"Empate: fica na frente quem chegou primeiro aos pontos.": [

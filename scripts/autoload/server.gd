@@ -136,11 +136,16 @@ func _send(method: String, path: String, body: Variant, auth: bool) -> Dictionar
 
 ## Atualiza o menu do Poção (nível, desafios de hoje, pontos do mês) e passa para o GameState.
 func refresh_home() -> bool:
-	if not online() and not await ensure_session():
-		return false
-	var res: Dictionary = await call_api("GET", "/pocao/home")
+	var seq: int = GameState.server_result_seq
+	var res: Dictionary = await call_api("GET", "/pocao/home")  # call_api já entra como visitante
 	if not res.ok:
 		return false
+	if seq != GameState.server_result_seq:
+		# uma partida terminou enquanto esperava: esta resposta é mais velha que o resultado; pede de novo
+		seq = GameState.server_result_seq
+		res = await call_api("GET", "/pocao/home")
+		if not res.ok or seq != GameState.server_result_seq:
+			return false
 	home = res.data
 	GameState.apply_server_home(home)
 	home_updated.emit()

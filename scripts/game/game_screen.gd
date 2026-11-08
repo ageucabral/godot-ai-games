@@ -171,7 +171,13 @@ func _open_online(body: Dictionary) -> bool:
 		res = await Server.call_api("POST", "/pocao/matches", body)
 	busy = false
 	if not res.ok:
-		_show_server_error(res, true)
+		if res.get("code", "") == "NETWORK":
+			dialog.open("Sem conexão", tr(ApiClient.error_text(res)), [
+				["Tentar de novo", func() -> void: _open_online(body), true],
+				["Menu", func() -> void: back_requested.emit()],
+			])
+		else:
+			_show_server_error(res, true)
 		return false
 	open_with(ApiClient.challenge_from_match(res.data.get("match", {})))
 	return true
@@ -211,7 +217,7 @@ func open_with(data: Dictionary) -> void:
 
 
 func key() -> String:
-	if challenge.has("key"):
+	if not str(challenge.get("key", "")).is_empty():
 		return challenge.key
 	if is_level():
 		return LevelGenerator.key_for(challenge.level)
@@ -430,6 +436,13 @@ func _retry_daily_online() -> void:
 func _on_shuffle_pressed() -> void:
 	if busy or _finished or shuffles_left <= 0 or not can_use_boost():
 		return
+	if is_online():
+		# o servidor sorteia o embaralhado
+		dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
+			["Assistir e embaralhar", func() -> void: _boost_online("shuffle"), true],
+			["Voltar", func() -> void: pass],
+		])
+		return
 	# calcula o embaralhado ANTES da propaganda: se não der, o jogador não assiste à toa
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -439,11 +452,8 @@ func _on_shuffle_pressed() -> void:
 		dialog.open("Embaralhar", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
 		return
 	var at: int = puzzle.moves_used()
-	var watch := func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, seed_used, at))
-	if is_online():
-		watch = func() -> void: _boost_online("shuffle")  # o servidor sorteia o embaralhado
 	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
-		["Assistir e embaralhar", watch, true],
+		["Assistir e embaralhar", func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, seed_used, at)), true],
 		["Voltar", func() -> void: pass],
 	])
 
@@ -607,10 +617,14 @@ func _finish_online() -> void:
 	var res: Dictionary = await Server.call_api("POST", "/pocao/matches/%s/finish" % challenge.match_id, body)
 	busy = false
 	if not res.ok:
-		dialog.open("Sem conexão", tr(ApiClient.error_text(res)), [
-			["Tentar de novo", _finish_online, true],
-			["Menu", func() -> void: back_requested.emit()],
-		])
+		# só vale tentar de novo quando a mensagem nem chegou (ou o servidor falhou); recusas são finais
+		if res.code == "NETWORK" or int(res.get("status", 0)) >= 500:
+			dialog.open("Sem conexão" if res.code == "NETWORK" else "Ops!", tr(ApiClient.error_text(res)), [
+				["Tentar de novo", _finish_online, true],
+				["Menu", func() -> void: back_requested.emit()],
+			])
+		else:
+			_show_server_error(res, true)
 		return
 	var r: Dictionary = res.data
 	GameState.apply_server_result(challenge, r)

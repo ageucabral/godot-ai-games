@@ -232,7 +232,10 @@ func test_no_connection_goes_back() -> void:
 	await wait_physics_frames(1)
 	assert_false(game.is_online())
 	assert_true(game.dialog.visible)
-	assert_eq(game.dialog.button_texts(), ["Menu"])
+	assert_eq(game.dialog.button_texts(), ["Tentar de novo", "Menu"])
+	game.dialog.press("Tentar de novo")
+	await wait_physics_frames(1)
+	assert_true(game.is_online(), "abriu na 2ª tentativa")
 
 
 func test_finish_without_connection_can_retry() -> void:

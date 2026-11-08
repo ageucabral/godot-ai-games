@@ -147,7 +147,7 @@ static func ranking_rows(data: Dictionary) -> Array:
 			seen[pos] = true
 			var nick: String = str(r.get("nickname", ""))
 			if bool(r.get("guest", false)) and nick.is_empty():
-				nick = "Visitante"
+				nick = TranslationServer.translate("Visitante")
 			out.append([pos, nick, int(r.get("points", 0)), bool(r.get("isMe", false))])
 	out.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	return out

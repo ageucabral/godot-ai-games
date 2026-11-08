@@ -12,6 +12,8 @@ var _cfg := ConfigFile.new()
 ## Pontos e posição do mês vindos do servidor (Server.refresh_home): {id, game_points, game_position,
 ## global_points, global_position}. Vazio = jogando só no aparelho.
 var server_month: Dictionary = {}
+## Conta os resultados do servidor guardados (um menu que chega depois de um resultado é descartado).
+var server_result_seq: int = 0
 
 
 const PLAYER := "player"
@@ -195,6 +197,7 @@ func apply_server_home(home: Dictionary) -> void:
 
 ## Resultado conferido pelo servidor (fim da partida): guarda no aparelho para as telas.
 func apply_server_result(challenge: Dictionary, result: Dictionary) -> void:
+	server_result_seq += 1
 	if not bool(result.get("solved", false)) or bool(result.get("rejected", false)):
 		return
 	var points := int(result.get("points", 0))
