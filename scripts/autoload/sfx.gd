@@ -9,8 +9,9 @@ const VOICES := 4
 var _streams: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
 var _next: int = 0
-## Para testes: sons tocados (nome), em ordem.
+## Para testes: os últimos sons tocados (nome), em ordem. Guarda só os últimos `PLAYED_MAX`.
 var played: Array[String] = []
+const PLAYED_MAX := 32
 
 
 func _ready() -> void:
@@ -36,6 +37,8 @@ func play(sound: String, volume_db: float = 0.0) -> void:
 	if not enabled() or not _streams.has(sound):
 		return
 	played.append(sound)
+	if played.size() > PLAYED_MAX:
+		played.remove_at(0)
 	var p := _players[_next]
 	_next = (_next + 1) % _players.size()
 	p.stream = _streams[sound]

@@ -95,6 +95,14 @@ func native() -> Object:
 	return Engine.get_singleton(NATIVE_SINGLETON) if Engine.has_singleton(NATIVE_SINGLETON) else null
 
 
+## O plugin, se ele tiver o sinal `signal_name` (null se não). No Android o `has_method` não enxerga as
+## funções do plugin Java (elas não ficam no ClassDB), mas os sinais, sim. `share` e `simCountry` vieram
+## na mesma versão do plugin que o sinal "install_referrer".
+func native_with(signal_name: String) -> Object:
+	var plugin := native()
+	return plugin if plugin != null and plugin.has_signal(signal_name) else null
+
+
 ## Ainda é visitante (não entrou com Google).
 func is_guest() -> bool:
 	return bool(profile.get("guest", true))
@@ -169,8 +177,8 @@ func _login_body() -> Dictionary:
 
 ## Token do Play Integrity para o login ("" sem o plugin ou se o Google não respondeu).
 func integrity_token() -> String:
-	var plugin := native()
-	if plugin == null or not plugin.has_method("integrityToken"):
+	var plugin := native_with("integrity_token")
+	if plugin == null:
 		return ""
 	var nonce := ApiClient.integrity_nonce(device_hash, int(Time.get_unix_time_from_system() * 1000.0))
 	plugin.integrityToken(nonce, ApiClient.CLOUD_PROJECT_NUMBER)
@@ -180,8 +188,8 @@ func integrity_token() -> String:
 
 ## Lê uma vez o código de convite do link da Play (só no Android com o plugin).
 func load_install_referrer() -> void:
-	var plugin := native()
-	if plugin == null or not plugin.has_method("installReferrer") or _cfg.get_value("session", "referrer_checked", false):
+	var plugin := native_with("install_referrer")
+	if plugin == null or _cfg.get_value("session", "referrer_checked", false):
 		return
 	plugin.installReferrer()
 	var out: Array = await wait_signal(Signal(plugin, "install_referrer"), 15.0, [null, null])
@@ -239,7 +247,9 @@ func track(event_name: String, props: Dictionary = {}) -> void:
 		return
 	_events_flushing = true
 	await get_tree().create_timer(3.0).timeout
-	await flush_events()
+	# manda em lotes de até 20, incluindo os que chegaram enquanto o lote anterior ia para o servidor
+	while not _events.is_empty() and online():
+		await flush_events()
 	_events_flushing = false
 
 

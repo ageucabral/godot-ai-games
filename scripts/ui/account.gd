@@ -38,6 +38,23 @@ static func _retry_gate(dialog: DialogBox) -> void:
 	await Server.load_config()
 	if not check_gate(dialog):
 		dialog.close()
+		connect_and_onboard(dialog)  # o que a abertura do app não fez enquanto o aviso estava na tela
+
+
+## Depois do aviso de manutenção/versão: lê o convite do link da Play, entra no servidor e segue para
+## os passos da conta. O convite é lido junto com a entrada (só a pergunta da idade precisa dele).
+static func connect_and_onboard(dialog: DialogBox) -> void:
+	var referrer := {"done": false}
+	var read_referrer := func() -> void:
+		await Server.load_install_referrer()
+		referrer.done = true
+	read_referrer.call()
+	if not Server.online() and await Server.ensure_session():
+		Server.refresh_home()
+	while not referrer.done:
+		await Server.get_tree().process_frame
+	Server.track("app_open", {"version": Menus.VERSION})
+	if not dialog.visible:
 		onboarding(dialog)
 
 
@@ -181,8 +198,8 @@ static func _send_country(dialog: DialogBox, code: String, sim: String, suggeste
 
 
 static func _sim_country() -> String:
-	var plugin := Server.native()
-	if plugin and plugin.has_method("simCountry"):
+	var plugin := Server.native_with("install_referrer")
+	if plugin:
 		return str(plugin.simCountry()).to_upper()
 	return ""
 

@@ -185,6 +185,17 @@ func test_maintenance_blocks_until_it_ends() -> void:
 	assert_false(Account.check_gate(dialog))
 
 
+func test_maintenance_end_connects_a_new_player() -> void:
+	# primeira abertura durante a manutenção: ao liberar, entra no servidor e pergunta a idade
+	Server.config = {"minAppVersion": Menus.VERSION, "maintenance": true}
+	assert_true(Account.check_gate(dialog))
+	replies["/config"] = [_ok({"maintenance": false, "minAppVersion": Menus.VERSION})]
+	dialog.press("Tentar de novo")
+	await wait_physics_frames(3)
+	assert_true(Server.online(), "entrou como visitante")
+	assert_eq(dialog.title_label.text, "Sua idade")
+
+
 # ---------- idade, país, apelido ----------
 
 func test_age_is_asked_once_with_invite_code() -> void:

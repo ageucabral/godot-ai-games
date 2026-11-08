@@ -50,13 +50,8 @@ func _connect_server() -> void:
 		return
 	await Server.load_config()
 	if Account.check_gate(dialog):
-		return  # versão antiga ou manutenção: não deixa jogar
-	await Server.load_install_referrer()
-	if not Server.online() and await Server.ensure_session():
-		Server.refresh_home()
-	Server.track("app_open", {"version": Menus.VERSION})
-	if not dialog.visible:
-		Account.onboarding(dialog)
+		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
+	await Account.connect_and_onboard(dialog)
 
 
 ## Voltou para o app (estava em segundo plano): confere de novo manutenção e versão mínima.
@@ -85,8 +80,11 @@ func _on_server_home() -> void:
 		if s.visible and s.has_method("refresh"):
 			s.refresh()
 	# ganhou um prêmio: avisa uma vez por abertura (fora da partida e sem outra janela aberta)
-	if game.visible or dialog.visible:
+	if game.visible:
 		return
+	for d: DialogBox in [dialog, hub.dialog, home.dialog]:
+		if d.visible:
+			return
 	for p in Prizes.pending_payouts():
 		var id := str(p.get("id", ""))
 		if not _announced.has(id):

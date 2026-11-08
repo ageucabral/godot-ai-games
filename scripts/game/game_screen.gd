@@ -47,6 +47,8 @@ var boost_cost: int = Rules.BOOST_COST
 var extra_moves: int = Rules.EXTRA_MOVES
 ## Primeira partida guiada (nível 1 na primeira vez): uma setinha mostra a próxima jogada.
 var tutorial: bool = false
+## A desistência desta partida já foi medida (veja `quit_info`).
+var _quit_reported: bool = false
 
 
 func _ready() -> void:
@@ -203,6 +205,7 @@ func open_with(data: Dictionary) -> void:
 	busy = false
 	_finished = false
 	_zero_accepted = false
+	_quit_reported = false
 	_shown_points = -1
 	_penalty = 0
 	var params: Dictionary = data.get("params", {})
@@ -244,10 +247,12 @@ func _update_hint() -> void:
 		_bottles[i].hint = on
 
 
-## Jogo aberto e não terminado, com jogadas feitas (para a medição de quem desiste).
+## Jogo aberto e não terminado, com jogadas feitas (para a medição de quem desiste). Vale uma vez por
+## partida: se depois a próxima não abrir (sem internet), a antiga não conta como desistência de novo.
 func quit_info() -> Dictionary:
-	if puzzle == null or _finished or puzzle.moves_used() == 0:
+	if puzzle == null or _finished or puzzle.moves_used() == 0 or _quit_reported:
 		return {}
+	_quit_reported = true
 	return {"mode": challenge.get("mode", ""), "key": key(), "moves": puzzle.moves_used()}
 
 

@@ -58,8 +58,8 @@ static func share_invite(dialog: DialogBox, code: String, link: String) -> void:
 	if not link.is_empty():
 		text += "\n" + link
 	Server.track("invite_shared")
-	var plugin := Server.native()
-	if plugin and plugin.has_method("share"):
+	var plugin := Server.native_with("install_referrer")
+	if plugin:
 		plugin.share(text)
 		return
 	DisplayServer.clipboard_set(text)
@@ -189,9 +189,7 @@ static func claim_form(dialog: DialogBox, info: Dictionary, form: Dictionary, er
 	lines.append(I18n.t("Ao enviar, você aceita o regulamento."))
 	dialog.open("Resgatar prêmio", "\n".join(lines), [
 		["Enviar", func() -> void: pass, true],
-		["Ler o regulamento", func() -> void:
-			OS.shell_open(ApiClient.link(Server.config, "regulationFull"))
-			claim_form(dialog, info, form)],
+		["Ler o regulamento", func() -> void: pass],
 		["Cancelar", func() -> void: pass],
 	])
 	var name_field := dialog.add_input(I18n.t("Nome completo"), str(form.get("fullName", "")), "text", 120) as LineEdit
@@ -204,13 +202,20 @@ static func claim_form(dialog: DialogBox, info: Dictionary, form: Dictionary, er
 		key_field = dialog.add_input(I18n.t(hint.get(form.pixType, "Chave Pix")), str(form.get("pixKey", "")), "text", 120) as LineEdit
 	elif form.method == "usdt":
 		key_field = dialog.add_input(I18n.t("Endereço da carteira (%s)") % str(form.usdtNetwork), str(form.get("usdtAddress", "")), "text", 120) as LineEdit
-	dialog.set_action(0, func() -> void:
+	# guarda o que foi digitado (para enviar ou para voltar preenchido depois de ler o regulamento)
+	var keep := func() -> void:
 		form["fullName"] = name_field.text.strip_edges()
 		if cpf_field:
 			form["cpf"] = cpf_field.text.strip_edges()
 		if key_field:
 			form["pixKey" if form.method == "pix" else "usdtAddress"] = key_field.text.strip_edges()
+	dialog.set_action(0, func() -> void:
+		keep.call()
 		_send_claim(dialog, info, form))
+	dialog.set_action(1, func() -> void:
+		keep.call()
+		OS.shell_open(ApiClient.link(Server.config, "regulationFull"))
+		claim_form(dialog, info, form))
 
 
 ## Corpo do POST /payouts/:id/claim (função pura, testada).
