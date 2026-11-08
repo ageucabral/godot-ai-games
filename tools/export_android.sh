@@ -33,9 +33,17 @@ if [[ -n "$SETTINGS" ]]; then
   sed -i "/^\[resource\]/a export/android/android_sdk_path = \"$ANDROID_HOME\"\nexport/android/java_sdk_path = \"$JAVA_HOME\"" "$SETTINGS"
 fi
 
+# "Gradle build" (precisa do plugin Android: login Google e AdMob): o Godot instala o modelo em android/build
+# na primeira exportação (--install-android-build-template); com versão nova do Godot, reinstala.
+TEMPLATE_FLAG=()
+if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -q "$(cat "$HOME/.local/share/godot/export_templates/"*/version.txt)" "$ROOT/android/.build_version" 2>/dev/null; then
+  rm -rf "$ROOT/android/build" "$ROOT/android/.build_version"
+  TEMPLATE_FLAG=(--install-android-build-template)
+fi
+
 mkdir -p build/android
-"$ROOT/tools/godot.sh" --headless --path "$ROOT" --export-debug "Android" "$OUT"
+"$ROOT/tools/godot.sh" --headless --path "$ROOT" "${TEMPLATE_FLAG[@]}" --export-debug "Android" "$OUT"
 test -s "$OUT"
-"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$OUT"
+"$ANDROID_HOME/build-tools/36.1.0/apksigner" verify "$OUT"
 ls -la "$OUT"
 echo "APK de teste pronto em $OUT"

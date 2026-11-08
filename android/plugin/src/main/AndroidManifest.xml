@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application>
+        <!-- O Godot acha o plugin por este nome (plugin v2). -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.NaLata"
+            android:value="app.nalata.godot.NaLataPlugin" />
+        <!-- App do AdMob (conta real do Na Lata, o mesmo do app antigo). Os blocos vêm do painel (GET /config). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-7687913363814425~7174006251" />
+    </application>
+</manifest>

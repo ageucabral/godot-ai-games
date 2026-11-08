@@ -144,5 +144,12 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   pedem uma recompensa (`POST /rewards` → propaganda → `rewardId`), o fim manda a lista de jogadas e os pontos
   mostrados são os que o servidor conferiu; `GameState.apply_server_home` copia nível, desafios de hoje e pontos do
   mês para as telas. Testes com servidor de mentira em `tests/unit/test_server_flow.gd`.
-- Ainda não existem: login Google (só visitante), AdMob real e Play Integrity (vão num plugin Android), sons.
+- **Plugin Android** (`android/plugin`, Kotlin, singleton `NaLata`): login com Google (Credential Manager, cliente
+  Web `Server.GOOGLE_WEB_CLIENT_ID`) e propaganda premiada do AdMob com SSV (`customData` = rewardId do servidor,
+  `userId` = id do jogador; bloco vem do `GET /config`). O `.aar` compilado fica em `addons/nalata_android/bin/`
+  (refazer com `tools/build_android_plugin.sh` ao mudar o Kotlin) e entra no APK pelo `addons/nalata_android`
+  (export plugin). Por isso o Android exporta com **Gradle build** (`android/build`, instalado pelo
+  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz "em breve".
+  Testes com plugin de mentira (`Server.native_override`).
+- Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
   O pacote do APK de teste ainda é `com.ageucabral.nalata`; troca para `app.nalata.android` na versão da Play.

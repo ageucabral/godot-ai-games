@@ -1,6 +1,7 @@
 extends Node
-## Propagandas premiadas. Por enquanto é uma SIMULAÇÃO: mostra uma tela de 3 segundos
-## e entrega a recompensa. Na etapa do Android com AdMob, só esta parte muda.
+## Propagandas premiadas. No Android com o plugin (android/plugin) é o AdMob de verdade, com a
+## confirmação do Google ao servidor (SSV). Sem o plugin (Web, computador, testes) é uma SIMULAÇÃO:
+## uma tela de 3 segundos que entrega a recompensa.
 ## Disponível em qualquer script como `Ads`.
 
 signal ad_finished
@@ -20,13 +21,22 @@ func show_rewarded(on_reward: Callable) -> void:
 
 
 ## Mostra a propaganda e espera ela acabar (use com `await`). Devolve true se a recompensa foi ganha.
-## `custom_data` vai para a confirmação do AdMob ao servidor (SSV); a simulação só ignora.
-func play(_custom_data: String = "") -> bool:
+## `custom_data` vai para a confirmação do AdMob ao servidor (SSV); a simulação ignora.
+func play(custom_data: String = "") -> bool:
 	if showing:
 		return false
 	if instant:
 		ad_finished.emit()
 		return true
+	var plugin: Object = Server.native() if Server.enabled else null
+	var unit: String = Server.rewarded_unit_id()
+	if plugin and not unit.is_empty():
+		showing = true
+		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
+		var out: Array = await Signal(plugin, "rewarded_finished")
+		showing = false
+		ad_finished.emit()
+		return bool(out[0])
 	showing = true
 	var layer := CanvasLayer.new()
 	layer.layer = 100

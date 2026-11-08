@@ -47,14 +47,15 @@ ln -sf "$GODOT_HOME/$BIN_NAME" "$BIN_DIR/godot"
 
 # 2) Modelos de exportação (só Web e Android, para economizar espaço)
 if [[ $WANT_TEMPLATES -eq 1 ]]; then
-  if [[ -f "$TEMPLATES_DIR/web_nothreads_release.zip" && -f "$TEMPLATES_DIR/android_debug.apk" ]]; then
+  # android_source.zip = modelo do "Gradle build" (preciso para o plugin Android: login Google e AdMob)
+  if [[ -f "$TEMPLATES_DIR/web_nothreads_release.zip" && -f "$TEMPLATES_DIR/android_debug.apk" && -f "$TEMPLATES_DIR/android_source.zip" ]]; then
     echo "Modelos de exportação Web e Android já instalados em $TEMPLATES_DIR"
   else
     tmp="$(mktemp -d)"
     echo "(o pacote de modelos tem ~1,3 GB; pode demorar alguns minutos)"
     download "$BASE_URL/Godot_v${TAG}_export_templates.tpz" "$tmp/templates.tpz" "$GODOT_TEMPLATES_SHA512"
     mkdir -p "$TEMPLATES_DIR"
-    unzip -q -o -j "$tmp/templates.tpz" 'templates/web*' 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/version.txt' -d "$TEMPLATES_DIR"
+    unzip -q -o -j "$tmp/templates.tpz" 'templates/web*' 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/android_source.zip' 'templates/version.txt' -d "$TEMPLATES_DIR"
     rm -rf "$tmp"
   fi
 fi

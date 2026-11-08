@@ -19,6 +19,10 @@ GameState="*res://scripts/autoload/game_state.gd"
 Ads="*res://scripts/autoload/ads.gd"
 Server="*res://scripts/autoload/server.gd"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/nalata_android/plugin.cfg")
+
 [display]
 
 window/size/viewport_width=720

@@ -9,6 +9,10 @@ signal home_updated
 
 var session_path: String = "user://session.cfg"
 const TIMEOUT_S := 15.0
+## Cliente "Web" do projeto Google Cloud do Na Lata (o mesmo do app antigo; o servidor confere o idToken com ele).
+const GOOGLE_WEB_CLIENT_ID := "969286539124-r78meetsuprdbo5irje9fdj79fm4rdlh.apps.googleusercontent.com"
+## Nome do plugin Android (android/plugin, Kotlin): login com Google e AdMob.
+const NATIVE_SINGLETON := "NaLata"
 ## A propaganda pode ser confirmada pelo AdMob uns segundos depois de acabar: tenta de novo algumas vezes.
 const REWARD_RETRIES := 4
 const REWARD_RETRY_WAIT_S := 3.0
@@ -22,6 +26,10 @@ var device_hash: String = ""
 var profile: Dictionary = {}
 ## Último GET /pocao/home (nível, desafios de hoje, pontos e posição do mês).
 var home: Dictionary = {}
+## Para testes: um plugin de mentira no lugar do Android.
+var native_override: Object = null
+## GET /config (regras, blocos do AdMob, links). Os blocos de propaganda vêm do painel.
+var config: Dictionary = {}
 ## Espera usada entre tentativas de confirmar a propaganda (os testes zeram).
 var retry_wait_s: float = REWARD_RETRY_WAIT_S
 
@@ -43,6 +51,7 @@ func _load_session() -> void:
 	if FileAccess.file_exists(session_path):
 		_cfg.load(session_path)
 	token = _cfg.get_value("session", "token", "")
+	profile = _cfg.get_value("session", "profile", {})
 	device_hash = _cfg.get_value("session", "device_hash", "")
 	if device_hash.is_empty():
 		device_hash = _new_device_hash()
@@ -52,6 +61,7 @@ func _load_session() -> void:
 
 func _save_session() -> void:
 	_cfg.set_value("session", "token", token)
+	_cfg.set_value("session", "profile", profile)
 	_cfg.set_value("session", "device_hash", device_hash)
 	_cfg.save(session_path)
 
@@ -62,7 +72,79 @@ static func _new_device_hash() -> String:
 	return "gd-" + bytes.hex_encode()
 
 
+## O plugin Android (null na Web, no computador e nos testes).
+func native() -> Object:
+	if native_override:
+		return native_override
+	return Engine.get_singleton(NATIVE_SINGLETON) if Engine.has_singleton(NATIVE_SINGLETON) else null
+
+
+## Ainda é visitante (não entrou com Google).
+func is_guest() -> bool:
+	return bool(profile.get("guest", true))
+
+
+## Dá para entrar com Google neste aparelho (Android com o plugin).
+func can_sign_in_google() -> bool:
+	return enabled and native() != null
+
+
+## Bloco da propaganda premiada (do painel; com o "modo de teste" ligado, o bloco de teste do Google).
+func rewarded_unit_id() -> String:
+	var ads: Dictionary = config.get("ads", {})
+	var units: Dictionary = ads.get("unitIds", {})
+	return str(units.get("rewarded", ""))
+
+
+## Busca o GET /config e liga o AdMob do plugin.
+func load_config() -> bool:
+	var res: Dictionary = await _send("GET", "/config", null, false)
+	if not res.ok:
+		return false
+	config = res.data
+	var plugin := native()
+	if plugin:
+		plugin.adsInit()
+	return true
+
+
+## Entra com a conta Google: o plugin abre a escolha de conta e o servidor confere o idToken.
+## O progresso do visitante deste aparelho passa para a conta. Devolve {ok, code}.
+func sign_in_google() -> Dictionary:
+	var plugin := native()
+	if not enabled or plugin == null:
+		return ApiClient.error_result(0, "NO_GOOGLE", "")
+	plugin.googleSignIn(GOOGLE_WEB_CLIENT_ID)
+	var out: Array = await Signal(plugin, "google_signed_in")
+	var id_token: String = str(out[0])
+	if id_token.is_empty():
+		return ApiClient.error_result(0, "GOOGLE_CANCELLED" if out[1] == "cancelled" else "GOOGLE_FAILED", str(out[1]))
+	var body := _login_body()
+	body["idToken"] = id_token
+	var res: Dictionary = await _send("POST", "/auth/google", body, false)
+	if not res.ok:
+		return res
+	token = str(res.data.get("token", ""))
+	profile = res.data.get("profile", {})
+	_save_session()
+	session_changed.emit()
+	refresh_home()
+	return res
+
+
+func _login_body() -> Dictionary:
+	return {
+		"deviceHash": device_hash,
+		"lang": GameState.language(),
+		"tz": "America/Sao_Paulo",
+		"device": {"model": OS.get_model_name().left(80), "os": ("%s %s" % [OS.get_name(), OS.get_version()]).left(80)},
+	}
+
+
 func sign_out() -> void:
+	var plugin := native()
+	if plugin and not is_guest():
+		plugin.googleSignOut()
 	token = ""
 	profile = {}
 	home = {}
@@ -82,13 +164,7 @@ func ensure_session() -> bool:
 			await get_tree().process_frame
 		return not token.is_empty()
 	_logging_in = true
-	var body := {
-		"deviceHash": device_hash,
-		"lang": GameState.language(),
-		"tz": "America/Sao_Paulo",
-		"device": {"model": OS.get_model_name().left(80), "os": ("%s %s" % [OS.get_name(), OS.get_version()]).left(80)},
-	}
-	var res: Dictionary = await _send("POST", "/auth/guest", body, false)
+	var res: Dictionary = await _send("POST", "/auth/guest", _login_body(), false)
 	_logging_in = false
 	if not res.ok:
 		return false
