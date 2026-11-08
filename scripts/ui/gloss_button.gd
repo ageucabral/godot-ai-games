@@ -35,6 +35,7 @@ func _init() -> void:
 		add_theme_color_override(c, Color(0, 0, 0, 0))
 	add_theme_constant_override("outline_size", 0)
 	resized.connect(func() -> void: pivot_offset = size * 0.5)
+	pressed.connect(func() -> void: Sfx.play("click", -6.0))
 
 
 func _update_pulse() -> void:

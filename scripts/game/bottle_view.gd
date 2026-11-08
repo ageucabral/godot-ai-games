@@ -52,6 +52,14 @@ var cover_amount: float = 0.0:
 		queue_redraw()
 var _cover_tween: Tween
 
+## Setinha "toque aqui" em cima do frasco (primeira partida guiada). Balança sozinha.
+var hint: bool = false:
+	set(value):
+		hint = value
+		set_process(hint)
+		queue_redraw()
+var _hint_time: float = 0.0
+
 var _lift: float = 0.0:
 	set(value):
 		_lift = value
@@ -61,8 +69,14 @@ var _tween: Tween
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	set_process(hint)
 	if custom_minimum_size == Vector2.ZERO:
 		set_bottle_width(108.0)
+
+
+func _process(delta: float) -> void:
+	_hint_time += delta
+	queue_redraw()
 
 
 func set_bottle_width(w: float) -> void:
@@ -209,6 +223,15 @@ func _draw() -> void:
 		_draw_cover(xf)
 
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+	if hint:
+		var tip := xf * MOUTH + Vector2(0, -14.0 - 10.0 * absf(sin(_hint_time * 4.0)))
+		var s := 20.0 * design_scale()
+		var arrow := PackedVector2Array([tip, tip + Vector2(-s, -s * 1.1), tip + Vector2(-s * 0.4, -s * 1.1),
+			tip + Vector2(-s * 0.4, -s * 2.2), tip + Vector2(s * 0.4, -s * 2.2), tip + Vector2(s * 0.4, -s * 1.1), tip + Vector2(s, -s * 1.1)])
+		draw_colored_polygon(arrow, GameStyle.GOLD)
+		var ring := arrow.duplicate()
+		ring.append(arrow[0])
+		draw_polyline(ring, GameStyle.INK, 4.0, true)
 	if stream_on:
 		var from := xf * MOUTH
 		var to := get_global_transform().affine_inverse() * stream_end

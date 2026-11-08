@@ -1,6 +1,7 @@
 class_name Menus
 extends RefCounted
-## Janelas usadas no hub e na tela do jogo: perfil e configurações (idioma, salvar progresso, como jogar).
+## Janelas usadas no hub e na tela do jogo: configurações (conta, idioma, som, como jogar, ajuda e termos).
+## A conta e a ajuda ficam em `scripts/ui/account.gd`.
 
 const VERSION := "1.3.0"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
@@ -15,21 +16,15 @@ static func daily_done() -> int:
 	return done
 
 
-## Perfil (aberto pela engrenagem): o botão volta para as configurações.
-static func open_profile(dialog: DialogBox) -> void:
-	var month := Rules.month_for(GameState.now_unix())
-	var text := I18n.t("Nível atual: %d\nPontos em %s: %d\nDesafios de hoje: %d de %d") % [
-		GameState.current_level(), Rules.month_name(month), GameState.game_month_total("potion", month).points,
-		daily_done(), Rules.DAILY_COUNT]
-	dialog.open("Seu perfil", text, [["Voltar", func() -> void: open_settings(dialog), true]])
-
-
 static func open_settings(dialog: DialogBox) -> void:
 	dialog.open("Configurações", I18n.t("Versão %s") % VERSION, [
-		["Seu perfil", func() -> void: open_profile(dialog)],
+		["Sua conta", func() -> void: Account.open_account(dialog)],
 		[I18n.t("Idioma: %s") % I18n.language_name(GameState.language()), func() -> void: open_language(dialog)],
-		["Salvar progresso", func() -> void: open_save_progress(dialog)],
+		[I18n.t("Som: ligado") if Sfx.enabled() else I18n.t("Som: desligado"), func() -> void:
+			Sfx.set_enabled(not Sfx.enabled())
+			open_settings(dialog)],
 		["Como jogar", func() -> void: open_how_to_play(dialog)],
+		["Ajuda e termos", func() -> void: Account.open_help(dialog)],
 		["Fechar", func() -> void: pass, true],
 	])
 
@@ -41,47 +36,6 @@ static func open_language(dialog: DialogBox) -> void:
 		buttons.append([lang[1], func() -> void: GameState.set_language(code), code == GameState.language()])
 	buttons.append(["Voltar", func() -> void: open_settings(dialog)])
 	dialog.open("Idioma", "Escolha o idioma do jogo.", buttons)
-
-
-static func open_save_progress(dialog: DialogBox) -> void:
-	if Server.can_sign_in_google():
-		if not Server.is_guest():
-			var who: String = ""
-			for field in ["nickname", "googleName", "email"]:
-				var value: Variant = Server.profile.get(field)
-				if value != null and not str(value).is_empty():
-					who = str(value)
-					break
-			var saved_text: String = I18n.t("Seu progresso está guardado na conta Google.") if who.is_empty() \
-				else I18n.t("Seu progresso está guardado na conta Google (%s).") % who
-			dialog.open("Salvar progresso", saved_text, [
-				["Voltar", func() -> void: open_settings(dialog), true],
-			])
-			return
-		dialog.open("Salvar progresso",
-			"Entre com Google para guardar seu progresso em qualquer celular e poder receber prêmios. O que você já fez aqui vai junto.", [
-			["Entrar com Google", func() -> void: _sign_in_google(dialog), true],
-			["Voltar", func() -> void: open_settings(dialog)],
-		])
-		return
-	dialog.open("Salvar progresso",
-		"No app da Play Store você pode entrar com Google para guardar seu progresso e aparecer no ranking com todos os jogadores.", [
-		["Voltar", func() -> void: open_settings(dialog), true],
-	])
-
-
-static func _sign_in_google(dialog: DialogBox) -> void:
-	dialog.open("Entrando…", "", [])
-	var res: Dictionary = await Server.sign_in_google()
-	if res.ok:
-		open_save_progress(dialog)
-	elif res.code == "GOOGLE_CANCELLED":
-		open_settings(dialog)
-	else:
-		dialog.open("Salvar progresso", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: _sign_in_google(dialog), true],
-			["Voltar", func() -> void: open_settings(dialog)],
-		])
 
 
 static func open_how_to_play(dialog: DialogBox) -> void:

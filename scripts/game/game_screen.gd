@@ -45,6 +45,8 @@ var _shown_points: int = -1
 ## Regras desta partida (no servidor, as gravadas quando ela começou; valores do painel).
 var boost_cost: int = Rules.BOOST_COST
 var extra_moves: int = Rules.EXTRA_MOVES
+## Primeira partida guiada (nível 1 na primeira vez): uma setinha mostra a próxima jogada.
+var tutorial: bool = false
 
 
 func _ready() -> void:
@@ -210,7 +212,43 @@ func open_with(data: Dictionary) -> void:
 	extra_moves = int(params.get("extra_moves", Rules.EXTRA_MOVES))
 	dialog.close()
 	_build_bottles()
+	tutorial = is_level() and int(data.get("level", 0)) == 1 and not bool(GameState.get_setting("tutorial_done", false))
 	_refresh()
+	if tutorial:
+		dialog.open("Primeira partida", "Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Siga a setinha!", [
+			["Começar", func() -> void: pass, true],
+		])
+
+
+## Sai da primeira partida guiada (terminou ou desistiu): não aparece de novo.
+func end_tutorial(done: bool) -> void:
+	if not tutorial:
+		return
+	tutorial = false
+	GameState.set_setting("tutorial_done", true)
+	Server.track("tutorial_done" if done else "tutorial_skipped")
+	_update_hint()
+
+
+## Setinha da partida guiada: na garrafa de onde despejar, ou (já escolhida) na que recebe.
+func _update_hint() -> void:
+	var move: Array = []
+	if tutorial and puzzle != null and not _finished:
+		move = SortPuzzle.hint_move(puzzle.tubes, puzzle.covers)
+	for i in _bottles.size():
+		var on := false
+		if move.size() == 2:
+			on = (i == move[1]) if selected == move[0] else (i == move[0] and selected == -1)
+			if selected != -1 and selected != move[0]:
+				on = i == move[0]  # escolheu a garrafa errada: mostra a certa
+		_bottles[i].hint = on
+
+
+## Jogo aberto e não terminado, com jogadas feitas (para a medição de quem desiste).
+func quit_info() -> Dictionary:
+	if puzzle == null or _finished or puzzle.moves_used() == 0:
+		return {}
+	return {"mode": challenge.get("mode", ""), "key": key(), "moves": puzzle.moves_used()}
 
 
 func key() -> String:
@@ -238,12 +276,14 @@ func tap_bottle(i: int) -> void:
 		return
 	if puzzle.is_covered(i):
 		_bottles[i].shake()  # coberta: só abre ao completar a cor do selo
+		Sfx.play("wrong")
 		selected = -1
 		_refresh()
 		return
 	if selected == -1:
 		if not (puzzle.tubes[i] as Array).is_empty():
 			selected = i
+			Sfx.play("tap")
 	elif selected == i:
 		selected = -1
 	elif puzzle.can_pour(selected, i):
@@ -251,6 +291,7 @@ func tap_bottle(i: int) -> void:
 		return
 	else:
 		_bottles[i].shake()
+		Sfx.play("wrong")
 		selected = i if not (puzzle.tubes[i] as Array).is_empty() else -1
 	_refresh()
 
@@ -261,6 +302,9 @@ func _do_pour(from: int, to: int) -> void:
 	var color: int = puzzle.tubes[from][-1]
 	var amount := puzzle.pour(from, to)
 	selected = -1
+	Sfx.play("pour")
+	if SortPuzzle.is_complete(puzzle.tubes[to]):
+		Sfx.play("bottle_done", -3.0)
 	if not animate or not is_inside_tree():
 		_after_pour()
 		return
@@ -319,6 +363,7 @@ func _set_flow(src: BottleView, dst: BottleView, src_before: Array, dst_before: 
 func _after_pour() -> void:
 	_refresh()
 	if puzzle.is_solved():
+		end_tutorial(true)
 		_finish()
 	elif current_points() == 0 and not _zero_accepted:
 		_show_zero_points()
@@ -364,6 +409,7 @@ func _refresh() -> void:
 	_shuffle_button.disabled = shuffles_left <= 0 or not boost_ok
 	_bottle_button.badge = str(bottles_left)
 	_bottle_button.disabled = bottles_left <= 0 or not boost_ok
+	_update_hint()
 
 
 ## Placar ao vivo: quando passa do número exato de jogadas, cada jogada a mais tira 1 ponto
@@ -554,6 +600,7 @@ func _on_extra_moves_pressed() -> void:
 
 
 func _show_out_of_moves() -> void:
+	Sfx.play("lose")
 	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
 		[tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed, true],
 		["Recomeçar", _restart_with_ad],
@@ -562,6 +609,7 @@ func _show_out_of_moves() -> void:
 
 
 func _show_zero_points() -> void:
+	Sfx.play("lose")
 	if is_level():
 		# nos níveis dá para terminar sem pontos e seguir em frente
 		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
@@ -680,6 +728,7 @@ static func win_title(points: int, full_points: int) -> String:
 
 ## Confete colorido caindo do alto da tela.
 func _celebrate() -> void:
+	Sfx.play("win")
 	if not animate or not is_inside_tree():
 		return
 	var p := CPUParticles2D.new()

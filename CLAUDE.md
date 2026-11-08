@@ -155,8 +155,22 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   (refazer com `tools/build_android_plugin.sh` ao mudar o Kotlin) e entra no APK pelo `addons/nalata_android`
   (export plugin). Por isso o Android exporta com **Gradle build** (`android/build`, instalado pelo
   `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz que o login com Google fica no app da Play Store.
-  Testes com plugin de mentira (`Server.native_override`).
-- Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
+  Testes com plugin de mentira (`Server.native_override`). O plugin também lê o convite do link da Play (install
+  referrer), abre o "compartilhar" do Android e pede o token do Play Integrity.
+- **Conta, ajuda e prêmios** (Ageu, 8/11/2026; só jogando pelo servidor): `scripts/ui/account.gd` tem a idade na
+  primeira abertura (com o código de convite que veio pelo link da Play), país e apelido depois de entrar com Google,
+  "Sua conta" (apagar conta dentro do app, exigência da Play), "Ajuda e termos" (fale conosco, privacidade, termos,
+  regulamento) e o aviso que não deixa jogar com **versão antiga** (`minAppVersion` do painel) ou **manutenção**.
+  `scripts/ui/prizes.gd`: convidar amigos (regra dos **3 amigos que jogam 3 dias** continua, Ageu 8/11/2026), aviso
+  "Você ganhou!" (lista `payouts` do `GET /pocao/home`) e resgate por Pix (com cotação) ou USDT. O Ranking Global mostra
+  os prêmios do mês e os botões Convidar/Resgatar. A engrenagem: Sua conta · Idioma · Som · Como jogar · Ajuda e termos.
+- **Play Integrity**: o plugin pede o token (nonce `nalata:<aparelho>:<ms>`, projeto Cloud 969286539124) e manda no
+  login; o servidor confere com a conta de serviço `PLAY_INTEGRITY_CREDENTIALS` e só bloqueia com "Exigir Play
+  Integrity" ligado no painel. Falta o dono ligar o projeto Cloud na Play Console e criar a conta de serviço.
+- **Sons** (`scripts/autoload/sfx.gd`, autoload `Sfx`; arquivos gerados por `tools/gen_sounds.py`), liga/desliga na
+  engrenagem. **Primeira partida guiada** no nível 1 (setinha com `SortPuzzle.hint_move`). **Medição**: `Server.track`
+  manda `POST /events` (app_open, screen_view, tutorial_done/skipped, match_quit, invite_shared).
+- Ainda não existem: música, aviso de consentimento de anúncios (Europa), avisos no celular.
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
   versionCode 21+ (o 20 foi só rascunho), versão 1.3.0 (**publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)

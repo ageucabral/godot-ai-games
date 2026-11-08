@@ -274,6 +274,47 @@ static func min_moves(start: Array, max_states: int = 400000, start_covers: Arra
 	return -1
 
 
+## Primeira jogada de um caminho mais curto até resolver ([de, para]); [] se não achar.
+## Usada na primeira partida guiada (fases pequenas).
+static func hint_move(start: Array, start_covers: Array = [], max_states: int = 60000) -> Array:
+	var first: Array = copy_tubes(start)
+	var first_covers: Array = normalized_covers(start_covers, first.size())
+	if is_solved_state(first):
+		return []
+	var seen: Dictionary = {_key(first, first_covers): true}
+	var frontier: Array = [[first, first_covers, []]]
+	while not frontier.is_empty():
+		var next: Array = []
+		for node in frontier:
+			var state: Array = node[0]
+			var cov: Array = node[1]
+			for from in state.size():
+				var src: Array = state[from]
+				if src.is_empty() or is_covered_in(cov, from) or is_complete(src):
+					continue
+				for to in state.size():
+					if not can_pour_in(state, from, to, cov):
+						continue
+					if (state[to] as Array).is_empty() and top_run(src) == src.size():
+						continue
+					var child: Array = copy_tubes(state)
+					var child_cov: Array = cov.duplicate()
+					pour_in(child, from, to)
+					reveal_in(child, child_cov)
+					var k: String = _key(child, child_cov)
+					if seen.has(k):
+						continue
+					var first_move: Array = node[2] if not (node[2] as Array).is_empty() else [from, to]
+					if is_solved_state(child):
+						return first_move
+					seen[k] = true
+					next.append([child, child_cov, first_move])
+					if seen.size() > max_states:
+						return []
+		frontier = next
+	return []
+
+
 ## Chave do estado: as garrafas descobertas são intercambiáveis (sem ordem); as cobertas entram
 ## na ordem, com a cor que as abre (a ordem decide qual abre primeiro).
 static func _key(state: Array, cover_state: Array = []) -> String:

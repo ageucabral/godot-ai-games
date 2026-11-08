@@ -19,12 +19,16 @@ var level_number: int = 4
 func before_each() -> void:
 	GameState.save_path = "user://test_progress_server.cfg"
 	GameState.reset_all()
+	GameState.set_setting("tutorial_done", true)  # a partida guiada tem testes próprios
 	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
 	calls = []
 	forced = {}
 	Server.session_path = "user://test_session.cfg"
 	Server.sign_out()
+	Server.age_blocked = 0
+	Server.invite_code = ""
+	Server.events_now = true
 	Server.enabled = true
 	Server.retry_wait_s = 0.0
 	Server.transport = _fake
@@ -69,7 +73,7 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		return (forced[path] as Array).pop_front()
 	match path:
 		"/auth/guest":
-			return _ok({"token": "tok", "profile": {"id": "u1"}})
+			return _ok({"token": "tok", "profile": {"id": "u1", "age": 30}})
 		"/pocao/home":
 			return _ok({"date": TODAY, "level": {"number": level_number}, "daily": [
 				{"index": 0, "attempts": 1, "solved": true, "bestPoints": 5, "bestMoves": 4},
@@ -91,7 +95,7 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		"/config":
 			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw"}}})
 		"/auth/google":
-			return _ok({"token": "tok-g", "profile": {"id": "u1", "guest": false, "nickname": "Ageu"}, "merged": null})
+			return _ok({"token": "tok-g", "profile": {"id": "u1", "guest": false, "nickname": "Ageu", "age": 30, "country": "BR"}, "merged": null})
 		"/ranking":
 			return _ok({"podium": [{"position": 1, "nickname": "Ana", "points": 900}], "rows": [
 				{"position": 12, "nickname": "Eu", "points": 120, "isMe": true}]})
@@ -343,20 +347,23 @@ func test_google_cancelled() -> void:
 	assert_false("/auth/google" in _paths())
 
 
-func test_save_progress_menu_signs_in() -> void:
+func test_account_menu_signs_in() -> void:
 	var plugin := FakePlugin.new()
 	Server.native_override = plugin
-	Menus.open_save_progress(main.dialog)
-	assert_eq(main.dialog.button_texts(), ["Entrar com Google", "Voltar"])
+	await Server.ensure_session()
+	Server.set_flag("nick_asked")
+	Account.open_account(main.dialog)
+	assert_eq(main.dialog.button_texts(), ["Entrar com Google", "Apagar conta", "Voltar"])
 	main.dialog.press("Entrar com Google")
 	await wait_physics_frames(10)
 	assert_false(Server.is_guest())
 	assert_true(main.dialog.text_label.text.contains("Ageu"), "mostra a conta")
 
 
-func test_save_progress_without_plugin_is_coming_soon() -> void:
-	Menus.open_save_progress(main.dialog)
-	assert_eq(main.dialog.button_texts(), ["Voltar"])
+func test_account_without_plugin_has_no_google_button() -> void:
+	await Server.ensure_session()
+	Account.open_account(main.dialog)
+	assert_eq(main.dialog.button_texts(), ["Apagar conta", "Voltar"])
 
 
 func test_real_ad_reloads_missing_config() -> void:
@@ -433,3 +440,34 @@ func test_local_ad_without_unit_still_simulates() -> void:
 	assert_true(ok, "jogo local: a simulação entrega a recompensa")
 	assert_eq(plugin.shown.size(), 0, "não chama o AdMob sem bloco")
 	assert_false(Ads.showing)
+
+
+func test_prize_is_announced_once_and_claim_button_shows() -> void:
+	Server.home = {"payouts": [{"id": "p9", "status": "pending", "amountLabel": "US$ 5", "monthLabel": "outubro de 2026",
+		"deadlineAt": "2026-11-20T02:59:59.000Z"}]}
+	main._on_server_home()
+	assert_eq(main.dialog.title_label.text, "Você ganhou!")
+	main.dialog.press("Depois")
+	main._on_server_home()
+	assert_false(main.dialog.visible, "avisa uma vez só")
+	main.open_global_ranking()
+	var ranking: Control = main.get_node("Ranking")
+	Server.home = {"payouts": [{"id": "p9", "status": "pending"}]}
+	ranking.refresh()
+	assert_true(ranking.claim_button.visible, "botão de resgatar no Ranking Global")
+	assert_true(ranking.invite_button.visible, "convite no Ranking Global")
+
+
+func test_leaving_a_level_midway_is_measured() -> void:
+	main.play_level()
+	await wait_physics_frames(1)
+	game.tap_bottle(SOLUTION[0][0])
+	game.tap_bottle(SOLUTION[0][1])
+	main._leave_game()
+	await wait_physics_frames(2)
+	var names: Array = []
+	for c in calls:
+		if c[1] == "/events":
+			for e in c[2].events:
+				names.append(e.name)
+	assert_true("match_quit" in names, str(names))

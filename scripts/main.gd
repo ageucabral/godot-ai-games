@@ -13,6 +13,8 @@ var dialog: DialogBox
 var _return_screen: Control
 ## Para onde o Voltar do ranking leva (hub no Ranking Global, menu do jogo no ranking do jogo).
 var _ranking_return: Control
+## Prêmios já avisados nesta abertura do app (o aviso "Você ganhou!" sai uma vez).
+var _announced: Dictionary = {}
 
 
 func _ready() -> void:
@@ -29,10 +31,12 @@ func _ready() -> void:
 	home.ranking_requested.connect(open_game_ranking)
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
-	game.back_requested.connect(func() -> void: show_screen(_return_screen))
+	game.back_requested.connect(_leave_game)
 	game.next_requested.connect(request_play)
 	game.next_level_requested.connect(play_level)
 	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
+	ranking.invite_requested.connect(func() -> void: Prizes.open_invite(dialog))
+	ranking.claim_requested.connect(func(payout_id: String) -> void: Prizes.open_claim(dialog, payout_id))
 	Server.home_updated.connect(_on_server_home)
 	show_screen(hub)
 	_connect_server()
@@ -44,11 +48,35 @@ func _ready() -> void:
 func _connect_server() -> void:
 	if not Server.enabled:
 		return
-	Server.load_config()
-	if Server.online():
-		return  # com sessão salva, o show_screen(hub) já pediu o menu ao servidor
-	if await Server.ensure_session():
+	await Server.load_config()
+	if Account.check_gate(dialog):
+		return  # versão antiga ou manutenção: não deixa jogar
+	await Server.load_install_referrer()
+	if not Server.online() and await Server.ensure_session():
 		Server.refresh_home()
+	Server.track("app_open", {"version": Menus.VERSION})
+	if not dialog.visible:
+		Account.onboarding(dialog)
+
+
+## Voltou para o app (estava em segundo plano): confere de novo manutenção e versão mínima.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_RESUMED and Server.enabled and is_inside_tree():
+		_recheck_gate()
+
+
+func _recheck_gate() -> void:
+	if await Server.load_config():
+		Account.check_gate(dialog)
+
+
+## Saiu da partida pelo menu: mede quem desistiu no meio e encerra a partida guiada.
+func _leave_game() -> void:
+	var info: Dictionary = game.quit_info()
+	if not info.is_empty():
+		Server.track("match_quit", info)
+	game.end_tutorial(false)
+	show_screen(_return_screen)
 
 
 ## Chegou o menu do Poção pelo servidor: redesenha a tela aberta (menos a partida).
@@ -56,6 +84,15 @@ func _on_server_home() -> void:
 	for s in [hub, home, daily, ranking]:
 		if s.visible and s.has_method("refresh"):
 			s.refresh()
+	# ganhou um prêmio: avisa uma vez por abertura (fora da partida e sem outra janela aberta)
+	if game.visible or dialog.visible:
+		return
+	for p in Prizes.pending_payouts():
+		var id := str(p.get("id", ""))
+		if not _announced.has(id):
+			_announced[id] = true
+			Prizes.announce(dialog, p)
+			return
 
 
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
@@ -81,6 +118,8 @@ func open_game_ranking() -> void:
 func show_screen(screen: Control) -> void:
 	for s in [hub, home, daily, game, ranking]:
 		s.visible = (s == screen)
+	if screen != game:
+		Server.track("screen_view", {"screen": str(screen.name).to_lower()})
 	if screen.has_method("refresh"):
 		screen.refresh()
 	if Server.online() and screen != game:

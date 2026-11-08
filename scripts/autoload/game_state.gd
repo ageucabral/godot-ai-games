@@ -48,6 +48,29 @@ func reset_all() -> void:
 	_save()
 
 
+## Apaga o progresso deste aparelho (conta apagada), mas guarda as escolhas (idioma, som).
+func reset_progress() -> void:
+	var keep := {}
+	for key in ["language", "sound"]:
+		if _cfg.has_section_key(PLAYER, key):
+			keep[key] = _cfg.get_value(PLAYER, key)
+	_cfg = ConfigFile.new()
+	for key in keep:
+		_cfg.set_value(PLAYER, key, keep[key])
+	server_month = {}
+	_save()
+
+
+## Escolha simples guardada no aparelho (ex.: "sound", "tutorial_done").
+func get_setting(key: String, default: Variant) -> Variant:
+	return _cfg.get_value(PLAYER, key, default)
+
+
+func set_setting(key: String, value: Variant) -> void:
+	_cfg.set_value(PLAYER, key, value)
+	_save()
+
+
 # ---------- idioma ----------
 
 func language() -> String:
