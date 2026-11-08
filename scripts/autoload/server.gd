@@ -4,7 +4,6 @@ extends Node
 ## Pages) e nos testes o jogo continua só no aparelho, como antes.
 ## Toda chamada usa `await`: `var res := await Server.call_api("GET", "/pocao/home")`.
 
-signal session_changed
 signal home_updated
 
 var session_path: String = "user://session.cfg"
@@ -136,7 +135,6 @@ func sign_in_google() -> Dictionary:
 	token = str(res.data.get("token", ""))
 	profile = res.data.get("profile", {})
 	_save_session()
-	session_changed.emit()
 	refresh_home()
 	return res
 
@@ -158,7 +156,6 @@ func sign_out() -> void:
 	profile = {}
 	home = {}
 	_save_session()
-	session_changed.emit()
 
 
 ## Entra como visitante se ainda não tem sessão. Devolve true se ficou com sessão.
@@ -188,7 +185,6 @@ func ensure_session() -> bool:
 	token = str(res.data.get("token", ""))
 	profile = res.data.get("profile", {})
 	_save_session()
-	session_changed.emit()
 	return not token.is_empty()
 
 
