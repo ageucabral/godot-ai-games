@@ -10,6 +10,15 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
 	# servidor
+	"Entrando…": ["Signing in…", "Entrando…"],
+	"Entrar com Google": ["Sign in with Google", "Entrar con Google"],
+	"Seu progresso está guardado na conta Google (%s).": ["Your progress is saved in your Google account (%s).", "Tu progreso está guardado en la cuenta de Google (%s)."],
+	"Entre com Google para guardar seu progresso em qualquer celular e poder receber prêmios. O que você já fez aqui vai junto.": [
+		"Sign in with Google to keep your progress on any phone and be able to get prizes. What you did here comes along.",
+		"Entra con Google para guardar tu progreso en cualquier celular y poder recibir premios. Lo que ya hiciste aquí va contigo."],
+	"A propaganda não terminou ou não foi confirmada. Tente de novo.": ["The ad didn't finish or wasn't confirmed. Try again.", "El anuncio no terminó o no se confirmó. Inténtalo de nuevo."],
+	"Não deu para entrar com o Google agora. Tente de novo.": ["Couldn't sign in with Google now. Try again.", "No se pudo entrar con Google ahora. Inténtalo de nuevo."],
+	"Entrar com Google só funciona no app do celular.": ["Google sign-in only works in the phone app.", "Entrar con Google solo funciona en la app del celular."],
 	"Carregando…": ["Loading…", "Cargando…"],
 	"Conferindo…": ["Checking…", "Verificando…"],
 	"Sem conexão": ["No connection", "Sin conexión"],
@@ -35,7 +44,6 @@ const STRINGS := {
 		"This stage didn't open. Try again in a moment.",
 		"Esta fase no abrió. Inténtalo de nuevo en un momento."],
 	"Uma nova tentativa pede uma propaganda.": ["A new try needs an ad.", "Un nuevo intento pide un anuncio."],
-	"A propaganda não foi confirmada. Tente de novo.": ["The ad wasn't confirmed. Try again.", "El anuncio no se confirmó. Inténtalo de nuevo."],
 	"Esta propaganda já foi usada.": ["This ad was already used.", "Este anuncio ya se usó."],
 	"Este desafio já encerrou. Agora só valem os desafios de hoje.": [
 		"This challenge is over. Only today's challenges count now.",

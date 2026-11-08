@@ -39,6 +39,8 @@ func after_each() -> void:
 	main.free()
 	Server.enabled = false
 	Server.transport = Callable()
+	Server.native_override = null
+	Server.config = {}
 	Server.sign_out()
 	Server.retry_wait_s = Server.REWARD_RETRY_WAIT_S
 	GameState.fixed_unix = -1
@@ -76,7 +78,7 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		"/pocao/matches":
 			return _ok({"match": _match(body)})
 		"/rewards":
-			return _ok({"rewardId": "r-%d" % calls.size(), "ssvCustomData": "x"})
+			return _ok({"rewardId": "r-%d" % calls.size(), "ssvCustomData": "r-%d" % calls.size()})
 		"/pocao/matches/m-1/boost":
 			var m := _match({"mode": "level"})
 			m.state = {"tubes": [[0, 0, 1, 0], [1, 1, 0, 1], []], "movesUsed": 0, "moveLimit": 10, "points": 4,
@@ -86,10 +88,37 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 			return _ok({"matchId": "m-1", "solved": true, "rejected": false, "movesUsed": 3, "par": 3, "fullPoints": 6,
 				"points": server_points, "credited": server_points, "best": null, "newBest": true, "nextLevel": level_number + 1,
 				"gamePoints": 140, "gamePosition": 2})
+		"/config":
+			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw"}}})
+		"/auth/google":
+			return _ok({"token": "tok-g", "profile": {"id": "u1", "guest": false, "nickname": "Ageu"}, "merged": null})
 		"/ranking":
 			return _ok({"podium": [{"position": 1, "nickname": "Ana", "points": 900}], "rows": [
 				{"position": 12, "nickname": "Eu", "points": 120, "isMe": true}]})
 	return {"ok": false, "status": 404, "data": {}, "code": "NOT_FOUND", "message": ""}
+
+
+## Plugin Android de mentira: responde na hora seguinte, como o de verdade (por sinal).
+class FakePlugin extends RefCounted:
+	signal rewarded_finished(earned: bool, error: String)
+	signal google_signed_in(id_token: String, error: String)
+	signal ads_initialized(ok: bool)
+	var shown: Array = []
+	var earn: bool = true
+	var id_token: String = "id-tok"
+
+	func adsInit() -> void:
+		pass
+
+	func showRewarded(unit_id: String, user_id: String, custom_data: String) -> void:
+		shown.append([unit_id, user_id, custom_data])
+		rewarded_finished.emit.call_deferred(earn, "" if earn else "closed")
+
+	func googleSignIn(_client_id: String) -> void:
+		google_signed_in.emit.call_deferred(id_token, "" if not id_token.is_empty() else "cancelled")
+
+	func googleSignOut() -> void:
+		pass
 
 
 func _paths() -> Array:
@@ -142,8 +171,8 @@ func test_ranking_rows_join_podium_and_rows() -> void:
 
 func test_logs_in_as_guest_and_syncs_home() -> void:
 	assert_true(Server.online(), "entrou como visitante")
-	assert_eq(_paths().slice(0, 2), ["/auth/guest", "/pocao/home"])
-	assert_ne(str(calls[0][2].deviceHash), "", "manda o identificador do aparelho")
+	assert_eq(_paths().filter(func(p: String) -> bool: return p != "/config").slice(0, 2), ["/auth/guest", "/pocao/home"])
+	assert_ne(str(_last("/auth/guest")[2].deviceHash), "", "manda o identificador do aparelho")
 	assert_eq(GameState.current_level(), 4, "nível vem do servidor")
 	assert_eq(GameState.attempts("2026-11-07#0"), 1)
 	assert_eq(int(GameState.result("2026-11-07#0").best_points), 5)
@@ -258,3 +287,118 @@ func test_global_ranking_lists_players() -> void:
 	assert_eq(ranking.top_list.get_child_count(), 2)
 	assert_eq(ranking.points_label.text, "120 pts")
 	assert_eq(ranking.detail_label.text, "12º lugar")
+
+
+func test_real_ad_sends_reward_id_for_ssv() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	await Server.load_config()
+	main.play_level()
+	await wait_physics_frames(1)
+	game._boost_online("flask")
+	await wait_physics_frames(10)
+	assert_eq(plugin.shown.size(), 1, "mostrou a propaganda do AdMob")
+	assert_eq(plugin.shown[0][0], "unit-rw", "bloco vem do painel")
+	assert_eq(plugin.shown[0][1], "u1", "id do jogador vai na confirmação")
+	assert_true(str(plugin.shown[0][2]).begins_with("r-"), "rewardId vai como customData")
+	assert_eq(game.puzzle.tubes.size(), 4)
+
+
+func test_closed_ad_gives_nothing() -> void:
+	var plugin := FakePlugin.new()
+	plugin.earn = false
+	Server.native_override = plugin
+	Ads.instant = false
+	await Server.load_config()
+	main.play_level()
+	await wait_physics_frames(1)
+	game._boost_online("flask")
+	await wait_physics_frames(10)
+	assert_false("/pocao/matches/m-1/boost" in _paths(), "sem recompensa, não pede a ajuda")
+	assert_eq(game.puzzle.tubes.size(), 3)
+	assert_true(game.dialog.visible, "avisa")
+
+
+func test_google_sign_in_keeps_device() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	assert_true(Server.is_guest())
+	var res: Dictionary = await Server.sign_in_google()
+	assert_true(res.ok)
+	var call: Array = _last("/auth/google")
+	assert_eq(call[2].idToken, "id-tok")
+	assert_eq(call[2].deviceHash, Server.device_hash, "mesmo aparelho: o progresso do visitante passa para a conta")
+	assert_false(Server.is_guest())
+	assert_eq(Server.token, "tok-g")
+
+
+func test_google_cancelled() -> void:
+	var plugin := FakePlugin.new()
+	plugin.id_token = ""
+	Server.native_override = plugin
+	var res: Dictionary = await Server.sign_in_google()
+	assert_eq(res.code, "GOOGLE_CANCELLED")
+	assert_true(Server.is_guest())
+	assert_false("/auth/google" in _paths())
+
+
+func test_save_progress_menu_signs_in() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Menus.open_save_progress(main.dialog)
+	assert_eq(main.dialog.button_texts(), ["Entrar com Google", "Voltar"])
+	main.dialog.press("Entrar com Google")
+	await wait_physics_frames(10)
+	assert_false(Server.is_guest())
+	assert_true(main.dialog.text_label.text.contains("Ageu"), "mostra a conta")
+
+
+func test_save_progress_without_plugin_is_coming_soon() -> void:
+	Menus.open_save_progress(main.dialog)
+	assert_eq(main.dialog.button_texts(), ["Voltar"])
+
+
+func test_real_ad_reloads_missing_config() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	Server.config = {}  # o GET /config da abertura não chegou
+	main.play_level()
+	await wait_physics_frames(1)
+	game._boost_online("flask")
+	await wait_physics_frames(10)
+	assert_eq(plugin.shown.size(), 1, "pediu o /config de novo e mostrou o AdMob, não a simulação")
+	assert_eq(game.puzzle.tubes.size(), 4)
+
+
+func test_guest_login_does_not_replace_google_session() -> void:
+	Server.sign_out()
+	# o Google termina de entrar enquanto a resposta do visitante ainda está a caminho
+	Server.transport = func(method: String, path: String, body: Variant) -> Dictionary:
+		if path == "/auth/guest":
+			Server.token = "tok-g"
+			Server.profile = {"id": "u1", "guest": false}
+			return _ok({"token": "tok-guest", "profile": {"id": "g1", "guest": true}})
+		return _fake(method, path, body)
+	assert_true(await Server.ensure_session())
+	assert_eq(Server.token, "tok-g", "o visitante que chegou depois não troca a conta Google")
+	assert_false(Server.is_guest())
+
+
+func test_expired_google_session_signs_in_with_google_again() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	await Server.sign_in_google()
+	forced["/pocao/home"] = [{"ok": false, "status": 401, "data": {}, "code": "UNAUTHORIZED", "message": ""}]
+	var before := _paths().filter(func(p: String) -> bool: return p == "/auth/guest").size()
+	await Server.refresh_home()
+	assert_eq(_paths().filter(func(p: String) -> bool: return p == "/auth/guest").size(), before, "não vira visitante")
+	assert_eq(_paths().filter(func(p: String) -> bool: return p == "/auth/google").size(), 2, "entrou com Google de novo")
+	assert_false(Server.is_guest())
+
+
+func test_wait_signal_gives_up() -> void:
+	var plugin := FakePlugin.new()
+	var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), 0.05, [false, "timeout"])
+	assert_eq(out, [false, "timeout"])

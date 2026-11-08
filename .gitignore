@@ -22,3 +22,8 @@ Thumbs.db
 
 # Configurações locais do Claude Code (as compartilhadas ficam em .claude/settings.json)
 .claude/settings.local.json
+android/plugin/build/
+android/plugin/.gradle/
+android/plugin/local.properties
+android/build/
+android/.build_version

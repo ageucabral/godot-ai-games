@@ -1,0 +1,31 @@
+// Plugin Android do Na Lata (Godot 4.7, plugin v2): login com Google e propaganda premiada do AdMob.
+// Gera addons/nalata_android/bin/nalata-release.aar com: tools/build_android_plugin.sh
+plugins {
+    id 'com.android.library' version '8.6.1'
+    id 'org.jetbrains.kotlin.android' version '2.1.21'
+}
+
+android {
+    namespace 'app.nalata.godot'
+    compileSdk 36
+    defaultConfig {
+        minSdk 24
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+// As mesmas versões vão para o app em addons/nalata_android/export_plugin.gd (_get_android_dependencies).
+dependencies {
+    compileOnly 'org.godotengine:godot:4.7.2.stable'
+    implementation 'com.google.android.gms:play-services-ads:24.4.0'
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+}

@@ -42,7 +42,10 @@ func _ready() -> void:
 ## entrar (sem internet no 1º uso), o jogo segue só no aparelho; depois de entrar, jogar pede internet
 ## (os pontos só valem conferidos pelo servidor).
 func _connect_server() -> void:
-	if not Server.enabled or Server.online():
+	if not Server.enabled:
+		return
+	Server.load_config()
+	if Server.online():
 		return  # com sessão salva, o show_screen(hub) já pediu o menu ao servidor
 	if await Server.ensure_session():
 		Server.refresh_home()

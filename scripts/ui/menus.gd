@@ -18,7 +18,7 @@ static func daily_done() -> int:
 static func open_profile(dialog: DialogBox) -> void:
 	var month := Rules.month_for(GameState.now_unix())
 	var text := I18n.t("Nível atual: %d\nPontos em %s: %d\nDesafios de hoje: %d de %d") % [
-		GameState.current_level(), Rules.month_name(month), GameState.month_total(month).points,
+		GameState.current_level(), Rules.month_name(month), GameState.game_month_total("potion", month).points,
 		daily_done(), Rules.DAILY_COUNT]
 	dialog.open("Seu perfil", text, [["Fechar", func() -> void: pass, true]])
 
@@ -42,10 +42,42 @@ static func open_language(dialog: DialogBox) -> void:
 
 
 static func open_save_progress(dialog: DialogBox) -> void:
+	if Server.can_sign_in_google():
+		if not Server.is_guest():
+			var who: String = ""
+			for field in ["nickname", "googleName", "email"]:
+				var value: Variant = Server.profile.get(field)
+				if value != null and not str(value).is_empty():
+					who = str(value)
+					break
+			dialog.open("Salvar progresso", I18n.t("Seu progresso está guardado na conta Google (%s).") % who, [
+				["Voltar", func() -> void: open_settings(dialog), true],
+			])
+			return
+		dialog.open("Salvar progresso",
+			"Entre com Google para guardar seu progresso em qualquer celular e poder receber prêmios. O que você já fez aqui vai junto.", [
+			["Entrar com Google", func() -> void: _sign_in_google(dialog), true],
+			["Voltar", func() -> void: open_settings(dialog)],
+		])
+		return
 	dialog.open("Salvar progresso",
 		"Em breve você poderá entrar com Google ou Facebook para guardar seu progresso e aparecer no ranking com todos os jogadores.", [
 		["Voltar", func() -> void: open_settings(dialog), true],
 	])
+
+
+static func _sign_in_google(dialog: DialogBox) -> void:
+	dialog.open("Entrando…", "", [])
+	var res: Dictionary = await Server.sign_in_google()
+	if res.ok:
+		open_save_progress(dialog)
+	elif res.code == "GOOGLE_CANCELLED":
+		open_settings(dialog)
+	else:
+		dialog.open("Salvar progresso", I18n.t(ApiClient.error_text(res)), [
+			["Tentar de novo", func() -> void: _sign_in_google(dialog), true],
+			["Voltar", func() -> void: open_settings(dialog)],
+		])
 
 
 static func open_how_to_play(dialog: DialogBox) -> void:
