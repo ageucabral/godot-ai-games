@@ -137,7 +137,7 @@ func refresh() -> void:
 	play_button.text = tr("Jogar desafio %d") % (next + 1) if next >= 0 else tr("Todos resolvidos!")
 	play_button.disabled = next < 0
 	var month := Rules.month_for(GameState.now_unix())
-	var total := GameState.month_total(month)
+	var total := GameState.game_month_total("potion", month)
 	month_label.text = tr("Seus pontos em %s: %d") % [Rules.month_name(month), total.points]
 	_update_countdown()
 

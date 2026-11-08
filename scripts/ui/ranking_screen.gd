@@ -167,7 +167,7 @@ func refresh() -> void:
 			detail_label.text = _position_text(total.position)
 			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
 		else:
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.")
+			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
 	else:
 		var t := GameState.game_month_total(game_id, month)
 		title_label.text = tr("Ranking do %s") % tr(game_name(game_id))

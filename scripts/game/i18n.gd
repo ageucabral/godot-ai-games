@@ -81,9 +81,9 @@ const STRINGS := {
 	"%d jogadas no mês": ["%d moves this month", "%d jugadas en el mes"],
 	"Pontos por jogo": ["Points per game", "Puntos por juego"],
 	"%d desafios e %d níveis · %d jogadas": ["%d challenges and %d levels · %d moves", "%d desafíos y %d niveles · %d jugadas"],
-	"Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.": [
-		"Tie: fewer moves goes first. The list with every player arrives with accounts.",
-		"Empate: va primero quien usó menos jugadas. La lista con todos los jugadores llega con las cuentas."],
+	"Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.": [
+		"Tie: fewer moves goes first. The list with every player is in the Play Store app.",
+		"Empate: va primero quien usó menos jugadas. La lista con todos los jugadores está en la app de Play Store."],
 	"Os prêmios saem do Ranking Global, no menu do Na Lata.": [
 		"Prizes come from the Global Ranking, in the Na Lata menu.",
 		"Los premios salen del Ranking Global, en el menú de Na Lata."],
@@ -101,9 +101,9 @@ const STRINGS := {
 	"Idioma": ["Language", "Idioma"],
 	"Escolha o idioma do jogo.": ["Choose the game language.", "Elige el idioma del juego."],
 	"Salvar progresso": ["Save progress", "Guardar progreso"],
-	"Em breve você poderá entrar com Google ou Facebook para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
-		"Soon you will be able to sign in with Google or Facebook to keep your progress and appear in the ranking with every player.",
-		"Pronto podrás entrar con Google o Facebook para guardar tu progreso y aparecer en el ranking con todos los jugadores."],
+	"No app da Play Store você pode entrar com Google para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
+		"In the Play Store app you can sign in with Google to keep your progress and appear in the ranking with every player.",
+		"En la app de Play Store puedes entrar con Google para guardar tu progreso y aparecer en el ranking con todos los jugadores."],
 	"Como jogar": ["How to play", "Cómo jugar"],
 	"Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nCada fase vale o dobro das jogadas necessárias: se pede 11 jogadas, vale 22 pontos.\nCada jogada além disso tira 1 ponto, e você vê o placar caindo na hora.\n\nNíveis: sem fim, cada vez mais difíceis.\nDesafios do dia: 20 novos à meia-noite.": [
 		"Tap a bottle, then another one to pour. You can only pour onto the same color or into an empty bottle. Leave each bottle with a single color.\n\nEach stage is worth twice the moves it needs: if it needs 11 moves, it is worth 22 points.\nEach extra move costs 1 point, and you see the score drop right away.\n\nLevels: endless, harder and harder.\nDaily challenges: 20 new ones at midnight.",

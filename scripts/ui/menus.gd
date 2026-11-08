@@ -65,7 +65,7 @@ static func open_save_progress(dialog: DialogBox) -> void:
 		])
 		return
 	dialog.open("Salvar progresso",
-		"Em breve você poderá entrar com Google ou Facebook para guardar seu progresso e aparecer no ranking com todos os jogadores.", [
+		"No app da Play Store você pode entrar com Google para guardar seu progresso e aparecer no ranking com todos os jogadores.", [
 		["Voltar", func() -> void: open_settings(dialog), true],
 	])
 
