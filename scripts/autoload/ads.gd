@@ -15,10 +15,18 @@ var showing: bool = false
 func show_rewarded(on_reward: Callable) -> void:
 	if showing:
 		return
-	if instant:
+	if await play():
 		on_reward.call()
+
+
+## Mostra a propaganda e espera ela acabar (use com `await`). Devolve true se a recompensa foi ganha.
+## `custom_data` vai para a confirmação do AdMob ao servidor (SSV); a simulação só ignora.
+func play(_custom_data: String = "") -> bool:
+	if showing:
+		return false
+	if instant:
 		ad_finished.emit()
-		return
+		return true
 	showing = true
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -47,5 +55,5 @@ func show_rewarded(on_reward: Callable) -> void:
 		left -= 1.0
 	layer.queue_free()
 	showing = false
-	on_reward.call()
 	ad_finished.emit()
+	return true
