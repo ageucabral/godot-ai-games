@@ -165,7 +165,7 @@ func refresh() -> void:
 			_fill_games(total.games)
 		if total.has("position"):
 			detail_label.text = _position_text(total.position)
-			info_label.text = tr("Empate: fica na frente quem chegou primeiro aos pontos.")
+			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
 		else:
 			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.")
 	else:

@@ -2,7 +2,7 @@ class_name Menus
 extends RefCounted
 ## Janelas usadas no hub e na tela do jogo: perfil e configurações (idioma, salvar progresso, como jogar).
 
-const VERSION := "0.5.0"  # igual a version/name em export_presets.cfg
+const VERSION := "2.0.0"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
 
 ## Desafios de hoje já resolvidos.

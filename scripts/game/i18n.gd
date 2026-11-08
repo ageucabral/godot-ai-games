@@ -32,9 +32,9 @@ const STRINGS := {
 	"Visitante": ["Guest", "Invitado"],
 	"Jogue para entrar no ranking": ["Play to enter the ranking", "Juega para entrar en el ranking"],
 	"%dº lugar": ["#%d", "%dº lugar"],
-	"Empate: fica na frente quem chegou primeiro aos pontos.": [
-		"Tie: whoever reached the points first goes ahead.",
-		"Empate: va primero quien llegó antes a los puntos."],
+	"Empate: fica na frente quem usou menos jogadas.": [
+		"Tie: fewer moves goes first.",
+		"Empate: va primero quien usó menos jugadas."],
 	"Sem conexão com o servidor. Confira a internet e tente de novo.": [
 		"No connection to the server. Check your internet and try again.",
 		"Sin conexión con el servidor. Revisa internet e inténtalo de nuevo."],
