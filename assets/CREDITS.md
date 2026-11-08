@@ -8,3 +8,4 @@
 Os frascos, botões, ícones e fundos são desenhados por código em `scripts/game/` e `scripts/ui/` (sem imagens externas).
 
 | `assets/art/*.jpg`, `assets/art/mascot.png` | Geradas por IA para o projeto (modelo Gemini "Nano Banana" via OpenRouter, 7/11/2026), a partir de descrições próprias; mascote recortado do fundo magenta | Próprio (geradas sob encomenda) |
+| `assets/icons/*.png` | Ícones do app Na Lata anterior (`ageucabral/na-lata-app`, `assets/`), reduzidos para 192 e 432 px | Próprio (do dono do projeto) |

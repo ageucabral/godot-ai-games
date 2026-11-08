@@ -39,6 +39,7 @@ tools/install_android_sdk.sh        # Android SDK mínimo (para gerar APK)
 | Rodar só alguns testes | `tools/run_tests.sh game_state` (filtra pelo nome do arquivo) |
 | Exportar para Web | `tools/export_web.sh` → `build/web/` |
 | Gerar APK de teste para Android | `tools/export_android.sh` → `build/android/na-lata-teste.apk` |
+| Gerar o pacote da Google Play (AAB assinado) | `NALATA_KEYSTORE=… NALATA_KEYSTORE_PASSWORD=… NALATA_KEY_ALIAS=… NALATA_KEY_PASSWORD=… tools/export_android_release.sh` → `build/android/na-lata.aab` |
 | Abrir o jogo Web num navegador sem tela e tirar foto | `tools/web_smoke_test.sh` → `build/web_screenshot.png` |
 | Executar o Godot direto | `tools/godot.sh --headless --path . <args>` |
 
@@ -153,4 +154,8 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz "em breve".
   Testes com plugin de mentira (`Server.native_override`).
 - Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
-  O pacote do APK de teste ainda é `com.ageucabral.nalata`; troca para `app.nalata.android` na versão da Play.
+  O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
+  preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
+  versionCode 20+, versão 1.3.0 (o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
+  **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
+  A cada nova versão da Play, suba `version/code` (e `version/name` + `Menus.VERSION`).

@@ -2,7 +2,7 @@ class_name Menus
 extends RefCounted
 ## Janelas usadas no hub e na tela do jogo: perfil e configurações (idioma, salvar progresso, como jogar).
 
-const VERSION := "0.5.0"  # igual a version/name em export_presets.cfg
+const VERSION := "1.3.0"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
 
 ## Desafios de hoje já resolvidos.
@@ -52,7 +52,9 @@ static func open_save_progress(dialog: DialogBox) -> void:
 				if value != null and not str(value).is_empty():
 					who = str(value)
 					break
-			dialog.open("Salvar progresso", I18n.t("Seu progresso está guardado na conta Google (%s).") % who, [
+			var saved_text: String = I18n.t("Seu progresso está guardado na conta Google.") if who.is_empty() \
+				else I18n.t("Seu progresso está guardado na conta Google (%s).") % who
+			dialog.open("Salvar progresso", saved_text, [
 				["Voltar", func() -> void: open_settings(dialog), true],
 			])
 			return

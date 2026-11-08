@@ -12,6 +12,7 @@ const STRINGS := {
 	# servidor
 	"Entrando…": ["Signing in…", "Entrando…"],
 	"Entrar com Google": ["Sign in with Google", "Entrar con Google"],
+	"Seu progresso está guardado na conta Google.": ["Your progress is saved in your Google account.", "Tu progreso está guardado en la cuenta de Google."],
 	"Seu progresso está guardado na conta Google (%s).": ["Your progress is saved in your Google account (%s).", "Tu progreso está guardado en la cuenta de Google (%s)."],
 	"Entre com Google para guardar seu progresso em qualquer celular e poder receber prêmios. O que você já fez aqui vai junto.": [
 		"Sign in with Google to keep your progress on any phone and be able to get prizes. What you did here comes along.",
@@ -31,9 +32,9 @@ const STRINGS := {
 	"Visitante": ["Guest", "Invitado"],
 	"Jogue para entrar no ranking": ["Play to enter the ranking", "Juega para entrar en el ranking"],
 	"%dº lugar": ["#%d", "%dº lugar"],
-	"Empate: fica na frente quem chegou primeiro aos pontos.": [
-		"Tie: whoever reached the points first goes ahead.",
-		"Empate: va primero quien llegó antes a los puntos."],
+	"Empate: fica na frente quem usou menos jogadas.": [
+		"Tie: fewer moves goes first.",
+		"Empate: va primero quien usó menos jugadas."],
 	"Sem conexão com o servidor. Confira a internet e tente de novo.": [
 		"No connection to the server. Check your internet and try again.",
 		"Sin conexión con el servidor. Revisa internet e inténtalo de nuevo."],
