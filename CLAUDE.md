@@ -173,7 +173,7 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - Ainda não existem: música, aviso de consentimento de anúncios (Europa), avisos no celular.
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
-  versionCode 21+ (o 20 foi só rascunho), versão 1.3.0 (**publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
+  versionCode 21+ (o 20 foi só rascunho), versão 1.3.1 (versionCode 22; a 1.3.0 está **publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
   **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
   Para a Play vão também x86/x86_64 (Chromebooks e aparelhos Intel; a Play entrega só a parte de cada aparelho) e as
   bibliotecas nativas comprimidas. Avisos da Play que não têm conserto: o Godot exige OpenGL ES 3.0 (celulares muito
