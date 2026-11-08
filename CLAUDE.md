@@ -156,6 +156,6 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
-  versionCode 20+, versão 2.0.0, ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
+  versionCode 20+, versão 1.3.0 (o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
   **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
   A cada nova versão da Play, suba `version/code` (e `version/name` + `Menus.VERSION`).

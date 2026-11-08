@@ -36,9 +36,9 @@ func play(custom_data: String = "") -> bool:
 		await Server.load_config()
 		showing = false
 		unit = Server.rewarded_unit_id()
-		if unit.is_empty():
+		if unit.is_empty() and not custom_data.is_empty():
 			return false  # sem o bloco do AdMob: a simulação nunca seria confirmada pelo servidor
-	if plugin:
+	if plugin and not unit.is_empty():
 		showing = true
 		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
 		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])

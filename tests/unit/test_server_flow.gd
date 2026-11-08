@@ -418,3 +418,18 @@ func test_real_ad_without_unit_does_not_simulate() -> void:
 	assert_false(Ads.showing, "não ficou presa na simulação")
 	assert_false("/pocao/matches/m-1/boost" in _paths(), "sem propaganda, não pede a ajuda")
 	assert_eq(game.puzzle.tubes.size(), 3)
+
+
+func test_local_ad_without_unit_still_simulates() -> void:
+	# sem internet no Android: as ajudas do jogo no aparelho (sem servidor) continuam com a simulação
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	Ads.duration = 0.0
+	Server.config = {}
+	forced["/config"] = [ApiClient.error_result(0, "NETWORK", "")]
+	var ok: bool = await Ads.play()
+	Ads.duration = 3.0
+	assert_true(ok, "jogo local: a simulação entrega a recompensa")
+	assert_eq(plugin.shown.size(), 0, "não chama o AdMob sem bloco")
+	assert_false(Ads.showing)
