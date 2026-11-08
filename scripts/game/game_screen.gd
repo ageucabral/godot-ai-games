@@ -303,6 +303,8 @@ func _refresh() -> void:
 		_challenge_value.text = tr("Nível %d") % challenge.level
 	else:
 		_challenge_value.text = tr("Desafio %d / %d") % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
+	# a dificuldade só aparece nos desafios do dia (nos níveis, o número do nível já diz tudo)
+	_subtitle.visible = not is_level()
 	_subtitle.text = tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
 	_shuffle_button.badge = str(shuffles_left)
 	var boost_ok: bool = not _finished and can_use_boost()

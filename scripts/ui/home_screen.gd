@@ -1,7 +1,7 @@
 extends Control
 ## Tela inicial do Poção de Cores, enxuta: pontos do mês e configurações em cima, nome do jogo,
-## mascote, o botão verde "Nível N" e a barra de baixo (Jogos · Ranking · Início · Desafios · Perfil).
-## Cada lugar tem um caminho só: ranking, desafios e perfil ficam na barra de baixo.
+## mascote, o botão verde "Nível N" e, na lateral direita, os ícones Jogos · Ranking · Desafios
+## (Ageu, 8/11/2026: sem barra embaixo; o perfil fica dentro da engrenagem).
 
 signal level_requested
 signal daily_requested
@@ -14,7 +14,8 @@ var points_label: Label
 var level_button: GlossButton
 var mascot: MascotView
 var settings_button: IconButton
-var nav: NavBar
+## Ícones da lateral, por nome: "games", "ranking", "daily".
+var side_buttons: Dictionary = {}
 var dialog: DialogBox
 ## Dia mostrado nos botões (serve para perceber a meia-noite, mesmo se o app ficou em segundo plano).
 var _shown_day: String = ""
@@ -86,9 +87,26 @@ func _build() -> void:
 	level_button.pressed.connect(func() -> void: level_requested.emit())
 	button_margin.add_child(level_button)
 
-	nav = NavBar.new()
-	nav.tab_pressed.connect(_on_tab)
-	box.add_child(nav)
+	box.add_child(_spacer(24))
+
+	# ícones da lateral direita, bem espaçados, na altura do mascote
+	var rail := VBoxContainer.new()
+	rail.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	rail.anchor_top = 0.27
+	rail.anchor_bottom = 0.72
+	rail.offset_left = -150
+	rail.offset_right = -14
+	rail.offset_top = 0
+	rail.offset_bottom = 0
+	rail.alignment = BoxContainer.ALIGNMENT_CENTER
+	rail.add_theme_constant_override("separation", 34)
+	add_child(rail)
+	for item in [["games", "Jogos"], ["ranking", "Ranking"], ["daily", "Desafios"]]:
+		var b := SideButton.new("trophy" if item[0] == "ranking" else ("calendar" if item[0] == "daily" else "games"), item[1])
+		var id: String = item[0]
+		b.pressed.connect(func() -> void: _on_tab(id))
+		rail.add_child(b)
+		side_buttons[id] = b
 
 
 func _on_tab(tab: String) -> void:
@@ -96,7 +114,6 @@ func _on_tab(tab: String) -> void:
 		"games": hub_requested.emit()
 		"ranking": ranking_requested.emit()
 		"daily": daily_requested.emit()
-		"profile": Menus.open_profile(dialog)
 
 
 func refresh() -> void:
@@ -104,9 +121,15 @@ func refresh() -> void:
 	var month := Rules.month_for(GameState.now_unix())
 	points_label.text = str(GameState.month_total(month).points)
 	level_button.text = tr("Nível %d") % GameState.current_level()
-	nav.set_counter("daily", "%d/%d" % [Menus.daily_done(), Rules.DAILY_COUNT])
+	side_buttons["daily"].counter = "%d/%d" % [Menus.daily_done(), Rules.DAILY_COUNT]
 
 
 func _check_new_day() -> void:
 	if _shown_day != "" and GameState.today() != _shown_day:
 		refresh()  # virou o dia: zera a contagem dos desafios (refresh guarda o dia novo, sem repetir)
+
+
+static func _spacer(h: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, h)
+	return c

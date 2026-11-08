@@ -256,3 +256,13 @@ func test_boost_blocked_when_it_would_zero_a_daily() -> void:
 	assert_true(screen.get_node("%BottleButton").disabled, "ajuda zeraria o desafio: fica desligada")
 	screen.get_node("%BottleButton").pressed.emit()
 	assert_false(screen.dialog.visible, "nem pergunta")
+
+
+func test_levels_hide_difficulty() -> void:
+	var level := SPARE.duplicate(true)
+	level.mode = "level"
+	level.level = 3
+	screen.open_with(level)
+	assert_false(screen._subtitle.visible, "nível não mostra Fácil/Médio")
+	screen.open_with(EASY)
+	assert_true(screen._subtitle.visible, "desafio mostra a dificuldade")
