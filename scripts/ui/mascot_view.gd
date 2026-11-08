@@ -3,8 +3,6 @@ extends Control
 ## Mascote da tela inicial: a coruja alquimista (ilustração gerada em assets/art/mascot.png).
 ## Flutua de leve, inclina, solta brilhinhos e dá um pulinho quando tocada.
 
-signal tapped
-
 const ART_PATH := "res://assets/art/mascot.png"
 const HEIGHT: float = 470.0
 
@@ -32,7 +30,6 @@ func _process(delta: float) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		hop()
-		tapped.emit()
 		accept_event()
 
 

@@ -123,8 +123,10 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - Idiomas: português (padrão), inglês e espanhol em `scripts/game/i18n.gd` (o texto em português é a
   chave). Textos montados com números usam `tr("...") % valores`.
 - `scripts/game/sort_puzzle.gd`: regras de despejar, camadas escondidas ("?") e lista de jogadas.
-- `scripts/autoload/game_state.gd`: tentativas e melhor resultado salvos no aparelho.
-- `scripts/autoload/ads.gd`: propaganda **simulada** (3 s). O AdMob de verdade entra aqui depois.
+- `scripts/autoload/game_state.gd`: nível, tentativas e melhor resultado salvos no aparelho (pelo servidor, cópia
+  do que ele conferiu).
+- `scripts/autoload/ads.gd`: propaganda premiada. No Android com o plugin é o AdMob de verdade; sem o plugin
+  (Web, testes) é uma **simulação** de 3 s.
 - Cena principal `scenes/main/main.tscn`: hub (`scenes/ui/hub_screen.tscn`), tela inicial do Poção de Cores
   (`scenes/ui/home_screen.tscn`: pontos do mês, configurações, nome do jogo, mascote, botão "Nível N"
   e, logo abaixo, o botão laranja "Desafios do dia 3/20" (fica roxo com "Desafios feitos!" quando o dia acaba);
@@ -138,7 +140,8 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   `GameState.global_month_total` soma os jogos de `GameState.GAME_IDS`. Hoje todo o progresso salvo é do
   Poção de Cores: o segundo jogo vai precisar separar os pontos por jogo no salvamento.
 - Ilustrações (OpenRouter/Nano Banana) em `assets/art/`: hub_bg, home_bg, game_bg (1080x1920), splash,
-  mascot e potion_card (cartão do jogo no hub).
+  mascot e potion_card (cartão do jogo no hub). Os fundos e o cartão sempre usam essas imagens (não há desenho
+  de reserva no código).
 - **Servidor** (Ageu, 8/11/2026): o jogo usa a API do app antigo (`ageucabral/na-lata-web`, api.nalatagame.tech;
   rotas `/pocao/*` em `docs/api.md` de lá). `scripts/autoload/server.gd` (autoload `Server`) entra como visitante e
   faz as chamadas; `scripts/net/api_client.gd` tem as funções puras. **Ligado só no Android** (`Server.enabled`); na
@@ -151,12 +154,12 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   `userId` = id do jogador; bloco vem do `GET /config`). O `.aar` compilado fica em `addons/nalata_android/bin/`
   (refazer com `tools/build_android_plugin.sh` ao mudar o Kotlin) e entra no APK pelo `addons/nalata_android`
   (export plugin). Por isso o Android exporta com **Gradle build** (`android/build`, instalado pelo
-  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz "em breve".
+  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Salvar progresso" diz que o login com Google fica no app da Play Store.
   Testes com plugin de mentira (`Server.native_override`).
 - Ainda não existem: Play Integrity (o servidor ainda não confere), telas de apelido/país/idade para prêmios, sons.
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
-  versionCode 21+ (o 20 foi só rascunho), versão 1.3.0 (o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
+  versionCode 21+ (o 20 foi só rascunho), versão 1.3.0 (**publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
   **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
   Para a Play vão também x86/x86_64 (Chromebooks e aparelhos Intel; a Play entrega só a parte de cada aparelho) e as
   bibliotecas nativas comprimidas. Avisos da Play que não têm conserto: o Godot exige OpenGL ES 3.0 (celulares muito

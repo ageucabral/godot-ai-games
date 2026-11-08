@@ -4,8 +4,6 @@ extends Node
 ## uma tela de 3 segundos que entrega a recompensa.
 ## Disponível em qualquer script como `Ads`.
 
-signal ad_finished
-
 ## Para testes: entrega a recompensa na hora, sem mostrar nada.
 var instant: bool = false
 var duration: float = 3.0
@@ -26,7 +24,6 @@ func play(custom_data: String = "") -> bool:
 	if showing:
 		return false
 	if instant:
-		ad_finished.emit()
 		return true
 	var plugin: Object = Server.native() if Server.enabled else null
 	var unit: String = Server.rewarded_unit_id()
@@ -43,7 +40,6 @@ func play(custom_data: String = "") -> bool:
 		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
 		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])
 		showing = false
-		ad_finished.emit()
 		return bool(out[0])
 	showing = true
 	var layer := CanvasLayer.new()
@@ -73,5 +69,4 @@ func play(custom_data: String = "") -> bool:
 		left -= 1.0
 	layer.queue_free()
 	showing = false
-	ad_finished.emit()
 	return true

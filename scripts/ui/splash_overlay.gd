@@ -3,8 +3,6 @@ extends Control
 ## Tela de abertura do Poção de Cores (ilustração + nome + "Carregando"), por cima do menu.
 ## Some sozinha depois de `duration` segundos (ou ao tocar).
 
-signal finished
-
 var duration: float = 1.6
 var _bar: ProgressBar
 
@@ -58,5 +56,4 @@ func _gui_input(event: InputEvent) -> void:
 func close() -> void:
 	if is_queued_for_deletion():
 		return
-	finished.emit()
 	queue_free()

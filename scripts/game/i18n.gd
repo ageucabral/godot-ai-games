@@ -81,9 +81,9 @@ const STRINGS := {
 	"%d jogadas no mês": ["%d moves this month", "%d jugadas en el mes"],
 	"Pontos por jogo": ["Points per game", "Puntos por juego"],
 	"%d desafios e %d níveis · %d jogadas": ["%d challenges and %d levels · %d moves", "%d desafíos y %d niveles · %d jugadas"],
-	"Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores chega com as contas.": [
-		"Tie: fewer moves goes first. The list with every player arrives with accounts.",
-		"Empate: va primero quien usó menos jugadas. La lista con todos los jugadores llega con las cuentas."],
+	"Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.": [
+		"Tie: fewer moves goes first. The list with every player is in the Play Store app.",
+		"Empate: va primero quien usó menos jugadas. La lista con todos los jugadores está en la app de Play Store."],
 	"Os prêmios saem do Ranking Global, no menu do Na Lata.": [
 		"Prizes come from the Global Ranking, in the Na Lata menu.",
 		"Los premios salen del Ranking Global, en el menú de Na Lata."],
@@ -101,11 +101,9 @@ const STRINGS := {
 	"Idioma": ["Language", "Idioma"],
 	"Escolha o idioma do jogo.": ["Choose the game language.", "Elige el idioma del juego."],
 	"Salvar progresso": ["Save progress", "Guardar progreso"],
-	"Em breve você poderá entrar com Google ou Facebook para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
-		"Soon you will be able to sign in with Google or Facebook to keep your progress and appear in the ranking with every player.",
-		"Pronto podrás entrar con Google o Facebook para guardar tu progreso y aparecer en el ranking con todos los jugadores."],
-	"Entrar com Google (em breve)": ["Sign in with Google (soon)", "Entrar con Google (pronto)"],
-	"Entrar com Facebook (em breve)": ["Sign in with Facebook (soon)", "Entrar con Facebook (pronto)"],
+	"No app da Play Store você pode entrar com Google para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
+		"In the Play Store app you can sign in with Google to keep your progress and appear in the ranking with every player.",
+		"En la app de Play Store puedes entrar con Google para guardar tu progreso y aparecer en el ranking con todos los jugadores."],
 	"Como jogar": ["How to play", "Cómo jugar"],
 	"Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nCada fase vale o dobro das jogadas necessárias: se pede 11 jogadas, vale 22 pontos.\nCada jogada além disso tira 1 ponto, e você vê o placar caindo na hora.\n\nNíveis: sem fim, cada vez mais difíceis.\nDesafios do dia: 20 novos à meia-noite.": [
 		"Tap a bottle, then another one to pour. You can only pour onto the same color or into an empty bottle. Leave each bottle with a single color.\n\nEach stage is worth twice the moves it needs: if it needs 11 moves, it is worth 22 points.\nEach extra move costs 1 point, and you see the score drop right away.\n\nLevels: endless, harder and harder.\nDaily challenges: 20 new ones at midnight.",
@@ -114,8 +112,6 @@ const STRINGS := {
 	"Entendi": ["Got it", "Entendido"],
 	# partida
 	"Menu": ["Menu", "Menú"],
-	"DESAFIO": ["CHALLENGE", "DESAFÍO"],
-	"NÍVEL": ["LEVEL", "NIVEL"],
 	"JOGADAS": ["MOVES", "JUGADAS"],
 	"Recomeçar": ["Restart", "Reiniciar"],
 	"+5 jogadas": ["+5 moves", "+5 jugadas"],
@@ -125,12 +121,14 @@ const STRINGS := {
 	"Frasco extra": ["Extra bottle", "Frasco extra"],
 	"Embaralhar?": ["Shuffle?", "¿Mezclar?"],
 	"Frasco extra?": ["Extra bottle?", "¿Frasco extra?"],
-	"Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto.": [
-		"Mixes the colors of the open bottles again.\nNeeds an ad and costs 1 point.",
-		"Mezcla de nuevo los colores de las botellas abiertas.\nPide un anuncio y cuesta 1 punto."],
-	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto.": [
-		"Get one more empty bottle.\nNeeds an ad and costs 1 point.",
-		"Gana una botella vacía más.\nPide un anuncio y cuesta 1 punto."],
+	"Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.": [
+		"Mixes the colors of the open bottles again.\nNeeds an ad and costs %s.",
+		"Mezcla de nuevo los colores de las botellas abiertas.\nPide un anuncio y cuesta %s."],
+	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.": [
+		"Get one more empty bottle.\nNeeds an ad and costs %s.",
+		"Gana una botella vacía más.\nPide un anuncio y cuesta %s."],
+	"1 ponto": ["1 point", "1 punto"],
+	"%d pontos": ["%d points", "%d puntos"],
 	"Assistir e embaralhar": ["Watch and shuffle", "Ver y mezclar"],
 	"Assistir e ganhar": ["Watch and get it", "Ver y ganar"],
 	"Não deu para embaralhar agora. Nada foi cobrado.": ["Couldn't shuffle right now. Nothing was charged.", "No se pudo mezclar ahora. No se cobró nada."],
@@ -156,7 +154,6 @@ const STRINGS := {
 		"This challenge was from %s. Only today's challenges count now.",
 		"Este desafío era del %s. Ahora solo valen los desafíos de hoy."],
 	"Ver desafios de hoje": ["See today's challenges", "Ver desafíos de hoy"],
-	"Na Lata!": ["Nailed it!", "¡En el blanco!"],
 	"+%d pontos em %d jogadas.": ["+%d points in %d moves.", "+%d puntos en %d jugadas."],
 	"\nSeu melhor continua %d pontos.": ["\nYour best is still %d points.", "\nTu mejor sigue siendo %d puntos."],
 	"\nDava para fazer em %d jogadas.": ["\nIt could be done in %d moves.", "\nSe podía hacer en %d jugadas."],
@@ -178,10 +175,7 @@ const STRINGS := {
 	"Mais jogos em breve": ["More games coming soon", "Más juegos muy pronto"],
 	"Jogos": ["Games", "Juegos"],
 	"Ranking": ["Ranking", "Ranking"],
-	"Início": ["Home", "Inicio"],
-	"Desafios": ["Challenges", "Desafíos"],
 	"Desafios feitos!": ["Challenges done!", "¡Desafíos hechos!"],
-	"Perfil": ["Profile", "Perfil"],
 	"Pausa": ["Pause", "Pausa"],
 	"Perfeito!": ["Perfect!", "¡Perfecto!"],
 	"Muito bem!": ["Well done!", "¡Muy bien!"],

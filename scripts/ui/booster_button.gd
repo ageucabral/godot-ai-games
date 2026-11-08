@@ -45,10 +45,6 @@ func _draw() -> void:
 		draw_rect(Rect2(b.position + Vector2(7, -10), Vector2(12, 12)), white)
 		draw_rect(Rect2(c + Vector2(-30, -4), Vector2(22, 8)), white)
 		draw_rect(Rect2(c + Vector2(-23, -11), Vector2(8, 22)), white)
-	else:
-		var font := GameStyle.title_font()
-		draw_string_outline(font, c + Vector2(-50, 16), "+5", HORIZONTAL_ALIGNMENT_CENTER, 100, 48, 12, GameStyle.INK)
-		draw_string(font, c + Vector2(-50, 16), "+5", HORIZONTAL_ALIGNMENT_CENTER, 100, 48, white)
 	if badge != "":
 		var bc := Vector2(size.x - 14, size.y - 22)
 		draw_circle(bc, 22, GameStyle.INK)

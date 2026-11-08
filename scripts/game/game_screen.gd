@@ -36,12 +36,10 @@ var _finished: bool = false
 ## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
 var _zero_accepted: bool = false
 var _pour_tween: Tween
-## Ajudas usadas nesta tentativa: cada uma pede propaganda e tira 1 ponto (Ageu, 7/11/2026).
+## Pontos tirados pelas ajudas usadas nesta tentativa: cada uma pede propaganda e tira `boost_cost` (Ageu, 7/11/2026).
 var _penalty: int = 0
 var shuffles_left: int = 0
 var bottles_left: int = 0
-## Registro das ajudas ("shuffle"/"bottle"), para o servidor conferir no futuro junto das jogadas.
-var boosts: Array = []
 ## Pontos mostrados no placar (para perceber quando caem e animar o "-1").
 var _shown_points: int = -1
 ## Regras desta partida (no servidor, as gravadas quando ela começou; valores do painel).
@@ -210,7 +208,6 @@ func open_with(data: Dictionary) -> void:
 	bottles_left = int(params.get("flasks", Rules.EXTRA_BOTTLES_PER_STAGE))
 	boost_cost = int(params.get("boost_cost", Rules.BOOST_COST))
 	extra_moves = int(params.get("extra_moves", Rules.EXTRA_MOVES))
-	boosts = []
 	dialog.close()
 	_build_bottles()
 	_refresh()
@@ -434,37 +431,35 @@ func _retry_daily_online() -> void:
 
 
 ## Embaralhar: mistura de novo o líquido das garrafas abertas (sempre com solução).
-## Pede propaganda e tira 1 ponto. Até Rules.SHUFFLES_PER_STAGE vezes por fase.
+## Pede propaganda e tira `boost_cost` ponto(s). Até Rules.SHUFFLES_PER_STAGE vezes por fase.
 func _on_shuffle_pressed() -> void:
 	if busy or _finished or shuffles_left <= 0 or not can_use_boost():
 		return
+	var action: Callable
 	if is_online():
 		# o servidor sorteia o embaralhado
-		dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
-			["Assistir e embaralhar", func() -> void: _boost_online("shuffle"), true],
-			["Voltar", func() -> void: pass],
-		])
-		return
-	# calcula o embaralhado ANTES da propaganda: se não der, o jogador não assiste à toa
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var seed_used: int = rng.seed
-	var mixed: Array = puzzle.shuffled_state(rng)
-	if mixed.is_empty():
-		dialog.open("Embaralhar", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
-		return
-	var at: int = puzzle.moves_used()
-	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
-		["Assistir e embaralhar", func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, seed_used, at)), true],
+		action = func() -> void: _boost_online("shuffle")
+	else:
+		# calcula o embaralhado ANTES da propaganda: se não der, o jogador não assiste à toa
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		var mixed: Array = puzzle.shuffled_state(rng)
+		if mixed.is_empty():
+			dialog.open("Embaralhar", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
+			return
+		var at: int = puzzle.moves_used()
+		action = func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, at))
+	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
+		["Assistir e embaralhar", action, true],
 		["Voltar", func() -> void: pass],
 	])
 
 
-## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira 1 ponto. 1 por fase.
+## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
 func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
-	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto."), [
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
 		["Assistir e ganhar", func() -> void:
 			if is_online():
 				_boost_online("flask")
@@ -475,13 +470,13 @@ func _on_bottle_pressed() -> void:
 
 
 ## Aplica um embaralhado calculado antes da propaganda (`at` = jogadas feitas naquele momento:
-## se a partida mudou nesse meio-tempo, não aplica). A semente fica registrada para o servidor refazer.
-func apply_shuffle(mixed: Array, seed_used: int, at: int) -> void:
+## se a partida mudou nesse meio-tempo, não aplica).
+func apply_shuffle(mixed: Array, at: int) -> void:
 	if _finished or shuffles_left <= 0 or puzzle.moves_used() != at:
 		return
 	puzzle.apply_shuffled(mixed)
 	shuffles_left -= 1
-	_use_boost(["shuffle", at, seed_used])
+	_use_boost()
 
 
 func apply_extra_bottle() -> void:
@@ -490,7 +485,12 @@ func apply_extra_bottle() -> void:
 	puzzle.add_empty_tube()
 	bottles_left -= 1
 	_build_bottles()
-	_use_boost(["bottle", puzzle.moves_used()])
+	_use_boost()
+
+
+## Quanto cada ajuda custa, em texto ("1 ponto", "2 pontos"): no servidor vem das regras da partida.
+func boost_cost_text() -> String:
+	return tr("1 ponto") if boost_cost == 1 else tr("%d pontos") % boost_cost
 
 
 ## Nos desafios do dia, uma ajuda que zeraria os pontos obrigaria a recomeçar: não deixa usar.
@@ -524,20 +524,20 @@ func _boost_online(kind: String) -> void:
 		"shuffle":
 			puzzle.apply_shuffled(st.tubes)
 			shuffles_left = st.shuffles_left
-			_use_boost(["shuffle", at])
+			_use_boost()
 		"flask":
 			puzzle.add_empty_tube()
 			bottles_left = st.flasks_left
 			_build_bottles()
-			_use_boost(["bottle", at])
+			_use_boost()
 		"moves":
 			move_limit = st.move_limit
 			_refresh()
 
 
-func _use_boost(entry: Array) -> void:
+## Cada ajuda usada tira `boost_cost` ponto(s) da fase.
+func _use_boost() -> void:
 	_penalty += boost_cost
-	boosts.append(entry)
 	selected = -1
 	_refresh()
 	if current_points() == 0 and not _zero_accepted:

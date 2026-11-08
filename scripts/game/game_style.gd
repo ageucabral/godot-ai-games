@@ -12,9 +12,6 @@ const GREEN := Color("5ccf2f")
 const PURPLE := Color("7d43e8")
 const CREAM := Color("fff1d6")
 const NIGHT_TOP := Color("0d1440")
-const NIGHT_BOTTOM := Color("1c2a78")
-const SKY_TOP := Color("6a5ad8")
-const SKY_BOTTOM := Color("ffc58a")
 const GLASS := Color(0.55, 0.75, 1.0, 0.16)
 const GLASS_EDGE := Color("9fd0ff")
 const HIDDEN_LAYER := Color("15122e")  # camada escondida ("?")
@@ -31,7 +28,6 @@ const LIQUIDS: Array[Color] = [
 	Color("ec6a25"),  # 5 Brasa
 	Color("8a86d6"),  # 6 Lavanda (só nos níveis mais altos)
 ]
-const LIQUID_NAMES: Array[String] = ["Rubi", "Safira", "Fada", "Musgo", "Sol", "Brasa", "Lavanda"]
 ## Os desafios do dia usam só as 6 primeiras cores (assim continuam iguais aos já sorteados).
 const DAILY_LIQUIDS: int = 6
 
@@ -90,7 +86,7 @@ static func band_polygons(y_top: float, y_bottom: float) -> Array[PackedVector2A
 	return Geometry2D.intersect_polygons(band, bottle_outline())
 
 
-## Fundo animado ocupando a tela toda: "sky" (céu do menu) ou "night" (noite da partida).
+## Fundo animado ocupando a tela toda: "sky", "night", "hub" ou "splash" (veja SceneBackground).
 static func add_background(parent: Control, kind: String = "sky") -> SceneBackground:
 	var bg := SceneBackground.new()
 	bg.kind = kind
@@ -220,13 +216,6 @@ static func _flat_button_box(state: String) -> StyleBox:
 		b.draw_center = false
 		b.border_color = Color(INK, 0.0)
 	return b
-
-
-## Polígono com cor por vértice: degradê vertical num retângulo.
-static func draw_vertical_gradient(ci: CanvasItem, rect: Rect2, top: Color, bottom: Color) -> void:
-	ci.draw_polygon(
-		PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
-		PackedColorArray([top, top, bottom, bottom]))
 
 
 ## Moeda dourada com estrela (contador de pontos).

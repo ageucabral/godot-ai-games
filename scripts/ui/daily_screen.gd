@@ -90,7 +90,6 @@ func _build() -> void:
 	card_box.add_child(legend)
 
 	play_button = GameStyle.make_button("", true, 40)
-	play_button.add_theme_font_override("font", GameStyle.title_font())
 	play_button.pressed.connect(_on_play_pressed)
 	box.add_child(play_button)
 
@@ -138,7 +137,7 @@ func refresh() -> void:
 	play_button.text = tr("Jogar desafio %d") % (next + 1) if next >= 0 else tr("Todos resolvidos!")
 	play_button.disabled = next < 0
 	var month := Rules.month_for(GameState.now_unix())
-	var total := GameState.month_total(month)
+	var total := GameState.game_month_total("potion", month)
 	month_label.text = tr("Seus pontos em %s: %d") % [Rules.month_name(month), total.points]
 	_update_countdown()
 

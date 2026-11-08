@@ -1,7 +1,8 @@
 class_name ChallengeGenerator
 extends RefCounted
 ## Cria os desafios do dia. O mesmo dia e número geram SEMPRE o mesmo desafio,
-## em qualquer aparelho, para que todos joguem igual. (Depois o servidor fará isso.)
+## em qualquer aparelho, para que todos joguem igual. Jogando pelo servidor (Android), as fases
+## vêm de lá; este gerador vale na Web e nos testes.
 
 ## Como cada dificuldade é montada: cores, cores repetidas (duas garrafas da mesma cor),
 ## garrafas vazias, garrafas cobertas (abrem ao completar uma cor), jogadas mínimas e camadas "?".
@@ -31,7 +32,7 @@ static func seed_for(text: String) -> int:
 	return h
 
 
-## Devolve {tubes, covers, par, difficulty, full_points, hidden, date, index}.
+## Devolve {mode, date, index, difficulty, tubes, covers, par, full_points, hidden}.
 static func generate(date: String, index: int) -> Dictionary:
 	var key := key_for(date, index)
 	if not _cache.has(key):
@@ -87,9 +88,7 @@ static func build_puzzle(rng: RandomNumberGenerator, shape: Dictionary, palette_
 ## as camadas dela que caíram numa garrafa coberta trocam de lugar com camadas de garrafas abertas.
 ## Mexe em `tubes`. Devolve a lista de panos (uma entrada por garrafa).
 static func _pick_covers(rng: RandomNumberGenerator, tubes: Array, palette: Array, count: int) -> Array:
-	var covers: Array = []
-	for t in tubes:
-		covers.append(-1)
+	var covers: Array = _no_covers(tubes.size())
 	if count <= 0:
 		return covers
 	var filled: Array = []
@@ -160,7 +159,7 @@ static func _shuffled_tubes(rng: RandomNumberGenerator, palette: Array, empty: i
 
 static func _has_finished_tube(tubes: Array) -> bool:
 	for t in tubes:
-		if (t as Array).size() == SortPuzzle.CAPACITY and SortPuzzle.top_run(t) == SortPuzzle.CAPACITY:
+		if SortPuzzle.is_complete(t):
 			return true
 	return false
 

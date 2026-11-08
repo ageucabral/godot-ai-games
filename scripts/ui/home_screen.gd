@@ -132,7 +132,7 @@ func _on_tab(tab: String) -> void:
 func refresh() -> void:
 	_shown_day = GameState.today()
 	var month := Rules.month_for(GameState.now_unix())
-	points_label.text = str(GameState.month_total(month).points)
+	points_label.text = str(GameState.game_month_total("potion", month).points)
 	level_button.text = tr("Nível %d") % GameState.current_level()
 	var done := Menus.daily_done()
 	daily_button.text = daily_text(done)

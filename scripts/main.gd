@@ -38,7 +38,7 @@ func _ready() -> void:
 	_connect_server()
 
 
-## Entra no servidor (como visitante, por enquanto) e traz o progresso de lá. Se nunca conseguiu
+## Entra no servidor (como visitante ou com a conta Google salva) e traz o progresso de lá. Se nunca conseguiu
 ## entrar (sem internet no 1º uso), o jogo segue só no aparelho; depois de entrar, jogar pede internet
 ## (os pontos só valem conferidos pelo servidor).
 func _connect_server() -> void:
