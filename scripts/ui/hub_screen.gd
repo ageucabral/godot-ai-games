@@ -5,7 +5,8 @@ extends Control
 signal game_requested(game_id: String)
 signal global_ranking_requested
 
-## [id, nome, liberado, ilustração]. Jogos ainda não liberados viram um aviso discreto "Mais jogos em breve".
+## [id, nome, liberado, ilustração]. Um jogo não liberado aparece com cadeado ("Em breve"); embaixo da
+## lista fica sempre o aviso discreto "Mais jogos em breve".
 const GAMES: Array = [["potion", "Poção de Cores", true, "res://assets/art/potion_card.jpg"]]
 
 var rank_banner: GlobalRankBanner

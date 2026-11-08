@@ -19,7 +19,7 @@ var hidden: Array = []
 var covers: Array = []
 ## Garrafas que abriram na última jogada (a tela confere `is_covered`; isto ajuda os testes).
 var last_revealed: Array = []
-## Lista de jogadas feitas, cada uma [de, para]. Vai para o servidor conferir no futuro.
+## Lista de jogadas feitas, cada uma [de, para]. Pelo servidor, vai junto nas ajudas e no fim da partida.
 var moves: Array = []
 
 

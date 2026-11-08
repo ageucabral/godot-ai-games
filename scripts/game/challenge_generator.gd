@@ -1,7 +1,8 @@
 class_name ChallengeGenerator
 extends RefCounted
 ## Cria os desafios do dia. O mesmo dia e número geram SEMPRE o mesmo desafio,
-## em qualquer aparelho, para que todos joguem igual. (Depois o servidor fará isso.)
+## em qualquer aparelho, para que todos joguem igual. Jogando pelo servidor (Android), as fases
+## vêm de lá; este gerador vale na Web e nos testes.
 
 ## Como cada dificuldade é montada: cores, cores repetidas (duas garrafas da mesma cor),
 ## garrafas vazias, garrafas cobertas (abrem ao completar uma cor), jogadas mínimas e camadas "?".
@@ -31,7 +32,7 @@ static func seed_for(text: String) -> int:
 	return h
 
 
-## Devolve {tubes, covers, par, difficulty, full_points, hidden, date, index}.
+## Devolve {mode, date, index, difficulty, tubes, covers, par, full_points, hidden}.
 static func generate(date: String, index: int) -> Dictionary:
 	var key := key_for(date, index)
 	if not _cache.has(key):

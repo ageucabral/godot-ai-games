@@ -1,6 +1,7 @@
 extends Node
-## Progresso do jogador neste aparelho: tentativas e melhor resultado de cada desafio.
-## Disponível em qualquer script como `GameState`. (O servidor passa a valer na etapa de contas.)
+## Progresso do jogador neste aparelho: nível, tentativas e melhor resultado de cada desafio.
+## Disponível em qualquer script como `GameState`. Jogando pelo servidor (Android), as telas continuam
+## lendo daqui: `apply_server_home` e `apply_server_result` copiam o que o servidor conferiu.
 
 signal progress_changed
 

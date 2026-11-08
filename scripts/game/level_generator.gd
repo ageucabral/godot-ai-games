@@ -2,6 +2,7 @@ class_name LevelGenerator
 extends RefCounted
 ## Cria os níveis do modo por níveis, sem fim. O mesmo número gera SEMPRE o mesmo nível
 ## em qualquer aparelho (semente do texto "nivel#N"), para o ranking ser justo.
+## Jogando pelo servidor (Android), os níveis vêm de lá; este gerador vale na Web e nos testes.
 
 
 ## Níveis já gerados nesta sessão.

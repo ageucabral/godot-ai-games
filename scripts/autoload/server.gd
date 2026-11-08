@@ -159,7 +159,7 @@ func sign_out() -> void:
 
 
 ## Entra como visitante se ainda não tem sessão. Devolve true se ficou com sessão.
-## (O login com Google entra na etapa do plugin Android; o progresso do visitante migra para a conta.)
+## Quem já entrou com Google e perdeu a sessão entra com Google de novo (nunca vira visitante).
 func ensure_session() -> bool:
 	if not enabled:
 		return false

@@ -36,7 +36,7 @@ var _finished: bool = false
 ## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
 var _zero_accepted: bool = false
 var _pour_tween: Tween
-## Ajudas usadas nesta tentativa: cada uma pede propaganda e tira 1 ponto (Ageu, 7/11/2026).
+## Pontos tirados pelas ajudas usadas nesta tentativa: cada uma pede propaganda e tira `boost_cost` (Ageu, 7/11/2026).
 var _penalty: int = 0
 var shuffles_left: int = 0
 var bottles_left: int = 0
