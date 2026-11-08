@@ -52,7 +52,9 @@ static func open_save_progress(dialog: DialogBox) -> void:
 				if value != null and not str(value).is_empty():
 					who = str(value)
 					break
-			dialog.open("Salvar progresso", I18n.t("Seu progresso está guardado na conta Google (%s).") % who, [
+			var saved_text: String = I18n.t("Seu progresso está guardado na conta Google.") if who.is_empty() \
+				else I18n.t("Seu progresso está guardado na conta Google (%s).") % who
+			dialog.open("Salvar progresso", saved_text, [
 				["Voltar", func() -> void: open_settings(dialog), true],
 			])
 			return

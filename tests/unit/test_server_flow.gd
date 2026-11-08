@@ -402,3 +402,19 @@ func test_wait_signal_gives_up() -> void:
 	var plugin := FakePlugin.new()
 	var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), 0.05, [false, "timeout"])
 	assert_eq(out, [false, "timeout"])
+
+
+func test_real_ad_without_unit_does_not_simulate() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	Server.config = {}
+	forced["/config"] = [ApiClient.error_result(0, "NETWORK", "")]  # o /config continua sem chegar
+	main.play_level()
+	await wait_physics_frames(1)
+	game._boost_online("flask")
+	await wait_physics_frames(10)
+	assert_eq(plugin.shown.size(), 0, "sem bloco do AdMob, não mostra nada")
+	assert_false(Ads.showing, "não ficou presa na simulação")
+	assert_false("/pocao/matches/m-1/boost" in _paths(), "sem propaganda, não pede a ajuda")
+	assert_eq(game.puzzle.tubes.size(), 3)
