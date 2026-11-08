@@ -9,6 +9,9 @@ var save_path: String = "user://progress.cfg"
 var fixed_unix: int = -1
 
 var _cfg := ConfigFile.new()
+## Pontos e posição do mês vindos do servidor (Server.refresh_home): {id, game_points, game_position,
+## global_points, global_position}. Vazio = jogando só no aparelho.
+var server_month: Dictionary = {}
 
 
 const PLAYER := "player"
@@ -37,6 +40,7 @@ func load_progress() -> void:
 
 func reset_all() -> void:
 	_cfg = ConfigFile.new()
+	server_month = {}
 	I18n.apply(language())
 	_save()
 
@@ -133,10 +137,15 @@ func month_total(month_key: String) -> Dictionary:
 
 
 ## Pontos do mês num jogo só (ranking daquele jogo). Por enquanto todo o progresso é do Poção de Cores.
+## Jogando pelo servidor, os pontos são os do servidor (é ele que confere as partidas).
 func game_month_total(game_id: String, month_key: String) -> Dictionary:
-	if game_id == "potion":
-		return month_total(month_key)
-	return {"points": 0, "moves": 0, "completed": 0, "levels": 0}
+	if game_id != "potion":
+		return {"points": 0, "moves": 0, "completed": 0, "levels": 0}
+	var t := month_total(month_key)
+	if server_month.get("id", "") == month_key:
+		t.points = int(server_month.game_points)
+		t["position"] = server_month.game_position
+	return t
 
 
 ## Ranking global do mês: soma os pontos e as jogadas de todos os jogos do hub.
@@ -149,7 +158,63 @@ func global_month_total(month_key: String) -> Dictionary:
 		points += int(t.points)
 		moves += int(t.moves)
 		games[id] = int(t.points)
-	return {"points": points, "moves": moves, "games": games}
+	var out := {"points": points, "moves": moves, "games": games}
+	if server_month.get("id", "") == month_key:
+		# o Ranking Global do servidor soma também os jogos do app antigo
+		out.points = int(server_month.global_points)
+		out["position"] = server_month.global_position
+	return out
+
+
+# ---------- servidor ----------
+
+## Copia o que o servidor mandou (GET /pocao/home): nível atual, tentativas e melhor resultado dos
+## desafios de hoje e os pontos do mês. Assim as telas continuam lendo tudo daqui.
+func apply_server_home(home: Dictionary) -> void:
+	var level: Dictionary = home.get("level", {})
+	if level.has("number"):
+		_cfg.set_value(PLAYER, "level", int(level.number))
+	var date: String = str(home.get("date", ""))
+	for d in home.get("daily", []):
+		var key := ChallengeGenerator.key_for(date, int(d.get("index", 0)))
+		_cfg.set_value(key, "attempts", int(d.get("attempts", 0)))
+		var solved := bool(d.get("solved", false)) and d.get("bestPoints") != null
+		_cfg.set_value(key, "best_points", int(d.bestPoints) if solved else -1)
+		_cfg.set_value(key, "best_moves", int(d.bestMoves) if solved and d.get("bestMoves") != null else 0)
+	var month: Dictionary = home.get("month", {})
+	if month.has("id"):
+		server_month = {
+			"id": str(month.id),
+			"game_points": int(month.get("gamePoints", 0)),
+			"game_position": month.get("gamePosition"),
+			"global_points": int(month.get("globalPoints", 0)),
+			"global_position": month.get("globalPosition"),
+		}
+	_save()
+
+
+## Resultado conferido pelo servidor (fim da partida): guarda no aparelho para as telas.
+func apply_server_result(challenge: Dictionary, result: Dictionary) -> void:
+	if not bool(result.get("solved", false)) or bool(result.get("rejected", false)):
+		return
+	var points := int(result.get("points", 0))
+	var moves := int(result.get("movesUsed", 0))
+	if challenge.get("mode", "") == "level":
+		complete_level(int(challenge.level), points, moves)
+		if result.get("nextLevel") != null:
+			_cfg.set_value(PLAYER, "level", int(result.nextLevel))
+	else:
+		var key := ChallengeGenerator.key_for(str(challenge.get("date", "")), int(challenge.get("index", 0)))
+		var best: Variant = result.get("best")
+		if best is Dictionary:
+			_cfg.set_value(key, "best_points", int(best.points))
+			_cfg.set_value(key, "best_moves", int(best.moves))
+		else:
+			save_result(key, points, moves)
+	if server_month.has("id") and result.get("gamePoints") != null:
+		server_month.game_points = int(result.gamePoints)
+		server_month.game_position = result.get("gamePosition")
+	_save()
 
 
 func _save() -> void:

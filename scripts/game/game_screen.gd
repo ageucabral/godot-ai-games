@@ -44,6 +44,9 @@ var bottles_left: int = 0
 var boosts: Array = []
 ## Pontos mostrados no placar (para perceber quando caem e animar o "-1").
 var _shown_points: int = -1
+## Regras desta partida (no servidor, as gravadas quando ela começou; valores do painel).
+var boost_cost: int = Rules.BOOST_COST
+var extra_moves: int = Rules.EXTRA_MOVES
 
 
 func _ready() -> void:
@@ -110,10 +113,18 @@ func _open_pause() -> void:
 
 
 ## Abre um desafio do dia e começa uma tentativa nova.
-## (Quem chama decide se a tentativa precisa de propaganda; veja main.gd.)
-func open_challenge(date: String, index: int) -> void:
+## (Quem chama decide se a tentativa precisa de propaganda; veja main.gd. Pelo servidor, a partir da
+## 2ª tentativa vai junto o `reward_id` da propaganda assistida.)
+func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 	if _show_if_closed(date):
 		return  # o dia virou (ex.: durante a propaganda): não abre nem gasta tentativa
+	if Server.online():
+		var body := {"mode": "daily", "index": index}
+		if not reward_id.is_empty():
+			body["rewardId"] = reward_id
+		if await _open_online(body):
+			GameState.start_attempt(key())
+		return
 	var data := ChallengeGenerator.generate(date, index)
 	if data.is_empty():
 		# o gerador falhou: volta ao menu sem gastar a tentativa
@@ -125,6 +136,9 @@ func open_challenge(date: String, index: int) -> void:
 
 ## Abre um nível do modo por níveis (sem tentativas contadas).
 func open_level(level: int) -> void:
+	if Server.online():
+		await _open_online({"mode": "level"})  # o servidor sabe qual é o nível do jogador
+		return
 	var data := LevelGenerator.generate(level)
 	if data.is_empty():
 		back_requested.emit()
@@ -141,6 +155,37 @@ func is_level() -> bool:
 	return challenge.get("mode", "daily") == "level"
 
 
+## Esta partida foi aberta pelo servidor (ele confere as jogadas e dá os pontos).
+func is_online() -> bool:
+	return not str(challenge.get("match_id", "")).is_empty()
+
+
+## Pede a partida ao servidor. Sem resposta, avisa e volta ao menu. Devolve true se abriu.
+func _open_online(body: Dictionary) -> bool:
+	busy = true
+	dialog.open("Carregando…", "", [])
+	var res: Dictionary
+	if body.has("rewardId"):
+		res = await Server.call_with_reward("POST", "/pocao/matches", body)
+	else:
+		res = await Server.call_api("POST", "/pocao/matches", body)
+	busy = false
+	if not res.ok:
+		_show_server_error(res, true)
+		return false
+	open_with(ApiClient.challenge_from_match(res.data.get("match", {})))
+	return true
+
+
+## Erro do servidor: recado curto. `leave` = só dá para voltar ao menu.
+func _show_server_error(res: Dictionary, leave: bool = false) -> void:
+	var title := "Sem conexão" if res.get("code", "") == "NETWORK" else "Ops!"
+	var buttons: Array = [["Menu", func() -> void: back_requested.emit(), true]]
+	if not leave:
+		buttons = [["Continuar jogando", func() -> void: pass, true], buttons[0]]
+	dialog.open(title, tr(ApiClient.error_text(res)), buttons)
+
+
 ## Monta a tela com um desafio já pronto (usado também pelos testes).
 func open_with(data: Dictionary) -> void:
 	if _pour_tween and _pour_tween.is_valid():
@@ -154,8 +199,11 @@ func open_with(data: Dictionary) -> void:
 	_zero_accepted = false
 	_shown_points = -1
 	_penalty = 0
-	shuffles_left = Rules.SHUFFLES_PER_STAGE
-	bottles_left = Rules.EXTRA_BOTTLES_PER_STAGE
+	var params: Dictionary = data.get("params", {})
+	shuffles_left = int(params.get("shuffles", Rules.SHUFFLES_PER_STAGE))
+	bottles_left = int(params.get("flasks", Rules.EXTRA_BOTTLES_PER_STAGE))
+	boost_cost = int(params.get("boost_cost", Rules.BOOST_COST))
+	extra_moves = int(params.get("extra_moves", Rules.EXTRA_MOVES))
 	boosts = []
 	dialog.close()
 	_build_bottles()
@@ -163,6 +211,8 @@ func open_with(data: Dictionary) -> void:
 
 
 func key() -> String:
+	if challenge.has("key"):
+		return challenge.key
 	if is_level():
 		return LevelGenerator.key_for(challenge.level)
 	return ChallengeGenerator.key_for(challenge.get("date", ""), challenge.get("index", 0))
@@ -356,7 +406,23 @@ func _restart_with_ad() -> void:
 		return
 	if _show_if_closed(challenge.date):
 		return  # não pede propaganda para um desafio que já encerrou
+	if is_online():
+		_retry_daily_online()
+		return
 	Ads.show_rewarded(func() -> void: open_challenge(challenge.date, challenge.index))
+
+
+## Nova tentativa de um desafio pelo servidor: a propaganda vira um `rewardId` conferido por ele.
+func _retry_daily_online() -> void:
+	var date: String = challenge.date
+	var index: int = challenge.index
+	busy = true
+	var reward_id: String = await Server.rewarded("retry", {"mode": key()})
+	busy = false
+	if reward_id.is_empty():
+		_show_server_error({"code": "REWARD_NOT_VERIFIED"})
+		return
+	open_challenge(date, index, reward_id)
 
 
 ## Embaralhar: mistura de novo o líquido das garrafas abertas (sempre com solução).
@@ -373,8 +439,11 @@ func _on_shuffle_pressed() -> void:
 		dialog.open("Embaralhar", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
 		return
 	var at: int = puzzle.moves_used()
+	var watch := func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, seed_used, at))
+	if is_online():
+		watch = func() -> void: _boost_online("shuffle")  # o servidor sorteia o embaralhado
 	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa 1 ponto."), [
-		["Assistir e embaralhar", func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, seed_used, at)), true],
+		["Assistir e embaralhar", watch, true],
 		["Voltar", func() -> void: pass],
 	])
 
@@ -384,7 +453,11 @@ func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
 	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa 1 ponto."), [
-		["Assistir e ganhar", func() -> void: Ads.show_rewarded(apply_extra_bottle), true],
+		["Assistir e ganhar", func() -> void:
+			if is_online():
+				_boost_online("flask")
+			else:
+				Ads.show_rewarded(apply_extra_bottle), true],
 		["Voltar", func() -> void: pass],
 	])
 
@@ -411,11 +484,47 @@ func apply_extra_bottle() -> void:
 ## Nos desafios do dia, uma ajuda que zeraria os pontos obrigaria a recomeçar: não deixa usar.
 ## (Nos níveis dá para seguir sem pontos.)
 func can_use_boost() -> bool:
-	return is_level() or current_points() > Rules.BOOST_COST
+	return is_level() or current_points() > boost_cost
+
+
+## Ajuda pelo servidor: propaganda conferida → o servidor confere as jogadas até aqui, aplica a ajuda
+## e devolve o estado novo. kind = "shuffle" | "flask" | "moves".
+func _boost_online(kind: String) -> void:
+	if busy or _finished:
+		return
+	busy = true
+	var at: int = puzzle.moves_used()
+	var reward_id: String = await Server.rewarded(kind, {"matchId": challenge.match_id})
+	if reward_id.is_empty():
+		busy = false
+		_show_server_error({"code": "REWARD_NOT_VERIFIED"})
+		return
+	var body := {"kind": kind, "rewardId": reward_id, "moves": puzzle.moves.duplicate(true)}
+	var res: Dictionary = await Server.call_with_reward("POST", "/pocao/matches/%s/boost" % challenge.match_id, body)
+	busy = false
+	if not res.ok:
+		_show_server_error(res, res.code in ["MOVES_DIVERGED", "INVALID_MOVES", "MATCH_ENDED", "CHALLENGE_CLOSED"])
+		return
+	if _finished or puzzle.moves_used() != at:
+		return
+	var st := ApiClient.state_from_match(res.data.get("match", {}))
+	match kind:
+		"shuffle":
+			puzzle.apply_shuffled(st.tubes)
+			shuffles_left = st.shuffles_left
+			_use_boost(["shuffle", at])
+		"flask":
+			puzzle.add_empty_tube()
+			bottles_left = st.flasks_left
+			_build_bottles()
+			_use_boost(["bottle", at])
+		"moves":
+			move_limit = st.move_limit
+			_refresh()
 
 
 func _use_boost(entry: Array) -> void:
-	_penalty += Rules.BOOST_COST
+	_penalty += boost_cost
 	boosts.append(entry)
 	selected = -1
 	_refresh()
@@ -424,14 +533,17 @@ func _use_boost(entry: Array) -> void:
 
 
 func _on_extra_moves_pressed() -> void:
+	if is_online():
+		_boost_online("moves")
+		return
 	Ads.show_rewarded(func() -> void:
-		move_limit += Rules.EXTRA_MOVES
+		move_limit += extra_moves
 		_refresh())
 
 
 func _show_out_of_moves() -> void:
-	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [Rules.EXTRA_MOVES, challenge.par], [
-		[tr("+%d jogadas") % Rules.EXTRA_MOVES, _on_extra_moves_pressed, true],
+	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
+		[tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed, true],
 		["Recomeçar", _restart_with_ad],
 		["Menu", func() -> void: back_requested.emit()],
 	])
@@ -473,24 +585,65 @@ static func next_unsolved_after(date: String, index: int) -> int:
 
 func _finish() -> void:
 	_finished = true
+	if is_online():
+		_finish_online()
+		return
 	var points := current_points()
 	var used := puzzle.moves_used()
 	if is_level():
 		GameState.complete_level(challenge.level, points, used)
-		var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
-		if points < challenge.full_points:
-			level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
-		_celebrate()
-		dialog.open(win_title(points, challenge.full_points), level_text, [
-			["Próximo nível", func() -> void: next_level_requested.emit(), true],
+		_show_level_win(points, used)
+		return
+	var improved := GameState.save_result(key(), points, used)
+	_show_daily_win(points, used, improved, int(GameState.result(key()).best_points))
+
+
+## Fim pelo servidor: ele refaz a partida inteira e devolve os pontos que valem. Sem internet, dá
+## para tentar de novo (o servidor guarda a partida aberta).
+func _finish_online() -> void:
+	busy = true
+	dialog.open("Conferindo…", "", [])
+	var body := ApiClient.finish_body(puzzle.moves.duplicate(true), current_points(), puzzle.is_solved())
+	var res: Dictionary = await Server.call_api("POST", "/pocao/matches/%s/finish" % challenge.match_id, body)
+	busy = false
+	if not res.ok:
+		dialog.open("Sem conexão", tr(ApiClient.error_text(res)), [
+			["Tentar de novo", _finish_online, true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
 		return
-	var improved := GameState.save_result(key(), points, used)
-	var best: Dictionary = GameState.result(key())
+	var r: Dictionary = res.data
+	GameState.apply_server_result(challenge, r)
+	if bool(r.get("rejected", false)) or not bool(r.get("solved", false)):
+		dialog.open("Partida não conferida", "O servidor não conseguiu conferir esta partida, então ela ficou sem pontos.", [
+			["Menu", func() -> void: back_requested.emit(), true],
+		])
+		return
+	var points := int(r.get("points", 0))
+	var used := int(r.get("movesUsed", puzzle.moves_used()))
+	if is_level():
+		_show_level_win(points, used)
+		return
+	var best: Variant = r.get("best")
+	var best_points: int = int(best.points) if best is Dictionary else points
+	_show_daily_win(points, used, bool(r.get("newBest", true)), best_points)
+
+
+func _show_level_win(points: int, used: int) -> void:
+	var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
+	if points < challenge.full_points:
+		level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
+	_celebrate()
+	dialog.open(win_title(points, challenge.full_points), level_text, [
+		["Próximo nível", func() -> void: next_level_requested.emit(), true],
+		["Menu", func() -> void: back_requested.emit()],
+	])
+
+
+func _show_daily_win(points: int, used: int, improved: bool, best_points: int) -> void:
 	var text := tr("+%d pontos em %d jogadas.") % [points, used]
 	if not improved:
-		text += tr("\nSeu melhor continua %d pontos.") % best.best_points
+		text += tr("\nSeu melhor continua %d pontos.") % best_points
 	elif points < challenge.full_points:
 		text += tr("\nDava para fazer em %d jogadas.") % challenge.par
 	var buttons: Array = []

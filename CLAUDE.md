@@ -137,5 +137,12 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   Poção de Cores: o segundo jogo vai precisar separar os pontos por jogo no salvamento.
 - Ilustrações (OpenRouter/Nano Banana) em `assets/art/`: hub_bg, home_bg, game_bg (1080x1920), splash,
   mascot e potion_card (cartão do jogo no hub).
-- Ainda não existem: contas e servidor (Supabase), login Google/Facebook ("Salvar progresso" mostra
-  "em breve"), ranking com todos os jogadores, AdMob real, sons.
+- **Servidor** (Ageu, 8/11/2026): o jogo usa a API do app antigo (`ageucabral/na-lata-web`, api.nalatagame.tech;
+  rotas `/pocao/*` em `docs/api.md` de lá). `scripts/autoload/server.gd` (autoload `Server`) entra como visitante e
+  faz as chamadas; `scripts/net/api_client.gd` tem as funções puras. **Ligado só no Android** (`Server.enabled`); na
+  Web e nos testes o jogo continua só no aparelho. Pelo servidor: as fases vêm de lá, as ajudas e novas tentativas
+  pedem uma recompensa (`POST /rewards` → propaganda → `rewardId`), o fim manda a lista de jogadas e os pontos
+  mostrados são os que o servidor conferiu; `GameState.apply_server_home` copia nível, desafios de hoje e pontos do
+  mês para as telas. Testes com servidor de mentira em `tests/unit/test_server_flow.gd`.
+- Ainda não existem: login Google (só visitante), AdMob real e Play Integrity (vão num plugin Android), sons.
+  O pacote do APK de teste ainda é `com.ageucabral.nalata`; troca para `app.nalata.android` na versão da Play.

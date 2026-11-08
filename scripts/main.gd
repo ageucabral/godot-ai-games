@@ -33,7 +33,25 @@ func _ready() -> void:
 	game.next_requested.connect(request_play)
 	game.next_level_requested.connect(play_level)
 	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
+	Server.home_updated.connect(_on_server_home)
 	show_screen(hub)
+	_connect_server()
+
+
+## Entra no servidor (como visitante, por enquanto) e traz o progresso de lá. Sem internet o jogo
+## segue funcionando só no aparelho.
+func _connect_server() -> void:
+	if not Server.enabled:
+		return
+	if await Server.ensure_session():
+		Server.refresh_home()
+
+
+## Chegou o menu do Poção pelo servidor: redesenha a tela aberta (menos a partida).
+func _on_server_home() -> void:
+	for s in [hub, home, daily, ranking]:
+		if s.visible and s.has_method("refresh"):
+			s.refresh()
 
 
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
@@ -61,6 +79,8 @@ func show_screen(screen: Control) -> void:
 		s.visible = (s == screen)
 	if screen.has_method("refresh"):
 		screen.refresh()
+	if Server.online() and screen != game:
+		Server.refresh_home()  # pontos e desafios atualizados pelo servidor
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).
@@ -91,11 +111,25 @@ func request_play(date: String, index: int) -> void:
 	if r.completed:
 		text = tr("Seu melhor aqui: %d pontos em %d jogadas.") % [r.best_points, r.best_moves]
 	dialog.open(tr("Desafio %d") % (index + 1), text + tr("\nUma nova tentativa pede uma propaganda."), [
-		["Assistir e jogar", func() -> void: Ads.show_rewarded(func() -> void: _start(date, index)), true],
+		["Assistir e jogar", func() -> void: _start_with_ad(date, index), true],
 		["Voltar", func() -> void: show_screen(daily)],
 	])
 
 
-func _start(date: String, index: int) -> void:
+## Nova tentativa: pelo servidor, a propaganda vira um `rewardId` que ele confere.
+func _start_with_ad(date: String, index: int) -> void:
+	if not Server.online():
+		Ads.show_rewarded(func() -> void: _start(date, index))
+		return
+	var reward_id: String = await Server.rewarded("retry", {"mode": ChallengeGenerator.key_for(date, index)})
+	if reward_id.is_empty():
+		dialog.open("Ops!", tr(ApiClient.error_text({"code": "REWARD_NOT_VERIFIED"})), [
+			["Voltar", func() -> void: show_screen(daily), true],
+		])
+		return
+	_start(date, index, reward_id)
+
+
+func _start(date: String, index: int, reward_id: String = "") -> void:
 	show_screen(game)
-	game.open_challenge(date, index)
+	game.open_challenge(date, index, reward_id)

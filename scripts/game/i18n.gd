@@ -9,6 +9,46 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
+	# servidor
+	"Carregando…": ["Loading…", "Cargando…"],
+	"Conferindo…": ["Checking…", "Verificando…"],
+	"Sem conexão": ["No connection", "Sin conexión"],
+	"Ops!": ["Oops!", "¡Uy!"],
+	"Tentar de novo": ["Try again", "Intentar de nuevo"],
+	"Partida não conferida": ["Game not verified", "Partida no verificada"],
+	"O servidor não conseguiu conferir esta partida, então ela ficou sem pontos.": [
+		"The server couldn't verify this game, so it scored no points.",
+		"El servidor no pudo verificar esta partida, así que quedó sin puntos."],
+	"Jogue para entrar no ranking": ["Play to enter the ranking", "Juega para entrar en el ranking"],
+	"%dº lugar": ["#%d", "%dº lugar"],
+	"Empate: fica na frente quem chegou primeiro aos pontos.": [
+		"Tie: whoever reached the points first goes ahead.",
+		"Empate: va primero quien llegó antes a los puntos."],
+	"Sem conexão com o servidor. Confira a internet e tente de novo.": [
+		"No connection to the server. Check your internet and try again.",
+		"Sin conexión con el servidor. Revisa internet e inténtalo de nuevo."],
+	"O Poção de Cores está em manutenção. Tente mais tarde.": [
+		"Color Potion is under maintenance. Try again later.",
+		"Poción de Colores está en mantenimiento. Inténtalo más tarde."],
+	"Esta fase não abriu agora. Tente de novo em instantes.": [
+		"This stage didn't open. Try again in a moment.",
+		"Esta fase no abrió. Inténtalo de nuevo en un momento."],
+	"Uma nova tentativa pede uma propaganda.": ["A new try needs an ad.", "Un nuevo intento pide un anuncio."],
+	"A propaganda não foi confirmada. Tente de novo.": ["The ad wasn't confirmed. Try again.", "El anuncio no se confirmó. Inténtalo de nuevo."],
+	"Esta propaganda já foi usada.": ["This ad was already used.", "Este anuncio ya se usó."],
+	"Este desafio já encerrou. Agora só valem os desafios de hoje.": [
+		"This challenge is over. Only today's challenges count now.",
+		"Este desafío terminó. Ahora solo valen los desafíos de hoy."],
+	"Acabaram as ajudas desta fase.": ["No more helps in this stage.", "Se acabaron las ayudas de esta fase."],
+	"Esta ajuda zeraria seus pontos neste desafio.": ["This help would zero your points in this challenge.", "Esta ayuda dejaría tus puntos en cero en este desafío."],
+	"Esta partida já terminou.": ["This game is already over.", "Esta partida ya terminó."],
+	"Esta fase já foi resolvida.": ["This stage is already solved.", "Esta fase ya fue resuelta."],
+	"A partida ficou diferente da do servidor. Abra a fase de novo.": [
+		"The game got out of sync with the server. Open the stage again.",
+		"La partida quedó distinta de la del servidor. Abre la fase de nuevo."],
+	"Muitas tentativas seguidas. Espere um pouco.": ["Too many tries in a row. Wait a bit.", "Demasiados intentos seguidos. Espera un poco."],
+	"Sua conta está bloqueada. Fale com o suporte.": ["Your account is blocked. Contact support.", "Tu cuenta está bloqueada. Habla con soporte."],
+	"Algo deu errado. Tente de novo.": ["Something went wrong. Try again.", "Algo salió mal. Inténtalo de nuevo."],
 	# menu e telas
 	"Nível %d": ["Level %d", "Nivel %d"],
 	"Desafios do dia": ["Daily challenges", "Desafíos del día"],
