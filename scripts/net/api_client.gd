@@ -239,11 +239,15 @@ static func prize_lines(prizes: Variant) -> Array[String]:
 	return out
 
 
+## País da região do idioma do aparelho ("pt_BR" → "BR"; "" se não tiver).
+static func locale_country(locale: String) -> String:
+	var parts := locale.replace("-", "_").split("_")
+	return parts[1].to_upper() if parts.size() > 1 else ""
+
+
 ## País sugerido: o do chip, senão o da região do idioma do aparelho ("pt_BR" → "BR"), se estiver na lista.
 static func suggested_country(codes: Array, sim_country: String, locale: String) -> String:
-	var parts := locale.replace("-", "_").split("_")
-	var from_locale := parts[1].to_upper() if parts.size() > 1 else ""
-	for c in [sim_country.to_upper(), from_locale]:
+	for c in [sim_country.to_upper(), locale_country(locale)]:
 		if not c.is_empty() and codes.has(c):
 			return c
 	return ""

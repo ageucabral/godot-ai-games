@@ -194,16 +194,13 @@ func refresh() -> void:
 		detail_label.text = tr("%d jogadas no mês") % total.moves
 		if games_card.visible:
 			_fill_games(total.games)
+		# sem servidor (Web) a lista completa fica no app da Play; no Android sem posição é só porque ainda não conectou
+		info_label.text = tr("Empate: fica na frente quem usou menos jogadas." if Server.enabled
+				else "Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
 		if total.has("position"):
 			detail_label.text = _position_text(total.position)
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
 			if not rule_text.is_empty():
 				info_label.text = rule_text + "\n\n" + info_label.text
-		elif Server.enabled:
-			# no Android já é o app da Play: sem posição é só porque ainda não conectou ao servidor
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas.")
-		else:
-			info_label.text = tr("Empate: fica na frente quem usou menos jogadas. A lista com todos os jogadores está no app da Play Store.")
 	else:
 		var t := GameState.game_month_total(game_id, month)
 		title_label.text = tr("Ranking do %s") % tr(game_name(game_id))

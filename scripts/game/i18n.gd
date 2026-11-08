@@ -12,8 +12,6 @@ const STRINGS := {
 	# servidor
 	"Entrando…": ["Signing in…", "Entrando…"],
 	"Entrar com Google": ["Sign in with Google", "Entrar con Google"],
-	"Seu progresso está guardado na conta Google.": ["Your progress is saved in your Google account.", "Tu progreso está guardado en la cuenta de Google."],
-	"Seu progresso está guardado na conta Google (%s).": ["Your progress is saved in your Google account (%s).", "Tu progreso está guardado en la cuenta de Google (%s)."],
 	"Entre com Google para guardar seu progresso em qualquer celular e poder receber prêmios. O que você já fez aqui vai junto.": [
 		"Sign in with Google to keep your progress on any phone and be able to get prizes. What you did here comes along.",
 		"Entra con Google para guardar tu progreso en cualquier celular y poder recibir premios. Lo que ya hiciste aquí va contigo."],
@@ -209,7 +207,6 @@ const STRINGS := {
 	"Médio": ["Medium", "Medio"],
 	"Difícil": ["Hard", "Difícil"],
 	# perfil e configurações
-	"Seu perfil": ["Your profile", "Tu perfil"],
 	"Nível atual: %d\nPontos em %s: %d\nDesafios de hoje: %d de %d": [
 		"Current level: %d\nPoints in %s: %d\nToday's challenges: %d of %d",
 		"Nivel actual: %d\nPuntos en %s: %d\nDesafíos de hoy: %d de %d"],
@@ -218,7 +215,6 @@ const STRINGS := {
 	"Idioma: %s": ["Language: %s", "Idioma: %s"],
 	"Idioma": ["Language", "Idioma"],
 	"Escolha o idioma do jogo.": ["Choose the game language.", "Elige el idioma del juego."],
-	"Salvar progresso": ["Save progress", "Guardar progreso"],
 	"No app da Play Store você pode entrar com Google para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
 		"In the Play Store app you can sign in with Google to keep your progress and appear in the ranking with every player.",
 		"En la app de Play Store puedes entrar con Google para guardar tu progreso y aparecer en el ranking con todos los jugadores."],

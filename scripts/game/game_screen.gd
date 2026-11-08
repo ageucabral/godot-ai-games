@@ -49,6 +49,8 @@ var extra_moves: int = Rules.EXTRA_MOVES
 var tutorial: bool = false
 ## A desistência desta partida já foi medida (veja `quit_info`).
 var _quit_reported: bool = false
+var _hint_key: String = ""
+var _hint_move: Array = []
 
 
 func _ready() -> void:
@@ -234,17 +236,20 @@ func end_tutorial(done: bool) -> void:
 
 
 ## Setinha da partida guiada: na garrafa de onde despejar, ou (já escolhida) na que recebe.
+## Se escolheu a garrafa errada, a setinha volta para a certa. A busca só refaz quando as garrafas mudam.
 func _update_hint() -> void:
 	var move: Array = []
 	if tutorial and puzzle != null and not _finished:
-		move = SortPuzzle.hint_move(puzzle.tubes, puzzle.covers)
+		var key := str(puzzle.tubes) + str(puzzle.covers)
+		if _hint_key != key:
+			_hint_key = key
+			_hint_move = SortPuzzle.hint_move(puzzle.tubes, puzzle.covers)
+		move = _hint_move
+	var target := -1
+	if move.size() == 2:
+		target = move[1] if selected == move[0] else move[0]
 	for i in _bottles.size():
-		var on := false
-		if move.size() == 2:
-			on = (i == move[1]) if selected == move[0] else (i == move[0] and selected == -1)
-			if selected != -1 and selected != move[0]:
-				on = i == move[0]  # escolheu a garrafa errada: mostra a certa
-		_bottles[i].hint = on
+		_bottles[i].hint = i == target
 
 
 ## Jogo aberto e não terminado, com jogadas feitas (para a medição de quem desiste). Vale uma vez por

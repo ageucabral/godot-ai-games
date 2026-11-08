@@ -12,10 +12,7 @@ static func open_invite(dialog: DialogBox) -> void:
 	dialog.open("Carregando…", "", [])
 	var res: Dictionary = await Server.call_api("GET", "/challenge")
 	if not res.ok:
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: open_invite(dialog), true],
-			["Voltar", func() -> void: pass],
-		])
+		Account.show_error(dialog, res, func() -> void: open_invite(dialog))
 		return
 	var d: Dictionary = res.data
 	var code := str(d.get("code", ""))
@@ -106,10 +103,7 @@ static func open_claim(dialog: DialogBox, payout_id: String) -> void:
 	dialog.open("Carregando…", "", [])
 	var res: Dictionary = await Server.call_api("GET", "/payouts/" + payout_id)
 	if not res.ok:
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: open_claim(dialog, payout_id), true],
-			["Voltar", func() -> void: pass],
-		])
+		Account.show_error(dialog, res, func() -> void: open_claim(dialog, payout_id))
 		return
 	var info: Dictionary = res.data
 	if str(info.get("status", "")) != "pending":
@@ -136,19 +130,21 @@ static func open_claim(dialog: DialogBox, payout_id: String) -> void:
 ## Pix: tipo de chave; USDT: rede. Depois o formulário.
 static func _choose_details(dialog: DialogBox, info: Dictionary, method: String) -> void:
 	var buttons: Array = []
+	var title := "Rede da carteira"
+	var text := I18n.t("Use a mesma rede da sua carteira USDT.")
 	if method == "pix":
+		title = "Tipo da chave Pix"
+		text = ""
 		for t in PIX_TYPES:
 			var kind: String = t[0]
 			buttons.append([t[1], func() -> void: _quote_and_form(dialog, info, {"method": "pix", "pixType": kind})])
-		buttons.append(["Voltar", func() -> void: open_claim(dialog, str(info.id))])
-		dialog.open("Tipo da chave Pix", "", buttons)
-		return
-	var networks: Array = info.get("usdtNetworks", []) if info.get("usdtNetworks") is Array else []
-	for n in networks:
-		var net := str(n)
-		buttons.append([net, func() -> void: claim_form(dialog, info, {"method": "usdt", "usdtNetwork": net})])
+	else:
+		var networks: Array = info.get("usdtNetworks", []) if info.get("usdtNetworks") is Array else []
+		for n in networks:
+			var net := str(n)
+			buttons.append([net, func() -> void: claim_form(dialog, info, {"method": "usdt", "usdtNetwork": net})])
 	buttons.append(["Voltar", func() -> void: open_claim(dialog, str(info.id))])
-	dialog.open("Rede da carteira", I18n.t("Use a mesma rede da sua carteira USDT."), buttons)
+	dialog.open(title, text, buttons)
 
 
 ## Pix: pega a cotação (vale 30 min) antes do formulário.
@@ -156,10 +152,8 @@ static func _quote_and_form(dialog: DialogBox, info: Dictionary, form: Dictionar
 	dialog.open("Carregando…", "", [])
 	var q: Dictionary = await Server.call_api("POST", "/payouts/%s/quote" % str(info.id))
 	if not q.ok:
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(q)), [
-			["Tentar de novo", func() -> void: _quote_and_form(dialog, info, form), true],
-			["Voltar", func() -> void: open_claim(dialog, str(info.id))],
-		])
+		Account.show_error(dialog, q, func() -> void: _quote_and_form(dialog, info, form), "Voltar",
+				func() -> void: open_claim(dialog, str(info.id)))
 		return
 	form["quote"] = q.data
 	claim_form(dialog, info, form)
@@ -177,17 +171,13 @@ static func brl(cents: int) -> String:
 
 ## Formulário do resgate. `form` guarda o que já foi escolhido/digitado (volta preenchido se der erro).
 static func claim_form(dialog: DialogBox, info: Dictionary, form: Dictionary, error: String = "") -> void:
-	var lines: Array[String] = []
-	if not error.is_empty():
-		lines.append(I18n.t(error))
-		lines.append("")
-	lines.append(I18n.t("Prêmio: %s") % str(info.get("amountLabel", "")))
+	var lines: Array[String] = [I18n.t("Prêmio: %s") % str(info.get("amountLabel", ""))]
 	if form.get("quote") is Dictionary:
 		lines.append(I18n.t("Você recebe %s no Pix (cotação de hoje).") % brl(int(form.quote.get("brlCents", 0))))
 	if bool(info.get("minor", false)):
 		lines.append(I18n.t("Como você tem menos de 18 anos, use os dados de um responsável."))
 	lines.append(I18n.t("Ao enviar, você aceita o regulamento."))
-	dialog.open("Resgatar prêmio", "\n".join(lines), [
+	dialog.open("Resgatar prêmio", Account.with_error("\n".join(lines), error), [
 		["Enviar", func() -> void: pass, true],
 		["Ler o regulamento", func() -> void: pass],
 		["Cancelar", func() -> void: pass],
@@ -225,7 +215,7 @@ static func claim_body(form: Dictionary) -> Dictionary:
 		body["cpf"] = form.cpf
 	if form.method == "pix":
 		body["pixType"] = form.pixType
-		body["pixKey"] = str(form.get("pixKey", form.get("cpf", ""))) if form.pixType != "cpf" else str(form.get("cpf", ""))
+		body["pixKey"] = str(form.get("cpf" if form.pixType == "cpf" else "pixKey", ""))
 		if form.get("quote") is Dictionary:
 			body["quoteId"] = str(form.quote.get("quoteId", ""))
 	else:

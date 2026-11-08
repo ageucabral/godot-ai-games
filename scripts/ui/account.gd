@@ -9,6 +9,33 @@ extends RefCounted
 ## Os prêmios (convite e resgate) ficam em `scripts/ui/prizes.gd`.
 
 
+## Idade mínima usada quando o servidor não diz qual (a mesma do servidor para "sem país").
+const DEFAULT_MIN_AGE := 13
+
+
+## Janela de erro de uma chamada ao servidor, com "Tentar de novo" e um botão para sair.
+static func show_error(dialog: DialogBox, res: Dictionary, retry: Callable, back_label: String = "Voltar",
+		back: Callable = func() -> void: pass) -> void:
+	dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
+		["Tentar de novo", retry, true],
+		[back_label, back],
+	])
+
+
+## Texto do formulário com o erro (se houver) em cima.
+static func with_error(text: String, error: String) -> String:
+	return text if error.is_empty() else I18n.t(error) + "\n\n" + text
+
+
+## O servidor apagou a conta pela idade (`{blocked: true, minAge}`): bloqueia o aparelho. Devolve true se foi isso.
+static func _handle_blocked(dialog: DialogBox, res: Dictionary) -> bool:
+	if not bool(res.data.get("blocked", false)):
+		return false
+	Server.block_by_age(int(res.data.get("minAge", DEFAULT_MIN_AGE)))
+	show_age_blocked(dialog)
+	return true
+
+
 # ---------- manutenção e versão mínima ----------
 
 ## Mostra o aviso que não deixa jogar (versão antiga ou manutenção). Devolve true se bloqueou.
@@ -85,9 +112,7 @@ static func show_age_blocked(dialog: DialogBox) -> void:
 
 
 static func ask_age(dialog: DialogBox, error: String = "") -> void:
-	var text := I18n.t("Quantos anos você tem? Ninguém mais vê essa resposta.")
-	if not error.is_empty():
-		text = I18n.t(error) + "\n\n" + text
+	var text := with_error(I18n.t("Quantos anos você tem? Ninguém mais vê essa resposta."), error)
 	dialog.open("Sua idade", text, [["Continuar", func() -> void: pass, true]])
 	var age_field := dialog.add_input(I18n.t("Idade"), "", "number", 3) as LineEdit
 	var code_field := dialog.add_input(I18n.t("Código de convite (se tiver)"), Server.invite_code, "text", 20) as LineEdit
@@ -113,9 +138,7 @@ static func _send_age(dialog: DialogBox, age_text: String, code: String) -> void
 		else:
 			ask_age(dialog, ApiClient.error_text(res))
 		return
-	if bool(res.data.get("blocked", false)):
-		Server.block_by_age(int(res.data.get("minAge", 13)))
-		show_age_blocked(dialog)
+	if _handle_blocked(dialog, res):
 		return
 	Server.set_profile(res.data.get("profile", Server.profile))
 	dialog.close()
@@ -135,10 +158,7 @@ static func ask_country(dialog: DialogBox, then: Callable) -> void:
 	dialog.open("Carregando…", "", [])
 	var res: Dictionary = await Server.call_api("GET", "/countries")
 	if not res.ok or not res.data is Array:
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: ask_country(dialog, then), true],
-			["Agora não", func() -> void: pass],
-		])
+		show_error(dialog, res, func() -> void: ask_country(dialog, then), "Agora não")
 		return
 	var countries: Array = res.data
 	var codes: Array = countries.map(func(c: Variant) -> String: return str((c as Dictionary).get("code", "")))
@@ -172,10 +192,10 @@ static func _confirm_country(dialog: DialogBox, code: String, label: String, sim
 
 static func _send_country(dialog: DialogBox, code: String, sim: String, suggested: String, then: Callable) -> void:
 	dialog.open("Conferindo…", "", [])
-	var parts := OS.get_locale().replace("-", "_").split("_")
+	var locale_country := ApiClient.locale_country(OS.get_locale())
 	var res: Dictionary = await Server.call_api("POST", "/me/country", {
 		"code": code, "simCountry": sim if not sim.is_empty() else null,
-		"localeCountry": parts[1].to_upper() if parts.size() > 1 else null,
+		"localeCountry": locale_country if not locale_country.is_empty() else null,
 		"suggested": suggested if not suggested.is_empty() else null,
 	})
 	if not res.ok:
@@ -183,14 +203,9 @@ static func _send_country(dialog: DialogBox, code: String, sim: String, suggeste
 			await _reload_profile()
 			then.call()
 			return
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: ask_country(dialog, then), true],
-			["Agora não", func() -> void: pass],
-		])
+		show_error(dialog, res, func() -> void: ask_country(dialog, then), "Agora não")
 		return
-	if bool(res.data.get("blocked", false)):
-		Server.block_by_age(int(res.data.get("minAge", 13)))
-		show_age_blocked(dialog)
+	if _handle_blocked(dialog, res):
 		return
 	Server.set_profile(res.data)
 	dialog.close()
@@ -207,10 +222,9 @@ static func _sim_country() -> String:
 # ---------- apelido ----------
 
 static func ask_nickname(dialog: DialogBox, then: Callable, error: String = "") -> void:
-	Server.set_flag("nick_asked")
-	var text := I18n.t("É o nome que aparece no ranking.")
-	if not error.is_empty():
-		text = I18n.t(error) + "\n\n" + text
+	if not Server.get_flag("nick_asked"):
+		Server.set_flag("nick_asked")
+	var text := with_error(I18n.t("É o nome que aparece no ranking."), error)
 	dialog.open("Seu apelido", text, [
 		["Salvar", func() -> void: pass, true],
 		["Agora não", func() -> void: then.call()],
@@ -274,10 +288,7 @@ static func open_account(dialog: DialogBox) -> void:
 static func _country_label(p: Dictionary) -> String:
 	if str(p.get("country", "")) == ApiClient.NO_COUNTRY:
 		return I18n.t("Outro país (sem prêmios)")
-	var names: Variant = p.get("countryNames")
-	if names is Dictionary:
-		return str((names as Dictionary).get(GameState.language(), (names as Dictionary).get("pt", p.country)))
-	return str(p.get("country", ""))
+	return ApiClient.country_name({"code": p.get("country", ""), "names": p.get("countryNames")}, GameState.language())
 
 
 static func _sign_in_google(dialog: DialogBox) -> void:
@@ -308,10 +319,7 @@ static func _delete(dialog: DialogBox) -> void:
 	dialog.open("Apagando…", "", [])
 	var res: Dictionary = await Server.delete_account()
 	if not res.ok:
-		dialog.open("Ops!", I18n.t(ApiClient.error_text(res)), [
-			["Tentar de novo", func() -> void: _delete(dialog), true],
-			["Voltar", func() -> void: open_account(dialog)],
-		])
+		show_error(dialog, res, func() -> void: _delete(dialog), "Voltar", func() -> void: open_account(dialog))
 		return
 	GameState.reset_progress()
 	dialog.open("Conta apagada", I18n.t("Seus dados foram apagados. Se quiser, pode continuar jogando como um jogador novo."), [
@@ -366,9 +374,7 @@ static func open_support(dialog: DialogBox) -> void:
 
 
 static func support_form(dialog: DialogBox, topic: String, error: String = "", message: String = "", email: String = "") -> void:
-	var text := I18n.t("Conte o que aconteceu. Respondemos pelo e-mail.")
-	if not error.is_empty():
-		text = I18n.t(error) + "\n\n" + text
+	var text := with_error(I18n.t("Conte o que aconteceu. Respondemos pelo e-mail."), error)
 	dialog.open(I18n.t(topic), text, [
 		["Enviar", func() -> void: pass, true],
 		["Voltar", func() -> void: open_support(dialog)],
