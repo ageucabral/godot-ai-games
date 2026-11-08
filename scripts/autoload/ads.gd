@@ -30,10 +30,16 @@ func play(custom_data: String = "") -> bool:
 		return true
 	var plugin: Object = Server.native() if Server.enabled else null
 	var unit: String = Server.rewarded_unit_id()
+	if plugin and unit.is_empty():
+		# o GET /config da abertura falhou ou ainda não chegou: sem o bloco, a simulação nunca seria conferida
+		showing = true
+		await Server.load_config()
+		showing = false
+		unit = Server.rewarded_unit_id()
 	if plugin and not unit.is_empty():
 		showing = true
 		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
-		var out: Array = await Signal(plugin, "rewarded_finished")
+		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])
 		showing = false
 		ad_finished.emit()
 		return bool(out[0])

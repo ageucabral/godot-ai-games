@@ -26,6 +26,8 @@ var device_hash: String = ""
 var profile: Dictionary = {}
 ## Último GET /pocao/home (nível, desafios de hoje, pontos e posição do mês).
 var home: Dictionary = {}
+## Espera máxima por uma resposta do plugin (propaganda ou escolha de conta).
+const NATIVE_TIMEOUT_S := 180.0
 ## Para testes: um plugin de mentira no lugar do Android.
 var native_override: Object = null
 ## GET /config (regras, blocos do AdMob, links). Os blocos de propaganda vêm do painel.
@@ -91,15 +93,22 @@ func can_sign_in_google() -> bool:
 
 ## Bloco da propaganda premiada (do painel; com o "modo de teste" ligado, o bloco de teste do Google).
 func rewarded_unit_id() -> String:
-	var ads: Dictionary = config.get("ads", {})
-	var units: Dictionary = ads.get("unitIds", {})
-	return str(units.get("rewarded", ""))
+	var ads: Variant = config.get("ads")
+	if not ads is Dictionary:
+		return ""
+	var units: Variant = (ads as Dictionary).get("unitIds")
+	if not units is Dictionary:
+		return ""
+	var unit: Variant = (units as Dictionary).get("rewarded")
+	return "" if unit == null else str(unit)
 
 
 ## Busca o GET /config e liga o AdMob do plugin.
 func load_config() -> bool:
 	var res: Dictionary = await _send("GET", "/config", null, false)
 	if not res.ok:
+		return false
+	if not res.data is Dictionary:
 		return false
 	config = res.data
 	var plugin := native()
@@ -115,7 +124,7 @@ func sign_in_google() -> Dictionary:
 	if not enabled or plugin == null:
 		return ApiClient.error_result(0, "NO_GOOGLE", "")
 	plugin.googleSignIn(GOOGLE_WEB_CLIENT_ID)
-	var out: Array = await Signal(plugin, "google_signed_in")
+	var out: Array = await wait_signal(Signal(plugin, "google_signed_in"), NATIVE_TIMEOUT_S, ["", "timeout"])
 	var id_token: String = str(out[0])
 	if id_token.is_empty():
 		return ApiClient.error_result(0, "GOOGLE_CANCELLED" if out[1] == "cancelled" else "GOOGLE_FAILED", str(out[1]))
@@ -163,9 +172,17 @@ func ensure_session() -> bool:
 		while _logging_in:
 			await get_tree().process_frame
 		return not token.is_empty()
+	if not is_guest() and can_sign_in_google():
+		# a sessão de quem entrou com Google venceu (30 dias): entra com Google de novo, nunca como visitante
+		_logging_in = true
+		var g: Dictionary = await sign_in_google()
+		_logging_in = false
+		return g.ok
 	_logging_in = true
 	var res: Dictionary = await _send("POST", "/auth/guest", _login_body(), false)
 	_logging_in = false
+	if not token.is_empty():
+		return true  # entrou com Google enquanto esperava: não troca a conta pelo visitante
 	if not res.ok:
 		return false
 	token = str(res.data.get("token", ""))
@@ -253,3 +270,18 @@ func call_with_reward(method: String, path: String, body: Dictionary) -> Diction
 		if retry_wait_s > 0.0:
 			await get_tree().create_timer(retry_wait_s).timeout
 	return res
+
+
+## Espera um sinal (de até 2 valores) por no máximo `timeout_s` segundos; sem resposta, devolve `fallback`.
+func wait_signal(sig: Signal, timeout_s: float, fallback: Array) -> Array:
+	var box := {"out": null}
+	var on_emit := func(a: Variant = null, b: Variant = null) -> void:
+		if box.out == null:
+			box.out = [a, b]
+	sig.connect(on_emit, CONNECT_ONE_SHOT)
+	var deadline := Time.get_ticks_msec() + int(timeout_s * 1000.0)
+	while box.out == null and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	if sig.is_connected(on_emit):
+		sig.disconnect(on_emit)
+	return box.out if box.out != null else fallback

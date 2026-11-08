@@ -35,8 +35,10 @@ fi
 
 # "Gradle build" (precisa do plugin Android: login Google e AdMob): o Godot instala o modelo em android/build
 # na primeira exportação (--install-android-build-template); com versão nova do Godot, reinstala.
+# shellcheck source=godot_version.env
+source "$ROOT/tools/godot_version.env"
 TEMPLATE_FLAG=()
-if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -q "$(cat "$HOME/.local/share/godot/export_templates/"*/version.txt)" "$ROOT/android/.build_version" 2>/dev/null; then
+if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -qxF "${GODOT_VERSION}.${GODOT_FLAVOR}" "$ROOT/android/.build_version" 2>/dev/null; then
   rm -rf "$ROOT/android/build" "$ROOT/android/.build_version"
   TEMPLATE_FLAG=(--install-android-build-template)
 fi

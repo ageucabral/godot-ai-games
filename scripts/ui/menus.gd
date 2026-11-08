@@ -44,7 +44,12 @@ static func open_language(dialog: DialogBox) -> void:
 static func open_save_progress(dialog: DialogBox) -> void:
 	if Server.can_sign_in_google():
 		if not Server.is_guest():
-			var who: String = str(Server.profile.get("nickname", Server.profile.get("googleName", "")))
+			var who: String = ""
+			for field in ["nickname", "googleName", "email"]:
+				var value: Variant = Server.profile.get(field)
+				if value != null and not str(value).is_empty():
+					who = str(value)
+					break
 			dialog.open("Salvar progresso", I18n.t("Seu progresso está guardado na conta Google (%s).") % who, [
 				["Voltar", func() -> void: open_settings(dialog), true],
 			])

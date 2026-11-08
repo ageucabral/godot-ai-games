@@ -297,7 +297,7 @@ func test_real_ad_sends_reward_id_for_ssv() -> void:
 	main.play_level()
 	await wait_physics_frames(1)
 	game._boost_online("flask")
-	await wait_physics_frames(3)
+	await wait_physics_frames(10)
 	assert_eq(plugin.shown.size(), 1, "mostrou a propaganda do AdMob")
 	assert_eq(plugin.shown[0][0], "unit-rw", "bloco vem do painel")
 	assert_eq(plugin.shown[0][1], "u1", "id do jogador vai na confirmação")
@@ -314,7 +314,7 @@ func test_closed_ad_gives_nothing() -> void:
 	main.play_level()
 	await wait_physics_frames(1)
 	game._boost_online("flask")
-	await wait_physics_frames(3)
+	await wait_physics_frames(10)
 	assert_false("/pocao/matches/m-1/boost" in _paths(), "sem recompensa, não pede a ajuda")
 	assert_eq(game.puzzle.tubes.size(), 3)
 	assert_true(game.dialog.visible, "avisa")
@@ -349,7 +349,7 @@ func test_save_progress_menu_signs_in() -> void:
 	Menus.open_save_progress(main.dialog)
 	assert_eq(main.dialog.button_texts(), ["Entrar com Google", "Voltar"])
 	main.dialog.press("Entrar com Google")
-	await wait_physics_frames(3)
+	await wait_physics_frames(10)
 	assert_false(Server.is_guest())
 	assert_true(main.dialog.text_label.text.contains("Ageu"), "mostra a conta")
 
@@ -357,3 +357,48 @@ func test_save_progress_menu_signs_in() -> void:
 func test_save_progress_without_plugin_is_coming_soon() -> void:
 	Menus.open_save_progress(main.dialog)
 	assert_eq(main.dialog.button_texts(), ["Voltar"])
+
+
+func test_real_ad_reloads_missing_config() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	Server.config = {}  # o GET /config da abertura não chegou
+	main.play_level()
+	await wait_physics_frames(1)
+	game._boost_online("flask")
+	await wait_physics_frames(10)
+	assert_eq(plugin.shown.size(), 1, "pediu o /config de novo e mostrou o AdMob, não a simulação")
+	assert_eq(game.puzzle.tubes.size(), 4)
+
+
+func test_guest_login_does_not_replace_google_session() -> void:
+	Server.sign_out()
+	# o Google termina de entrar enquanto a resposta do visitante ainda está a caminho
+	Server.transport = func(method: String, path: String, body: Variant) -> Dictionary:
+		if path == "/auth/guest":
+			Server.token = "tok-g"
+			Server.profile = {"id": "u1", "guest": false}
+			return _ok({"token": "tok-guest", "profile": {"id": "g1", "guest": true}})
+		return _fake(method, path, body)
+	assert_true(await Server.ensure_session())
+	assert_eq(Server.token, "tok-g", "o visitante que chegou depois não troca a conta Google")
+	assert_false(Server.is_guest())
+
+
+func test_expired_google_session_signs_in_with_google_again() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	await Server.sign_in_google()
+	forced["/pocao/home"] = [{"ok": false, "status": 401, "data": {}, "code": "UNAUTHORIZED", "message": ""}]
+	var before := _paths().filter(func(p: String) -> bool: return p == "/auth/guest").size()
+	await Server.refresh_home()
+	assert_eq(_paths().filter(func(p: String) -> bool: return p == "/auth/guest").size(), before, "não vira visitante")
+	assert_eq(_paths().filter(func(p: String) -> bool: return p == "/auth/google").size(), 2, "entrou com Google de novo")
+	assert_false(Server.is_guest())
+
+
+func test_wait_signal_gives_up() -> void:
+	var plugin := FakePlugin.new()
+	var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), 0.05, [false, "timeout"])
+	assert_eq(out, [false, "timeout"])

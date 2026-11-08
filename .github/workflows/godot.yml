@@ -27,7 +27,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('addons/nalata_android/export_plugin.gd', 'tools/godot_version.env') }}
+          key: gradle-${{ hashFiles('addons/nalata_android/export_plugin.gd', 'tools/godot_version.env', 'android/plugin/build.gradle', 'android/plugin/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/setup-java@v4
         with:
