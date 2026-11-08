@@ -126,8 +126,9 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - `scripts/autoload/ads.gd`: propaganda **simulada** (3 s). O AdMob de verdade entra aqui depois.
 - Cena principal `scenes/main/main.tscn`: hub (`scenes/ui/hub_screen.tscn`), tela inicial do Poção de Cores
   (`scenes/ui/home_screen.tscn`: pontos do mês, configurações, nome do jogo, mascote, botão "Nível N"
-  e barra de baixo Jogos · Ranking · Início · Desafios · Perfil, com a contagem dos desafios do dia), desafios do dia
-  (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, com animação de despejo, pausa
+  e, logo abaixo, o botão laranja "Desafios do dia 3/20" (fica roxo com "Desafios feitos!" quando o dia acaba);
+  na lateral direita, ícones de linha Jogos · Ranking (`scripts/ui/side_button.gd`); sem barra embaixo, o perfil fica dentro da engrenagem (Ageu, 8/11/2026)), desafios do dia
+  (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, só mostra Fácil/Médio/Difícil nos desafios; com animação de despejo, pausa
   na engrenagem e confete na vitória) e ranking (`scenes/ui/ranking_screen.tscn`). Perfil e configurações
   ficam em `scripts/ui/menus.gd`.
 - **Dois rankings** (Ageu, 7/11/2026): cada jogo tem o seu ranking (aberto pelo menu do jogo) e o

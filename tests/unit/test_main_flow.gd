@@ -108,17 +108,17 @@ func test_past_days_cannot_be_played() -> void:
 func test_home_shows_level_and_daily_buttons() -> void:
 	var home: Control = main.get_node("Home")
 	assert_eq(home.level_button.text, "Nível 1")
-	assert_eq(home.nav.counter("daily"), "0/20")
+	assert_eq(home.daily_button.text, "Desafios do dia  0/20")
 
 
 func test_home_follows_midnight_without_looping() -> void:
 	var home: Control = main.get_node("Home")
 	GameState.save_result("2026-11-07#0", 10, 5)
-	assert_eq(home.nav.counter("daily"), "1/20")
+	assert_eq(home.daily_button.text, "Desafios do dia  1/20")
 	# meia-noite em ponto: antes, refresh e a contagem se chamavam sem fim
 	GameState.fixed_unix = 1794106800
 	home.refresh()
-	assert_eq(home.nav.counter("daily"), "0/20")
+	assert_eq(home.daily_button.text, "Desafios do dia  0/20")
 	# app volta do segundo plano já depois da meia-noite: também percebe o dia novo
 	GameState.fixed_unix = 1794106800 + 86400 + 1800
 	home._check_new_day()
@@ -223,7 +223,7 @@ func test_app_opens_on_hub_and_enters_game() -> void:
 			splash = c
 	assert_not_null(splash, "mostra a tela de abertura")
 	splash.close()
-	main.get_node("Home").nav.tab_pressed.emit("games")
+	main.get_node("Home").side_buttons["games"].pressed.emit()
 	assert_true(main.get_node("Hub").visible, "aba Jogos volta ao hub")
 
 
@@ -234,3 +234,30 @@ func test_pause_menu_returns_home() -> void:
 	assert_eq(game.dialog.title_label.text, "Pausa")
 	game.dialog.press("Menu")
 	assert_true(main.get_node("Home").visible)
+
+
+func test_home_has_side_icons_and_no_profile_tab() -> void:
+	var home: Control = main.get_node("Home")
+	assert_eq(home.side_buttons.keys(), ["games", "ranking"], "Jogos e Ranking na lateral")
+	home.side_buttons["ranking"].pressed.emit()
+	assert_true(main.get_node("Ranking").visible)
+
+
+func test_daily_button_below_level_shows_progress() -> void:
+	var home: Control = main.get_node("Home")
+	assert_eq(home.daily_button.get_parent(), home.level_button.get_parent(), "embaixo do botão do nível")
+	assert_true(home.daily_button.get_index() > home.level_button.get_index())
+	for i in Rules.DAILY_COUNT:
+		GameState.save_result("2026-11-07#%d" % i, 10, 5)
+	assert_eq(home.daily_button.text, "Desafios feitos!  20/20")
+	assert_eq(home.daily_button.fill, GameStyle.PURPLE, "muda de cor quando termina o dia")
+	home.daily_button.pressed.emit()
+	assert_true(main.get_node("Daily").visible, "abre os desafios do dia")
+
+
+func test_profile_lives_in_settings() -> void:
+	var home: Control = main.get_node("Home")
+	Menus.open_settings(home.dialog)
+	assert_true("Seu perfil" in home.dialog.button_texts())
+	home.dialog.press("Seu perfil")
+	assert_eq(home.dialog.title_label.text, "Seu perfil")

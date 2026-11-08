@@ -15,16 +15,18 @@ static func daily_done() -> int:
 	return done
 
 
+## Perfil (aberto pela engrenagem): o botão volta para as configurações.
 static func open_profile(dialog: DialogBox) -> void:
 	var month := Rules.month_for(GameState.now_unix())
 	var text := I18n.t("Nível atual: %d\nPontos em %s: %d\nDesafios de hoje: %d de %d") % [
 		GameState.current_level(), Rules.month_name(month), GameState.game_month_total("potion", month).points,
 		daily_done(), Rules.DAILY_COUNT]
-	dialog.open("Seu perfil", text, [["Fechar", func() -> void: pass, true]])
+	dialog.open("Seu perfil", text, [["Voltar", func() -> void: open_settings(dialog), true]])
 
 
 static func open_settings(dialog: DialogBox) -> void:
 	dialog.open("Configurações", I18n.t("Versão %s") % VERSION, [
+		["Seu perfil", func() -> void: open_profile(dialog)],
 		[I18n.t("Idioma: %s") % I18n.language_name(GameState.language()), func() -> void: open_language(dialog)],
 		["Salvar progresso", func() -> void: open_save_progress(dialog)],
 		["Como jogar", func() -> void: open_how_to_play(dialog)],
