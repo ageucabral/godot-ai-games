@@ -1,7 +1,7 @@
 class_name Icons
 extends RefCounted
 ## Desenhos simples dos ícones (engrenagem, troféu, casa, calendário, jogos, perfil, pódio),
-## feitos no código para qualquer tamanho. `c` = centro, `s` = tamanho (cerca de 1/2 da largura).
+## feitos no código para qualquer tamanho; `draw_line_icon` tem a versão de linha (lateral do menu). `c` = centro, `s` = tamanho (cerca de 1/2 da largura).
 
 const WHITE := Color.WHITE
 
@@ -111,3 +111,63 @@ static func _podium(ci: CanvasItem, c: Vector2, s: float) -> void:
 		ci.draw_rect(r, b[2])
 		ci.draw_rect(r, GameStyle.INK, false, s * 0.07)
 		ci.draw_string(font, r.position + Vector2(0, s * 0.45), b[3], HORIZONTAL_ALIGNMENT_CENTER, w, int(s * 0.45), GameStyle.INK)
+
+
+## Ícones de linha (botões da lateral do menu): "games" (4 quadradinhos), "trophy" (taça), "calendar" (calendário com visto).
+## `s` = metade do tamanho do ícone.
+static func draw_line_icon(ci: CanvasItem, kind: String, c: Vector2, s: float) -> void:
+	var w := maxf(3.0, s * 0.16)
+	var col := Color.WHITE
+	match kind:
+		"games":
+			var g := s * 0.82
+			var gap := s * 0.16
+			var tiles: Array[Vector2] = [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]
+			for i in tiles.size():
+				var t: Vector2 = tiles[i]
+				var ox: float = -g - gap * 0.5 if t.x < 0 else gap * 0.5
+				var oy: float = -g - gap * 0.5 if t.y < 0 else gap * 0.5
+				var rect := Rect2(c + Vector2(ox, oy), Vector2(g, g))
+				# o segundo quadradinho é cheio (dourado); os outros, só a borda
+				var sb := _round_box(int(g * 0.3), 0, GameStyle.GOLD) if i == 1 else _round_box(int(g * 0.3), int(w), col)
+				ci.draw_style_box(sb, rect)
+		"trophy":
+			var cup := PackedVector2Array()
+			for i in 13:
+				var a := PI * i / 12.0
+				cup.append(c + Vector2(cos(a) * s * 0.62, -s * 0.75 + sin(a) * s * 0.95))
+			cup.append(cup[0])  # fecha a boca da taça
+			ci.draw_polyline(cup, col, w, true)
+			ci.draw_arc(c + Vector2(-s * 0.68, -s * 0.38), s * 0.26, PI * 0.5, PI * 1.5, 10, col, w, true)
+			ci.draw_arc(c + Vector2(s * 0.68, -s * 0.38), s * 0.26, -PI * 0.5, PI * 0.5, 10, col, w, true)
+			ci.draw_line(c + Vector2(0, s * 0.2), c + Vector2(0, s * 0.6), col, w, true)
+			ci.draw_line(c + Vector2(-s * 0.45, s * 0.75), c + Vector2(s * 0.45, s * 0.75), col, w * 1.2, true)
+			ci.draw_colored_polygon(GameStyle.star_points(c + Vector2(0, -s * 0.38), s * 0.26, s * 0.11, 5), GameStyle.GOLD)
+		"calendar":
+			var rect := Rect2(c + Vector2(-s * 0.85, -s * 0.65), Vector2(s * 1.7, s * 1.5))
+			ci.draw_style_box(_round_box(int(s * 0.3), int(w), col), rect)
+			ci.draw_line(rect.position + Vector2(0, s * 0.45), Vector2(rect.end.x, rect.position.y + s * 0.45), col, w, true)
+			for x: float in [-0.4, 0.4]:
+				ci.draw_line(c + Vector2(s * x, -s * 0.9), c + Vector2(s * x, -s * 0.45), col, w, true)
+			ci.draw_polyline(PackedVector2Array([c + Vector2(-s * 0.4, s * 0.3), c + Vector2(-s * 0.08, s * 0.58), c + Vector2(s * 0.45, s * 0.05)]), GameStyle.GOLD, w * 1.1, true)
+
+
+## Caixinha de cantos redondos dos ícones de linha: com `border` > 0 é só a borda; com 0 é cheia.
+## Guardada para reaproveitar (o desenho roda de novo a cada toque).
+static var _round_boxes: Dictionary = {}
+
+
+static func _round_box(radius: int, border: int, col: Color) -> StyleBoxFlat:
+	var key := "%d/%d/%s" % [radius, border, col.to_html()]
+	if not _round_boxes.has(key):
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(radius)
+		sb.anti_aliasing = true
+		if border > 0:
+			sb.bg_color = Color(0, 0, 0, 0)
+			sb.border_color = col
+			sb.set_border_width_all(border)
+		else:
+			sb.bg_color = col
+		_round_boxes[key] = sb
+	return _round_boxes[key]

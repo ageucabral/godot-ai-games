@@ -130,6 +130,7 @@ const STRINGS := {
 	"Ranking": ["Ranking", "Ranking"],
 	"Início": ["Home", "Inicio"],
 	"Desafios": ["Challenges", "Desafíos"],
+	"Desafios feitos!": ["Challenges done!", "¡Desafíos hechos!"],
 	"Perfil": ["Profile", "Perfil"],
 	"Pausa": ["Pause", "Pausa"],
 	"Perfeito!": ["Perfect!", "¡Perfecto!"],
