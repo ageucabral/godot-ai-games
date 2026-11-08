@@ -104,8 +104,6 @@ const STRINGS := {
 	"Em breve você poderá entrar com Google ou Facebook para guardar seu progresso e aparecer no ranking com todos os jogadores.": [
 		"Soon you will be able to sign in with Google or Facebook to keep your progress and appear in the ranking with every player.",
 		"Pronto podrás entrar con Google o Facebook para guardar tu progreso y aparecer en el ranking con todos los jugadores."],
-	"Entrar com Google (em breve)": ["Sign in with Google (soon)", "Entrar con Google (pronto)"],
-	"Entrar com Facebook (em breve)": ["Sign in with Facebook (soon)", "Entrar con Facebook (pronto)"],
 	"Como jogar": ["How to play", "Cómo jugar"],
 	"Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Deixe cada garrafa com uma cor só.\n\nCada fase vale o dobro das jogadas necessárias: se pede 11 jogadas, vale 22 pontos.\nCada jogada além disso tira 1 ponto, e você vê o placar caindo na hora.\n\nNíveis: sem fim, cada vez mais difíceis.\nDesafios do dia: 20 novos à meia-noite.": [
 		"Tap a bottle, then another one to pour. You can only pour onto the same color or into an empty bottle. Leave each bottle with a single color.\n\nEach stage is worth twice the moves it needs: if it needs 11 moves, it is worth 22 points.\nEach extra move costs 1 point, and you see the score drop right away.\n\nLevels: endless, harder and harder.\nDaily challenges: 20 new ones at midnight.",
@@ -114,8 +112,6 @@ const STRINGS := {
 	"Entendi": ["Got it", "Entendido"],
 	# partida
 	"Menu": ["Menu", "Menú"],
-	"DESAFIO": ["CHALLENGE", "DESAFÍO"],
-	"NÍVEL": ["LEVEL", "NIVEL"],
 	"JOGADAS": ["MOVES", "JUGADAS"],
 	"Recomeçar": ["Restart", "Reiniciar"],
 	"+5 jogadas": ["+5 moves", "+5 jugadas"],
@@ -156,7 +152,6 @@ const STRINGS := {
 		"This challenge was from %s. Only today's challenges count now.",
 		"Este desafío era del %s. Ahora solo valen los desafíos de hoy."],
 	"Ver desafios de hoje": ["See today's challenges", "Ver desafíos de hoy"],
-	"Na Lata!": ["Nailed it!", "¡En el blanco!"],
 	"+%d pontos em %d jogadas.": ["+%d points in %d moves.", "+%d puntos en %d jugadas."],
 	"\nSeu melhor continua %d pontos.": ["\nYour best is still %d points.", "\nTu mejor sigue siendo %d puntos."],
 	"\nDava para fazer em %d jogadas.": ["\nIt could be done in %d moves.", "\nSe podía hacer en %d jugadas."],
@@ -178,10 +173,7 @@ const STRINGS := {
 	"Mais jogos em breve": ["More games coming soon", "Más juegos muy pronto"],
 	"Jogos": ["Games", "Juegos"],
 	"Ranking": ["Ranking", "Ranking"],
-	"Início": ["Home", "Inicio"],
-	"Desafios": ["Challenges", "Desafíos"],
 	"Desafios feitos!": ["Challenges done!", "¡Desafíos hechos!"],
-	"Perfil": ["Profile", "Perfil"],
 	"Pausa": ["Pause", "Pausa"],
 	"Perfeito!": ["Perfect!", "¡Perfecto!"],
 	"Muito bem!": ["Well done!", "¡Muy bien!"],
