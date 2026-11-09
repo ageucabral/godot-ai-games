@@ -66,7 +66,7 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     private var cachedInter: InterstitialAd? = null
     private var cachedInterUnit = ""
     private var cachedInterAt = 0L
-    private var loadingInter = false
+    private var loadingInterUnit = ""
     private val waitingInter = mutableListOf<(InterstitialAd?) -> Unit>()
 
     override fun getPluginName() = "NaLata"
@@ -194,11 +194,11 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     private fun loadInter(a: Activity, unitId: String, done: (InterstitialAd?) -> Unit) {
         freshInter(unitId)?.let { return done(it) }
         waitingInter.add(done)
-        if (loadingInter) return
-        loadingInter = true
+        if (loadingInterUnit == unitId) return  // já está carregando: recebe quando chegar
+        loadingInterUnit = unitId
         InterstitialAd.load(a, unitId, AdRequest.Builder().build(), object : InterstitialAdLoadCallback() {
             override fun onAdLoaded(ad: InterstitialAd) {
-                loadingInter = false
+                loadingInterUnit = ""
                 cachedInter = ad
                 cachedInterUnit = unitId
                 cachedInterAt = System.currentTimeMillis()
@@ -206,7 +206,7 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
             }
 
             override fun onAdFailedToLoad(e: LoadAdError) {
-                loadingInter = false
+                loadingInterUnit = ""
                 Log.w(tag, "interstitial load: ${e.code} ${e.message}")
                 answerInter(null)
             }

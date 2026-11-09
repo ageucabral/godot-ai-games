@@ -39,23 +39,30 @@ func play(custom_data: String = "") -> bool:
 		unit = Server.rewarded_unit_id()
 		if unit.is_empty() and not custom_data.is_empty():
 			return false  # sem o bloco do AdMob: a simulação nunca seria confirmada pelo servidor
-	_mark_ad(true)
 	if plugin and not unit.is_empty():
 		showing = true
 		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
 		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])
 		showing = false
+		if bool(out[0]):
+			_mark_ad(true)
 		return bool(out[0])
 	await _simulate(tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d"))
+	_mark_ad(true)
 	return true
 
 
 ## Resolveu um nível e vai para o próximo: mostra o anúncio entre níveis se as regras do painel mandarem
-## (`Rules.interstitial_due`). Use com `await`; volta quando o anúncio fecha (ou na hora, se não era para aparecer).
+## (`Rules.interstitial_due`; a contagem de níveis começa no nível da regra). Só com o plugin do AdMob (Android): sem ele
+## não há anúncio nenhum. Use com `await`; volta quando o anúncio fecha (ou na hora, se não era para aparecer).
 func maybe_interstitial(solved_level: int) -> void:
+	var from := Server.rule_int("pcInterFrom", 0)
+	if from <= 0 or solved_level < from:
+		levels_since_inter = 0
+		return
 	levels_since_inter += 1
 	var due := Rules.interstitial_due(solved_level, levels_since_inter, GameState.now_unix() - last_ad_unix, rewarded_since_inter,
-		Server.rule_int("pcInterFrom", 0), Server.rule_int("pcInterEvery", 3), Server.rule_int("pcInterGapSec", 90))
+		from, Server.rule_int("pcInterEvery", 3), Server.rule_int("pcInterGapSec", 90))
 	if rewarded_since_inter:
 		rewarded_since_inter = false
 		levels_since_inter = 0  # o vídeo premiado valeu como o anúncio desta rodada
@@ -67,8 +74,6 @@ func maybe_interstitial(solved_level: int) -> void:
 	var plugin: Object = Server.native_with("interstitial_finished") if Server.enabled else null
 	var unit := Server.ad_unit_id("interstitial")
 	if plugin == null or unit.is_empty():
-		_mark_ad(false)
-		await _simulate(tr("ANÚNCIO\n(simulação)\n\n%d"))
 		return
 	showing = true
 	plugin.showInterstitial(unit)
@@ -79,6 +84,7 @@ func maybe_interstitial(solved_level: int) -> void:
 		Server.track("interstitial_shown", {"level": solved_level})
 
 
+## Um anúncio acabou de fechar: é dele que conta o intervalo mínimo até o próximo.
 func _mark_ad(rewarded: bool) -> void:
 	last_ad_unix = GameState.now_unix()
 	if rewarded:

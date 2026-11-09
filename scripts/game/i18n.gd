@@ -490,7 +490,6 @@ const STRINGS := {
 	"PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d": [
 		"AD\n(simulation)\n\nThe AdMob ad will show here.\n\n%d",
 		"ANUNCIO\n(simulación)\n\nAquí aparecerá el anuncio de AdMob.\n\n%d"],
-	"ANÚNCIO\n(simulação)\n\n%d": ["AD\n(simulation)\n\n%d", "ANUNCIO\n(simulación)\n\n%d"],
 	# hub e visual novo
 	"Poção de Cores": ["Color Potion", "Poción de Colores"],
 	"Jogar": ["Play", "Jugar"],

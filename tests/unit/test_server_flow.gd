@@ -27,6 +27,9 @@ func before_each() -> void:
 	GameState.set_setting("tutorial_done", true)  # a partida guiada tem testes próprios
 	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
+	Ads.last_ad_unix = 0
+	Ads.levels_since_inter = 0
+	Ads.rewarded_since_inter = false
 	calls = []
 	forced = {}
 	home_extras = {}
@@ -539,36 +542,41 @@ func test_interstitial_between_levels_follows_panel_rules() -> void:
 	var plugin := FakePlugin.new()
 	Server.native_override = plugin
 	Ads.instant = false
-	Ads.last_ad_unix = 0
-	Ads.levels_since_inter = 0
-	Ads.rewarded_since_inter = false
+	Ads.levels_since_inter = 5
 	await Server.load_config()
 	assert_eq(plugin.inter_preloaded, ["unit-in"], "o anúncio entre níveis já fica carregado ao abrir")
-	# antes do nível 10 nunca aparece
+	# antes do nível 10 nunca aparece, e a contagem só começa no 10
 	await Ads.maybe_interstitial(9)
 	assert_eq(plugin.inters.size(), 0, "antes do nível da regra não aparece")
-	# a cada 2 níveis: o 1º depois da regra ainda conta como o 2º resolvido (9 e 10)
+	assert_eq(Ads.levels_since_inter, 0, "níveis antes da regra não contam")
 	await Ads.maybe_interstitial(10)
-	assert_eq(plugin.inters, ["unit-in"], "apareceu no 2º nível resolvido, a partir do 10")
-	assert_eq(Ads.levels_since_inter, 0, "a contagem recomeça")
+	assert_eq(plugin.inters.size(), 0, "1º nível contado: ainda não")
 	await Ads.maybe_interstitial(11)
+	assert_eq(plugin.inters, ["unit-in"], "a cada 2 níveis: apareceu no 2º")
+	assert_eq(Ads.levels_since_inter, 0, "a contagem recomeça")
+	await Ads.maybe_interstitial(12)
 	assert_eq(plugin.inters.size(), 1, "só 1 nível desde o último: ainda não")
 	# passaram só 30 s desde o anúncio: respeita o intervalo mínimo de 60 s
 	GameState.fixed_unix += 30
-	await Ads.maybe_interstitial(12)
+	await Ads.maybe_interstitial(13)
 	assert_eq(plugin.inters.size(), 1, "intervalo mínimo entre anúncios")
 	GameState.fixed_unix += 31
-	await Ads.maybe_interstitial(13)
+	await Ads.maybe_interstitial(14)
 	assert_eq(plugin.inters.size(), 2, "passado o intervalo, aparece")
 	# viu um vídeo premiado (ajuda): o próximo intersticial pula uma rodada
 	GameState.fixed_unix += 600
 	await Ads.play("r-1")
-	await Ads.maybe_interstitial(14)
 	await Ads.maybe_interstitial(15)
+	await Ads.maybe_interstitial(16)
 	assert_eq(plugin.inters.size(), 2, "não aparece logo depois de um vídeo premiado")
 	GameState.fixed_unix += 120
-	await Ads.maybe_interstitial(16)
+	await Ads.maybe_interstitial(17)
 	assert_eq(plugin.inters.size(), 3, "volta ao normal depois")
+	# vídeo premiado que não deu certo (fechou antes) não vale como anúncio visto
+	plugin.earn = false
+	await Ads.play("r-2")
+	assert_false(Ads.rewarded_since_inter, "propaganda fechada antes do fim não conta")
+	plugin.earn = true
 	assert_false(Ads.showing)
 	var names: Array = []
 	for c in calls:
@@ -583,9 +591,7 @@ func test_interstitial_not_loaded_does_not_hold_the_player() -> void:
 	plugin.inter_ready = false
 	Server.native_override = plugin
 	Ads.instant = false
-	Ads.last_ad_unix = 0
 	Ads.levels_since_inter = 5
-	Ads.rewarded_since_inter = false
 	await Server.load_config()
 	await Ads.maybe_interstitial(20)
 	assert_eq(plugin.inters.size(), 1, "pediu o anúncio")

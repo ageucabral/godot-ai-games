@@ -189,10 +189,12 @@ func _prefetch_level_if_home() -> void:
 		game.prefetch_next_level()
 
 
-## "Próximo nível" da vitória: antes de abrir, o anúncio entre níveis, se as regras do painel mandarem.
+## "Próximo nível" da vitória: antes de abrir, o anúncio entre níveis, se as regras do painel mandarem. Se o jogador saiu
+## da partida enquanto o anúncio estava aberto, não abre a fase por cima da outra tela.
 func _next_level() -> void:
 	await Ads.maybe_interstitial(GameState.current_level() - 1)
-	play_level()
+	if game.visible:
+		play_level()
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).
