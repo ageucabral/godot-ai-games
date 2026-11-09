@@ -59,8 +59,7 @@ func _connect_server() -> void:
 	if Account.check_gate(dialog):
 		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
 	await Account.connect_and_onboard(dialog)
-	if home.visible and not game.can_resume_level(GameState.current_level()):
-		game.prefetch_next_level()  # o app abriu no menu antes de entrar: o "Nível N" abre na hora
+	_prefetch_level_if_home()  # o app abriu no menu antes de entrar: o "Nível N" abre na hora
 	Server.take_launch_link()
 	Reminders.update()
 	_show_pending_duel()
@@ -129,32 +128,30 @@ func _show_pending_duel() -> bool:
 	return true
 
 
-## Desafios do dia: trancados até o nível Rules.UNLOCKS.daily (o cartão já avisa; aqui só garante).
+## Desafios do dia: trancados até o nível Rules.unlock_level("daily") (o cartão já avisa; aqui só garante).
 func _open_daily() -> void:
 	if Rules.unlocked("daily", GameState.current_level()):
 		show_screen(daily)
 
 
-## Chegou num nível que libera uma área nova: avisa uma vez, em uma frase ("Novo: Liga da semana!").
-## Várias áreas de uma vez (app atualizado ou progresso trazido do servidor) é quem já jogava: não avisa.
+## Chegou num nível que libera uma área nova: avisa uma vez, em uma frase ("Novo: Liga da semana!"). Guarda até que
+## nível já avisou; na primeira conferência (app atualizado, reinstalado ou progresso vindo do servidor) só marca.
 func _announce_unlocks() -> void:
 	if home.dialog.visible or dialog.visible:
 		return
 	var level := GameState.current_level()
-	var stored: Variant = GameState.get_setting("unlocks_seen", "")  # "" = primeira vez que confere
-	var seen: Array = stored if stored is Array else []
-	var news: Array = []
-	for feature: String in Rules.UNLOCKS:
-		if Rules.unlocked(feature, level) and feature not in seen:
-			news.append(feature)
-	if news.is_empty() and stored is Array:
+	var seen := int(GameState.get_setting("unlocks_seen_level", -1))
+	if seen >= level:
 		return
-	seen.append_array(news)
-	GameState.set_setting("unlocks_seen", seen)
-	if not stored is Array or news.size() != 1:
+	GameState.set_setting("unlocks_seen_level", level)
+	if seen < 0:
 		return
-	var info: Array = Rules.UNLOCK_TEXTS[news[0]]
-	home.dialog.open_card(tr("Novo: %s!") % tr(info[0]), tr(info[1]), [["Legal!", func() -> void: pass, true]])
+	var news := Rules.unlocked_between(seen, level)
+	if news.is_empty():
+		return
+	var names: Array = news.map(func(f: String) -> String: return tr(Rules.UNLOCKS[f][1]))
+	var texts: Array = news.map(func(f: String) -> String: return tr(Rules.UNLOCKS[f][2]))
+	home.dialog.open_card(tr("Novo: %s!") % tr(" e ").join(names), "\n".join(texts), [["Legal!", func() -> void: pass, true]])
 
 
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
@@ -181,10 +178,15 @@ func show_screen(screen: Control) -> void:
 		screen.refresh()
 	if Server.online() and screen != game:
 		Server.refresh_home()  # pontos e desafios atualizados pelo servidor
-	if screen == home and not game.can_resume_level(GameState.current_level()):
-		game.prefetch_next_level()  # o botão "Nível N" abre a fase na hora
 	if screen == home:
+		_prefetch_level_if_home()  # o botão "Nível N" abre a fase na hora
 		_announce_unlocks()
+
+
+## No menu sem partida para continuar: pede o próximo nível ao servidor desde já.
+func _prefetch_level_if_home() -> void:
+	if home.visible and not game.can_resume_level(GameState.current_level()):
+		game.prefetch_next_level()
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).

@@ -19,6 +19,9 @@ const POINTS_OVER_COLOR := Color("e0303f")
 @onready var _moves_value: Label = %MovesValue
 @onready var _points_value: Label = %PointsValue
 @onready var _subtitle: Label = %Subtitle
+## Cor do texto embaixo do título (dificuldade) e a do "Nível difícil".
+const SUBTITLE_COLOR := Color("c9d4ff")
+const HARD_COLOR := Color("d9b8ff")
 @onready var _menu_button: Button = %MenuButton
 @onready var _undo_button: BoosterButton = %UndoButton
 @onready var _hint_button: BoosterButton = %HintButton
@@ -99,7 +102,7 @@ func _style_hud() -> void:
 	%LevelPlate.add_theme_stylebox_override("panel", GameStyle.plate_box())
 	GameStyle.apply_title_look(_challenge_value, Color.WHITE, 10)
 	_subtitle.add_theme_font_override("font", GameStyle.title_font())
-	_subtitle.add_theme_color_override("font_color", Color("c9d4ff"))
+	_subtitle.add_theme_color_override("font_color", SUBTITLE_COLOR)
 	var chip := GameStyle.plate_box()
 	chip.bg_color = Color(0.1, 0.1, 0.3, 0.8)
 	chip.border_color = Color("4b4fa8")
@@ -238,6 +241,11 @@ func is_level() -> bool:
 	return challenge.get("mode", "daily") == "level"
 
 
+## Nível marcado como difícil (a cada Rules.HARD_EVERY).
+func _hard_level() -> bool:
+	return is_level() and Rules.is_hard_level(int(challenge.get("level", 0)))
+
+
 ## Desafio do dia (os outros modos — nível, evento e duelo — não contam tentativas).
 func is_daily() -> bool:
 	return challenge.get("mode", "daily") == "daily"
@@ -315,6 +323,10 @@ func open_with(data: Dictionary) -> void:
 		_bg.kind = Extras.background_kind(str(GameState.looks().get("bg", "night")))
 	_build_bottles()
 	pieces_card.reset()  # fase nova: o cartão das peças abre de novo (mesmo com o mesmo texto da anterior)
+	# embaixo do título: a dificuldade (desafios) ou "Nível difícil" (a cada 10 níveis), em lilás
+	var hard := _hard_level()
+	_subtitle.text = tr("Nível difícil") if hard else tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
+	_subtitle.add_theme_color_override("font_color", HARD_COLOR if hard else SUBTITLE_COLOR)
 	# a setinha guia até o nível Rules.TUTORIAL_LEVELS; a janela de boas-vindas só no 1
 	var level := int(data.get("level", 0))
 	tutorial = is_level() and level <= Rules.TUTORIAL_LEVELS and not bool(GameState.get_setting("tutorial_done", false))
@@ -522,10 +534,7 @@ func _refresh() -> void:
 	_show_points(current_points())
 	_challenge_value.text = title_text()
 	# a dificuldade só aparece nos desafios do dia (nos níveis, o número do nível já diz tudo)
-	var hard := is_level() and Rules.is_hard_level(int(challenge.get("level", 0)))
-	_subtitle.visible = is_daily() or hard
-	_subtitle.text = tr("Nível difícil") if hard else tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
-	_subtitle.add_theme_color_override("font_color", Color("d9b8ff") if hard else Color("c9d4ff"))
+	_subtitle.visible = is_daily() or _hard_level()
 	var boost_ok: bool = not _finished and can_use_boost()
 	_undo_button.disabled = _finished or not puzzle.can_undo() or out_of_moves()
 	# selo das ajudas: número de ajudas grátis (da sequência de dias) ou o ícone de vídeo
@@ -1000,6 +1009,8 @@ class PiecesCard extends CenterContainer:
 	var _panel: PanelContainer
 	var _list: VBoxContainer
 	var _lines: Array[String] = []
+	## Já abriu nesta fase (depois disso o texto só troca, ex.: o gelo contando, sem reabrir).
+	var _opened: bool = false
 	var _toggle: Button
 	var _timer: Timer
 
@@ -1040,8 +1051,8 @@ class PiecesCard extends CenterContainer:
 
 	## Fase nova: a próxima lista de peças abre o cartão de novo.
 	func reset() -> void:
-		_lines = []
-		custom_minimum_size = Vector2.ZERO
+		_opened = false
+		_timer.stop()
 
 	func is_open() -> bool:
 		return _panel.visible
@@ -1050,10 +1061,9 @@ class PiecesCard extends CenterContainer:
 		visible = not lines.is_empty()
 		if lines == _lines:
 			return  # o _refresh roda a cada jogada; só remonta quando o texto muda
-		# abre só na primeira vez da fase; depois (ex.: o gelo contando as jogadas) só troca o texto, sem reabrir
-		var first := _lines.is_empty()
 		_lines = lines
-		if first:
+		if not _opened:
+			_opened = true
 			set_open(true)
 		for c in _list.get_children():
 			c.queue_free()

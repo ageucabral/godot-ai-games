@@ -57,14 +57,13 @@ const LEVEL_STEPS: Array = [
 
 ## Liberação aos poucos (Ageu, 9/11/2026, como nos líderes do gênero): cada área abre num nível fixo, com um aviso
 ## "Novo!" de uma frase. Antes disso o jogador novo vê só o Nível e a engrenagem.
-const UNLOCKS := {"daily": 5, "league": 10, "collection": 15, "duel": 20, "event": 20}
-## Texto do aviso de cada área liberada.
-const UNLOCK_TEXTS := {
-	"daily": ["Desafios do dia", "20 desafios novos à meia-noite, iguais para todo mundo."],
-	"league": ["Liga da semana", "Compita com outros jogadores e suba de liga."],
-	"collection": ["Conquistas e frascos", "Medalhas, frascos e molduras para colecionar."],
-	"duel": ["Duelo", "Desafie um amigo na mesma fase depois de vencer."],
-	"event": ["Eventos", "Fases com tema e prêmios por tempo limitado, no hub Na Lata."],
+## área: [nível que libera, nome, frase do aviso]
+const UNLOCKS := {
+	"daily": [5, "Desafios do dia", "20 desafios novos à meia-noite, iguais para todo mundo."],
+	"league": [10, "Liga da semana", "Compita com outros jogadores e suba de liga."],
+	"collection": [15, "Conquistas e frascos", "Medalhas, frascos e molduras para colecionar."],
+	"duel": [20, "Duelo", "Desafie um amigo na mesma fase depois de vencer."],
+	"event": [20, "Eventos", "Fases com tema e prêmios por tempo limitado, no hub Na Lata."],
 }
 ## A cada quantos níveis vem um "Nível difícil" (só o selo roxo; a fase é a mesma do gerador).
 const HARD_EVERY: int = 10
@@ -74,7 +73,22 @@ const TUTORIAL_LEVELS: int = 3
 
 ## A área `feature` (chave de UNLOCKS) já está liberada para quem está no nível `level`.
 static func unlocked(feature: String, level: int) -> bool:
-	return level >= int(UNLOCKS.get(feature, 1))
+	return level >= unlock_level(feature)
+
+
+## Nível em que a área abre.
+static func unlock_level(feature: String) -> int:
+	return int(UNLOCKS[feature][0])
+
+
+## Áreas que abriram entre o nível `from` (exclusive) e `to` (inclusive), na ordem de liberação.
+static func unlocked_between(from: int, to: int) -> Array[String]:
+	var out: Array[String] = []
+	for feature: String in UNLOCKS:
+		var at := unlock_level(feature)
+		if at > from and at <= to:
+			out.append(feature)
+	return out
 
 
 ## Nível marcado como difícil (10, 20, 30…).

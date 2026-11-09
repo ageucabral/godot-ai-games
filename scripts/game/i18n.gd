@@ -16,6 +16,7 @@ const STRINGS := {
 	"Abre no nível %d": ["Unlocks at level %d", "Se abre en el nivel %d"],
 	"Novo: %s!": ["New: %s!", "¡Nuevo: %s!"],
 	"Legal!": ["Nice!", "¡Genial!"],
+	" e ": [" and ", " y "],
 	"Eventos": ["Events", "Eventos"],
 	"Seu próximo nível te espera!": ["Your next level is waiting!", "¡Tu próximo nivel te espera!"],
 	"20 desafios novos à meia-noite, iguais para todo mundo.": ["20 new challenges at midnight, the same for everyone.", "20 desafíos nuevos a medianoche, iguales para todos."],

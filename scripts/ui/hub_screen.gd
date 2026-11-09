@@ -85,11 +85,7 @@ func _ready() -> void:
 
 ## Só um jogo liberado: o app abre direto nele.
 func single_game() -> bool:
-	var n := 0
-	for g in GAMES:
-		if g[2]:
-			n += 1
-	return n == 1
+	return GAMES.filter(func(g: Array) -> bool: return g[2]).size() == 1
 
 
 ## A faixa mostra quanto falta para o mês (e a competição) acabar. O evento só aparece depois de liberado por nível.
