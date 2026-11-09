@@ -39,3 +39,14 @@ func test_month() -> void:
 	assert_eq(Rules.month_for(NOON_BRT), "2026-11")
 	assert_eq(Rules.days_left_in_month(NOON_BRT), 24)
 	assert_eq(Rules.pretty_date("2026-11-07"), "7 de novembro")
+
+
+func test_interstitial_due_follows_panel_rules() -> void:
+	# desligado (from = 0) nunca; antes do nível não; depois de vídeo premiado não
+	assert_false(Rules.interstitial_due(50, 9, 999, false, 0, 3, 90), "desligado")
+	assert_false(Rules.interstitial_due(9, 9, 999, false, 10, 3, 90), "antes do nível")
+	assert_false(Rules.interstitial_due(10, 9, 999, true, 10, 3, 90), "logo depois de vídeo premiado")
+	assert_false(Rules.interstitial_due(10, 2, 999, false, 10, 3, 90), "faltam níveis")
+	assert_false(Rules.interstitial_due(10, 3, 89, false, 10, 3, 90), "intervalo mínimo")
+	assert_true(Rules.interstitial_due(10, 3, 90, false, 10, 3, 90), "tudo certo")
+	assert_true(Rules.interstitial_due(10, 1, 0, false, 10, 0, 0), "every 0 vale 1")

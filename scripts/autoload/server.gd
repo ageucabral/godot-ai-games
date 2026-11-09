@@ -122,14 +122,28 @@ func can_sign_in_google() -> bool:
 
 ## Bloco da propaganda premiada (do painel; com o "modo de teste" ligado, o bloco de teste do Google).
 func rewarded_unit_id() -> String:
+	return ad_unit_id("rewarded")
+
+
+## Bloco de anúncio do AdMob pelo tipo ("rewarded", "interstitial"), do GET /config; "" se não veio.
+func ad_unit_id(kind: String) -> String:
 	var ads: Variant = config.get("ads")
 	if not ads is Dictionary:
 		return ""
 	var units: Variant = (ads as Dictionary).get("unitIds")
 	if not units is Dictionary:
 		return ""
-	var unit: Variant = (units as Dictionary).get("rewarded")
+	var unit: Variant = (units as Dictionary).get(kind)
 	return "" if unit == null else str(unit)
+
+
+## Regra numérica do painel (`config.rules`), ou `default` se o /config não trouxe.
+func rule_int(key: String, default: int) -> int:
+	var rules: Variant = config.get("rules")
+	if not rules is Dictionary:
+		return default
+	var v: Variant = (rules as Dictionary).get(key)
+	return default if v == null else int(v)
 
 
 ## Busca o GET /config e liga o AdMob do plugin.
@@ -152,6 +166,9 @@ func load_config() -> bool:
 	var preload_plugin := native_with("rewarded_ready")
 	if preload_plugin and not rewarded_unit_id().is_empty():
 		preload_plugin.preloadRewarded(rewarded_unit_id())
+	var inter_plugin := native_with("interstitial_finished")
+	if inter_plugin and not ad_unit_id("interstitial").is_empty() and rule_int("pcInterFrom", 0) > 0:
+		inter_plugin.preloadInterstitial(ad_unit_id("interstitial"))
 	return true
 
 

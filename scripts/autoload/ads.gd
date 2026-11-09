@@ -1,13 +1,17 @@
 extends Node
-## Propagandas premiadas. No Android com o plugin (android/plugin) é o AdMob de verdade, com a
-## confirmação do Google ao servidor (SSV). Sem o plugin (Web, computador, testes) é uma SIMULAÇÃO:
-## uma tela de 3 segundos que entrega a recompensa.
+## Propagandas: a premiada (ajudas, com a confirmação do Google ao servidor — SSV) e o anúncio entre níveis
+## (intersticial, regras do painel). No Android com o plugin (android/plugin) é o AdMob de verdade. Sem o plugin
+## (Web, computador, testes) é uma SIMULAÇÃO: uma tela de 3 segundos que entrega a recompensa.
 ## Disponível em qualquer script como `Ads`.
 
 ## Para testes: entrega a recompensa na hora, sem mostrar nada.
 var instant: bool = false
 var duration: float = 3.0
 var showing: bool = false
+## Quando o último anúncio (de qualquer tipo) apareceu, e o que aconteceu desde o último intersticial.
+var last_ad_unix: int = 0
+var levels_since_inter: int = 0
+var rewarded_since_inter: bool = false
 
 
 ## Mostra a propaganda e chama `on_reward` quando ela termina.
@@ -35,12 +39,56 @@ func play(custom_data: String = "") -> bool:
 		unit = Server.rewarded_unit_id()
 		if unit.is_empty() and not custom_data.is_empty():
 			return false  # sem o bloco do AdMob: a simulação nunca seria confirmada pelo servidor
+	_mark_ad(true)
 	if plugin and not unit.is_empty():
 		showing = true
 		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
 		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])
 		showing = false
 		return bool(out[0])
+	await _simulate(tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d"))
+	return true
+
+
+## Resolveu um nível e vai para o próximo: mostra o anúncio entre níveis se as regras do painel mandarem
+## (`Rules.interstitial_due`). Use com `await`; volta quando o anúncio fecha (ou na hora, se não era para aparecer).
+func maybe_interstitial(solved_level: int) -> void:
+	levels_since_inter += 1
+	var due := Rules.interstitial_due(solved_level, levels_since_inter, GameState.now_unix() - last_ad_unix, rewarded_since_inter,
+		Server.rule_int("pcInterFrom", 0), Server.rule_int("pcInterEvery", 3), Server.rule_int("pcInterGapSec", 90))
+	if rewarded_since_inter:
+		rewarded_since_inter = false
+		levels_since_inter = 0  # o vídeo premiado valeu como o anúncio desta rodada
+	if not due or showing:
+		return
+	if instant:
+		_mark_ad(false)
+		return
+	var plugin: Object = Server.native_with("interstitial_finished") if Server.enabled else null
+	var unit := Server.ad_unit_id("interstitial")
+	if plugin == null or unit.is_empty():
+		_mark_ad(false)
+		await _simulate(tr("ANÚNCIO\n(simulação)\n\n%d"))
+		return
+	showing = true
+	plugin.showInterstitial(unit)
+	var out: Array = await Server.wait_signal(Signal(plugin, "interstitial_finished"), Server.NATIVE_TIMEOUT_S, [false])
+	showing = false
+	if bool(out[0]):
+		_mark_ad(false)
+		Server.track("interstitial_shown", {"level": solved_level})
+
+
+func _mark_ad(rewarded: bool) -> void:
+	last_ad_unix = GameState.now_unix()
+	if rewarded:
+		rewarded_since_inter = true
+	else:
+		levels_since_inter = 0
+
+
+## Tela escura de `duration` segundos no lugar do AdMob (Web, computador, testes). `text` leva um %d com a contagem.
+func _simulate(text: String) -> void:
 	showing = true
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -64,9 +112,8 @@ func play(custom_data: String = "") -> bool:
 
 	var left := duration
 	while left > 0.0:
-		label.text = tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d") % ceili(left)
+		label.text = text % ceili(left)
 		await get_tree().create_timer(minf(1.0, left)).timeout
 		left -= 1.0
 	layer.queue_free()
 	showing = false
-	return true

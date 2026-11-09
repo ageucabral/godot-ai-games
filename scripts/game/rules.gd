@@ -219,3 +219,13 @@ static func pretty_date(date: String) -> String:
 
 static func month_name(month_key: String) -> String:
 	return I18n.t(MONTH_NAMES[int(month_key.split("-")[1]) - 1])
+
+
+## Anúncio entre níveis (intersticial; regras do painel `pcInterFrom`, `pcInterEvery`, `pcInterGapSec`). Aparece depois de
+## resolver o nível `solved` quando: a regra está ligada (from > 0) e o nível chegou lá; já se resolveram `every` níveis desde o
+## último; passaram `gap_sec` segundos desde o último anúncio de qualquer tipo; e nenhum vídeo premiado foi visto desde o
+## último intersticial (quem já assiste propaganda para as ajudas não vê outra em seguida).
+static func interstitial_due(solved: int, since_last: int, seconds_since_ad: int, rewarded_since: bool, from: int, every: int, gap_sec: int) -> bool:
+	if from <= 0 or solved < from or rewarded_since:
+		return false
+	return since_last >= maxi(1, every) and seconds_since_ad >= gap_sec

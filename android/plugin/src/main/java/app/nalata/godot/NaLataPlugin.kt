@@ -24,6 +24,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions
@@ -60,6 +62,12 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     private var loadingUnit = ""
     private val waiting = mutableListOf<(RewardedAd?) -> Unit>()
     private var lastLoadError = ""
+    // anúncio entre níveis (intersticial) já carregado, mesma validade
+    private var cachedInter: InterstitialAd? = null
+    private var cachedInterUnit = ""
+    private var cachedInterAt = 0L
+    private var loadingInter = false
+    private val waitingInter = mutableListOf<(InterstitialAd?) -> Unit>()
 
     override fun getPluginName() = "NaLata"
 
@@ -70,6 +78,8 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         SignalInfo("rewarded_ready", java.lang.Boolean::class.java),
         // ganhou a recompensa (assistiu até o fim), código do erro ("" se deu certo)
         SignalInfo("rewarded_finished", java.lang.Boolean::class.java, String::class.java),
+        // o anúncio entre níveis fechou (true se chegou a aparecer)
+        SignalInfo("interstitial_finished", java.lang.Boolean::class.java),
         // idToken ("" se não entrou), erro ("" | "cancelled" | "no_account" | mensagem)
         SignalInfo("google_signed_in", String::class.java, String::class.java),
         // token ("" se não deu), erro ("" se deu certo)
@@ -167,6 +177,75 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
                 ad.show(a) { earned = true }
             }
             load(a, unitId) { show(it) }
+        }
+    }
+
+    /** Já deixa um anúncio entre níveis carregado. */
+    @UsedByGodot
+    fun preloadInterstitial(unitId: String) {
+        val a = act() ?: return
+        a.runOnUiThread { loadInter(a, unitId) {} }
+    }
+
+    private fun freshInter(unitId: String): InterstitialAd? =
+        cachedInter?.takeIf { cachedInterUnit == unitId && System.currentTimeMillis() - cachedInterAt < 50 * 60 * 1000L }
+
+    /** Carrega o intersticial (ou usa o guardado); `done(null)` se não veio. Roda na thread da tela. */
+    private fun loadInter(a: Activity, unitId: String, done: (InterstitialAd?) -> Unit) {
+        freshInter(unitId)?.let { return done(it) }
+        waitingInter.add(done)
+        if (loadingInter) return
+        loadingInter = true
+        InterstitialAd.load(a, unitId, AdRequest.Builder().build(), object : InterstitialAdLoadCallback() {
+            override fun onAdLoaded(ad: InterstitialAd) {
+                loadingInter = false
+                cachedInter = ad
+                cachedInterUnit = unitId
+                cachedInterAt = System.currentTimeMillis()
+                answerInter(ad)
+            }
+
+            override fun onAdFailedToLoad(e: LoadAdError) {
+                loadingInter = false
+                Log.w(tag, "interstitial load: ${e.code} ${e.message}")
+                answerInter(null)
+            }
+        })
+    }
+
+    private fun answerInter(ad: InterstitialAd?) {
+        val all = waitingInter.toList()
+        waitingInter.clear()
+        all.forEach { it(ad) }
+    }
+
+    /**
+     * Mostra o anúncio entre níveis (o já carregado; se não houver nenhum pronto, responde na hora sem mostrar, para
+     * não segurar o jogador esperando). Responde com `interstitial_finished(apareceu)` e já carrega o próximo.
+     */
+    @UsedByGodot
+    fun showInterstitial(unitId: String) {
+        val a = act() ?: return emitSignal("interstitial_finished", false)
+        a.runOnUiThread {
+            val ad = freshInter(unitId)
+            if (ad == null) {
+                emitSignal("interstitial_finished", false)
+                loadInter(a, unitId) {}
+                return@runOnUiThread
+            }
+            cachedInter = null
+            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdDismissedFullScreenContent() {
+                    emitSignal("interstitial_finished", true)
+                    loadInter(a, unitId) {}
+                }
+
+                override fun onAdFailedToShowFullScreenContent(e: AdError) {
+                    emitSignal("interstitial_finished", false)
+                    loadInter(a, unitId) {}
+                }
+            }
+            ad.show(a)
         }
     }
 
