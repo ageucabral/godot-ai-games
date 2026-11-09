@@ -39,3 +39,10 @@ func test_month() -> void:
 	assert_eq(Rules.month_for(NOON_BRT), "2026-11")
 	assert_eq(Rules.days_left_in_month(NOON_BRT), 24)
 	assert_eq(Rules.pretty_date("2026-11-07"), "7 de novembro")
+
+
+func test_interstitial_due_follows_panel_rules() -> void:
+	assert_false(Rules.interstitial_due(2, 999, 3, 90), "faltam níveis")
+	assert_false(Rules.interstitial_due(3, 89, 3, 90), "intervalo mínimo")
+	assert_true(Rules.interstitial_due(3, 90, 3, 90), "tudo certo")
+	assert_true(Rules.interstitial_due(1, 0, 0, 0), "every 0 vale 1")

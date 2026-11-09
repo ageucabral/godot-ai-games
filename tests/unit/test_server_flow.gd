@@ -27,6 +27,9 @@ func before_each() -> void:
 	GameState.set_setting("tutorial_done", true)  # a partida guiada tem testes próprios
 	GameState.fixed_unix = 1794063600  # 7/11/2026 meio-dia em Brasília
 	Ads.instant = true
+	Ads.last_ad_unix = 0
+	Ads.levels_since_inter = 0
+	Ads.rewarded_since_inter = false
 	calls = []
 	forced = {}
 	home_extras = {}
@@ -117,7 +120,8 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		"/pocao/looks":
 			return _ok(body)
 		"/config":
-			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw"}}})
+			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw", "interstitial": "unit-in"}},
+				"rules": {"pcInterFrom": 10, "pcInterEvery": 2, "pcInterGapSec": 60}})
 		"/auth/google":
 			return _ok({"token": "tok-g", "profile": {"id": "u1", "guest": false, "nickname": "Ageu", "age": 30, "country": "BR"}, "merged": null})
 		"/ranking":
@@ -132,8 +136,13 @@ class FakePlugin extends RefCounted:
 	signal google_signed_in(id_token: String, error: String)
 	signal ads_initialized(ok: bool)
 	signal rewarded_ready(ok: bool)
+	signal interstitial_finished(shown: bool)
 	var shown: Array = []
 	var preloaded: Array = []
+	var inters: Array = []
+	var inter_preloaded: Array = []
+	## O intersticial já estava carregado (false = responde na hora sem mostrar, como o plugin de verdade).
+	var inter_ready: bool = true
 	var earn: bool = true
 	var id_token: String = "id-tok"
 
@@ -146,6 +155,13 @@ class FakePlugin extends RefCounted:
 	func showRewarded(unit_id: String, user_id: String, custom_data: String) -> void:
 		shown.append([unit_id, user_id, custom_data])
 		rewarded_finished.emit.call_deferred(earn, "" if earn else "closed")
+
+	func preloadInterstitial(unit_id: String) -> void:
+		inter_preloaded.append(unit_id)
+
+	func showInterstitial(unit_id: String) -> void:
+		inters.append(unit_id)
+		interstitial_finished.emit.call_deferred(inter_ready)
 
 	func googleSignIn(_client_id: String) -> void:
 		google_signed_in.emit.call_deferred(id_token, "" if not id_token.is_empty() else "cancelled")
@@ -519,6 +535,59 @@ func test_local_ad_without_unit_still_simulates() -> void:
 	Ads.duration = 3.0
 	assert_true(ok, "jogo local: a simulação entrega a recompensa")
 	assert_eq(plugin.shown.size(), 0, "não chama o AdMob sem bloco")
+	assert_false(Ads.showing)
+
+
+func test_interstitial_between_levels_follows_panel_rules() -> void:
+	var plugin := FakePlugin.new()
+	Server.native_override = plugin
+	Ads.instant = false
+	Ads.levels_since_inter = 5
+	await Server.load_config()
+	assert_eq(plugin.inter_preloaded.size(), 0, "no nível 1 não baixa o anúncio à toa (a regra começa no 10)")
+	# antes do nível 10 nunca aparece, e a contagem só começa no 10
+	await Ads.maybe_interstitial(9)
+	assert_eq(plugin.inters.size(), 0, "antes do nível da regra não aparece")
+	assert_eq(Ads.levels_since_inter, 0, "níveis antes da regra não contam")
+	await Ads.maybe_interstitial(10)
+	assert_eq(plugin.inters.size(), 0, "1º nível contado: ainda não")
+	assert_eq(plugin.inter_preloaded, ["unit-in"], "chegou na regra: já deixa o anúncio carregado")
+	await Ads.maybe_interstitial(11)
+	assert_eq(plugin.inters, ["unit-in"], "a cada 2 níveis: apareceu no 2º")
+	assert_eq(Ads.levels_since_inter, 0, "a contagem recomeça")
+	# viu um vídeo premiado (ajuda): o próximo intersticial pula uma rodada
+	GameState.fixed_unix += 600
+	await Ads.play("r-1")
+	await Ads.maybe_interstitial(12)
+	await Ads.maybe_interstitial(13)
+	assert_eq(plugin.inters.size(), 1, "não aparece logo depois de um vídeo premiado")
+	GameState.fixed_unix += 120
+	await Ads.maybe_interstitial(14)
+	assert_eq(plugin.inters.size(), 2, "volta ao normal depois")
+	# vídeo premiado que não deu certo (fechou antes) não vale como anúncio visto
+	plugin.earn = false
+	await Ads.play("r-2")
+	assert_false(Ads.rewarded_since_inter, "propaganda fechada antes do fim não conta")
+	plugin.earn = true
+	assert_false(Ads.showing)
+	var names: Array = []
+	for c in calls:
+		if c[1] == "/events":
+			for e in c[2].events:
+				names.append(e.name)
+	assert_true("interstitial_shown" in names, "mede quando o anúncio apareceu: " + str(names))
+
+
+func test_interstitial_not_loaded_does_not_hold_the_player() -> void:
+	var plugin := FakePlugin.new()
+	plugin.inter_ready = false
+	Server.native_override = plugin
+	Ads.instant = false
+	Ads.levels_since_inter = 5
+	await Server.load_config()
+	await Ads.maybe_interstitial(20)
+	assert_eq(plugin.inters.size(), 1, "pediu o anúncio")
+	assert_eq(Ads.levels_since_inter, 6, "não apareceu: a contagem continua para o próximo nível")
 	assert_false(Ads.showing)
 
 
