@@ -107,21 +107,11 @@ func _draw_label(body: Rect2) -> void:
 		var gap := font_size * 0.35
 		var text_w := font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 		var left := body.position.x + (body.size.x - icon_w - gap - text_w) * 0.5
-		draw_video_icon(self, Vector2(left + icon_w * 0.5, body.get_center().y), icon_w, col)
+		Icons.draw(self, "video", Vector2(left + icon_w * 0.5, body.get_center().y), icon_w, col)
 		pos = Vector2(left + icon_w + gap, baseline)
 		width = text_w + 2
 	draw_string_outline(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, width, font_size, maxi(8, font_size / 5), GameStyle.INK)
 	draw_string(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, width, font_size, col)
-
-
-## Ícone de vídeo: tela arredondada branca com contorno escuro e o "play" no meio.
-static func draw_video_icon(ci: CanvasItem, c: Vector2, w: float, col: Color = Color.WHITE) -> void:
-	var h := w * 0.74
-	var rect := Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h))
-	ci.draw_style_box(_box(GameStyle.INK, h * 0.3), rect.grow(3))
-	ci.draw_style_box(_box(col, h * 0.26), rect)
-	var t := h * 0.24
-	ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-t * 0.8, -t), c + Vector2(t * 1.1, 0), c + Vector2(-t * 0.8, t)]), GameStyle.INK)
 
 
 static func _box(color: Color, r: float, border: int = 0) -> StyleBoxFlat:

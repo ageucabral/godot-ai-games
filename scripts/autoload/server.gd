@@ -33,7 +33,7 @@ var native_override: Object = null
 var config: Dictionary = {}
 ## Músicas de fundo enviadas pelo painel (`config.music`), baixadas uma vez e guardadas aqui.
 var music_dir: String = "user://music"
-## Para testes: baixa o arquivo (caminho da API) e devolve os bytes (vazio = não deu).
+## Para testes: (url, arquivo de destino) -> bool; grava o arquivo no lugar do download de verdade.
 var music_download: Callable
 const MUSIC_TIMEOUT_S := 90.0
 ## Espera usada entre tentativas de confirmar a propaganda (os testes zeram).
@@ -168,15 +168,9 @@ func sync_music() -> void:
 				continue
 			var path := music_dir.path_join(file)
 			if not FileAccess.file_exists(path):
-				var bytes := await _download_music("/pocao/music/%d?v=%s" % [int(m.slot), str(m.version)])
-				# grava num arquivo temporário e só depois renomeia: um arquivo cortado no meio nunca fica com o nome final
+				# baixa num arquivo temporário e só renomeia completo: um arquivo cortado nunca fica com o nome final
 				var part := path + ".part"
-				var out := FileAccess.open(part, FileAccess.WRITE) if not bytes.is_empty() else null
-				if out == null:
-					continue
-				out.store_buffer(bytes)
-				out.close()
-				if DirAccess.rename_absolute(part, path) != OK:
+				if not await _download_music(str(m.get("url", "")), part) or DirAccess.rename_absolute(part, path) != OK:
 					DirAccess.remove_absolute(part)
 					continue
 			keep.append(file)
@@ -196,18 +190,20 @@ func _music_files() -> Array[String]:
 	return files
 
 
-func _download_music(path: String) -> PackedByteArray:
+## Baixa `url` (caminho da API, ex. "/pocao/music/1?v=…") direto para o arquivo `dest`, sem guardar na memória.
+func _download_music(url: String, dest: String) -> bool:
 	if music_download.is_valid():
-		return music_download.call(path)
+		return music_download.call(url, dest)
 	var http := HTTPRequest.new()
 	http.timeout = MUSIC_TIMEOUT_S
+	http.download_file = dest
 	add_child(http)
-	if http.request(base_url + path) != OK:
+	if url.is_empty() or http.request(base_url + url) != OK:
 		http.queue_free()
-		return PackedByteArray()
+		return false
 	var out: Array = await http.request_completed
 	http.queue_free()
-	return out[3] if out[0] == HTTPRequest.RESULT_SUCCESS and out[1] == 200 else PackedByteArray()
+	return out[0] == HTTPRequest.RESULT_SUCCESS and out[1] == 200
 
 
 ## Última versão mínima que o servidor mandou ("" = nenhuma), guardada no aparelho.

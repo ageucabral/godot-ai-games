@@ -147,9 +147,13 @@ func test_full_bottle_sparks_fly_out() -> void:
 func test_vibration_follows_its_switch() -> void:
 	Sfx.vibrated.clear()
 	Sfx.play("pour")
+	assert_eq(Sfx.vibrated, [], "fora do celular não vibra")
+	Sfx.vibrate_override = true
+	Sfx.play("pour")
 	Sfx.play("click")
 	assert_eq(Sfx.vibrated, ["pour"], "vibra ao despejar, não nos botões")
 	Sfx.set_vibration_enabled(false)
 	Sfx.play("tap")
 	assert_eq(Sfx.vibrated, ["pour"], "desligada na engrenagem")
 	Sfx.set_vibration_enabled(true)
+	Sfx.vibrate_override = null

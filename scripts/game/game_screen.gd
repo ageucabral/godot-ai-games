@@ -31,7 +31,7 @@ var puzzle: SortPuzzle
 var move_limit: int = 0
 var selected: int = -1
 var busy: bool = false
-var _completed: Array = []  # [frasco, cor] que acabou de ficar completo (festa depois do despejo)
+var _completed_at: int = -1  # frasco que acabou de ficar completo (festa depois do despejo)
 var dialog: DialogBox
 ## Cartão que explica o gelo e o frasco de uma cor (só aparece com essas peças na fase).
 var pieces_card: PiecesCard
@@ -408,7 +408,7 @@ func _do_pour(from: int, to: int) -> void:
 	Sfx.play("pour")
 	if SortPuzzle.is_complete(puzzle.tubes[to]):
 		Sfx.play("bottle_done", -3.0)
-		_completed = [to, color]
+		_completed_at = to
 	if not animate or not is_inside_tree():
 		_after_pour()
 		return
@@ -466,9 +466,9 @@ func _set_flow(src: BottleView, dst: BottleView, src_before: Array, dst_before: 
 
 func _after_pour() -> void:
 	_refresh()
-	if not _completed.is_empty():
-		_bottles[_completed[0]].celebrate(_completed[1])
-		_completed = []
+	if _completed_at >= 0:
+		_bottles[_completed_at].celebrate(puzzle.tubes[_completed_at][-1])
+		_completed_at = -1
 	if puzzle.is_solved():
 		end_tutorial(true)
 		_finish()
