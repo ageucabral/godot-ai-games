@@ -30,7 +30,7 @@ func _ready() -> void:
 	hub.event_requested.connect(func() -> void: play_event(hub))
 	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
-	home.daily_requested.connect(func() -> void: show_screen(daily))
+	home.daily_requested.connect(_open_daily)
 	home.ranking_requested.connect(func() -> void: open_ranking(home))
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
@@ -43,7 +43,8 @@ func _ready() -> void:
 	ranking.claim_requested.connect(func(payout_id: String) -> void: Prizes.open_claim(dialog, payout_id))
 	ranking.prizes_requested.connect(func() -> void: Prizes.open_my_prizes(dialog))
 	Server.home_updated.connect(_on_server_home)
-	show_screen(hub)
+	# com um jogo só, abre direto nele (Ageu, 9/11/2026); o hub fica a um toque em "Jogos"
+	show_screen(home if hub.single_game() else hub)
 	_connect_server()
 
 
@@ -126,6 +127,30 @@ func _show_pending_duel() -> bool:
 	return true
 
 
+## Desafios do dia: trancados até o nível Rules.UNLOCKS.daily (o cartão já avisa; aqui só garante).
+func _open_daily() -> void:
+	if Rules.unlocked("daily", GameState.current_level()):
+		show_screen(daily)
+
+
+## Chegou num nível que libera uma área nova: avisa uma vez, em uma frase ("Novo: Liga da semana!").
+func _announce_unlocks() -> void:
+	if home.dialog.visible or dialog.visible:
+		return
+	var level := GameState.current_level()
+	var seen: Array = GameState.get_setting("unlocks_seen", [])
+	for feature: String in Rules.UNLOCKS:
+		if feature in seen or not Rules.unlocked(feature, level):
+			continue
+		seen.append(feature)
+		GameState.set_setting("unlocks_seen", seen)
+		if level == 1:
+			continue  # jogador novo: nada para "liberar" ainda
+		var info: Array = Rules.UNLOCK_TEXTS[feature]
+		home.dialog.open_card(tr("Novo: %s!") % tr(info[0]), tr(info[1]), [["Legal!", func() -> void: pass, true]])
+		return
+
+
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
 func open_game(_game_id: String) -> void:
 	show_screen(home)
@@ -152,6 +177,8 @@ func show_screen(screen: Control) -> void:
 		Server.refresh_home()  # pontos e desafios atualizados pelo servidor
 	if screen == home and not game.can_resume_level(GameState.current_level()):
 		game.prefetch_next_level()  # o botão "Nível N" abre a fase na hora
+	if screen == home:
+		_announce_unlocks()
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).

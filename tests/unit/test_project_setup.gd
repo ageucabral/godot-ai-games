@@ -17,7 +17,7 @@ func test_main_scene_instantiates() -> void:
 	var scene := packed.instantiate()
 	add_child(scene)
 	await get_tree().process_frame
-	assert_true(scene.get_node("Hub").visible, "abre no hub Na Lata")
+	assert_true(scene.get_node("Home").visible, "com um jogo só, abre direto no Poção de Cores")
 	assert_false(scene.get_node("Game").visible)
 	scene.queue_free()
 

@@ -94,6 +94,12 @@ func current_level() -> int:
 	return _cfg.get_value(PLAYER, "level", 1)
 
 
+## Pula para um nível (testes e capturas de tela).
+func set_level(level: int) -> void:
+	_cfg.set_value(PLAYER, "level", maxi(1, level))
+	_save()
+
+
 ## Guarda o nível resolvido (vale para o ranking do mês em que foi resolvido), as estrelas e libera o próximo.
 ## Só conta uma vez: resolver de novo um nível que já passou não muda nada.
 func complete_level(level: int, points: int, moves: int, par: int = 0) -> void:

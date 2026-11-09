@@ -314,9 +314,11 @@ func open_with(data: Dictionary) -> void:
 	else:
 		_bg.kind = Extras.background_kind(str(GameState.looks().get("bg", "night")))
 	_build_bottles()
-	tutorial = is_level() and int(data.get("level", 0)) == 1 and not bool(GameState.get_setting("tutorial_done", false))
+	# a setinha guia até o nível Rules.TUTORIAL_LEVELS; a janela de boas-vindas só no 1
+	var level := int(data.get("level", 0))
+	tutorial = is_level() and level <= Rules.TUTORIAL_LEVELS and not bool(GameState.get_setting("tutorial_done", false))
 	_refresh()
-	if tutorial:
+	if tutorial and level == 1:
 		dialog.open("Primeira partida", "Toque numa garrafa e depois em outra para despejar. Só dá para despejar em cima da mesma cor ou numa garrafa vazia. Siga a setinha!", [
 			["Começar", func() -> void: pass, true],
 		])
@@ -327,6 +329,8 @@ func end_tutorial(done: bool) -> void:
 	if not tutorial:
 		return
 	tutorial = false
+	if done and int(challenge.get("level", 1)) < Rules.TUTORIAL_LEVELS:
+		return  # venceu um dos primeiros níveis: a setinha segue no próximo
 	GameState.set_setting("tutorial_done", true)
 	Server.track("tutorial_done" if done else "tutorial_skipped")
 	_update_hint()
@@ -517,8 +521,10 @@ func _refresh() -> void:
 	_show_points(current_points())
 	_challenge_value.text = title_text()
 	# a dificuldade só aparece nos desafios do dia (nos níveis, o número do nível já diz tudo)
-	_subtitle.visible = is_daily()
-	_subtitle.text = tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
+	var hard := is_level() and Rules.is_hard_level(int(challenge.get("level", 0)))
+	_subtitle.visible = is_daily() or hard
+	_subtitle.text = tr("Nível difícil") if hard else tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
+	_subtitle.add_theme_color_override("font_color", Color("d9b8ff") if hard else Color("c9d4ff"))
 	var boost_ok: bool = not _finished and can_use_boost()
 	_undo_button.disabled = _finished or not puzzle.can_undo() or out_of_moves()
 	# selo das ajudas: número de ajudas grátis (da sequência de dias) ou o ícone de vídeo
@@ -929,7 +935,7 @@ func _show_online_win(points: int, used: int, extras: Variant) -> void:
 func _show_win(points: int, used: int, note: String, extras: Variant, buttons: Array) -> void:
 	_celebrate()
 	var lines := Extras.win_lines(extras)
-	if is_online() and is_level():
+	if is_online() and is_level() and Rules.unlocked("duel", GameState.current_level()):
 		var match_id: String = challenge.match_id
 		buttons.insert(buttons.size() - 1, ["Desafiar amigo", func() -> void:
 			Extras.share_duel(dialog, match_id, used, func() -> void: _open_win(points, used, note, lines, buttons))])
@@ -986,31 +992,58 @@ func _celebrate() -> void:
 	p.finished.connect(p.queue_free)
 
 
-## Cartão claro com uma linha por peça especial ("🧊 Frasco de gelo: derrete depois de 3 jogadas.").
+## Cartão claro com uma linha por peça especial ("🧊 Frasco de gelo: derrete depois de 3 jogadas."). Depois de alguns
+## segundos recolhe num botão "?" (toque para abrir de novo), para não tampar a partida.
 class PiecesCard extends CenterContainer:
+	const OPEN_SECONDS := 6.0
+	var _panel: PanelContainer
 	var _list: VBoxContainer
 	var _lines: Array[String] = []
+	var _toggle: Button
+	var _timer: Timer
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		visible = false
-		var p := PanelContainer.new()
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_panel = PanelContainer.new()
+		_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var st := GameStyle.card_box()
 		st.set_content_margin_all(16)
 		st.content_margin_left = 22
 		st.content_margin_right = 22
-		p.add_theme_stylebox_override("panel", st)
-		add_child(p)
+		_panel.add_theme_stylebox_override("panel", st)
+		add_child(_panel)
 		_list = VBoxContainer.new()
 		_list.add_theme_constant_override("separation", 6)
-		p.add_child(_list)
+		_panel.add_child(_list)
+		_toggle = GameStyle.make_button("?", false, 30, GameStyle.PAPER)
+		_toggle.radius = 24
+		_toggle.custom_minimum_size = Vector2(72, 64)
+		_toggle.visible = false
+		_toggle.pressed.connect(func() -> void: set_open(not _panel.visible))
+		add_child(_toggle)
+		_timer = Timer.new()
+		_timer.one_shot = true
+		_timer.wait_time = OPEN_SECONDS
+		_timer.timeout.connect(func() -> void: set_open(false))
+		add_child(_timer)
+
+	## Aberto (texto completo, fecha sozinho) ou recolhido (só o "?").
+	func set_open(open: bool) -> void:
+		_panel.visible = open
+		_toggle.visible = not open
+		if open and is_inside_tree():
+			_timer.start()
+
+	func is_open() -> bool:
+		return _panel.visible
 
 	func update(lines: Array[String]) -> void:
 		visible = not lines.is_empty()
 		if lines == _lines:
 			return  # o _refresh roda a cada jogada; só remonta quando o texto muda
 		_lines = lines
+		set_open(true)
 		for c in _list.get_children():
 			c.queue_free()
 		for line in lines:

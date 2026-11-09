@@ -10,6 +10,18 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
 	"Vibração": ["Vibration", "Vibración"],
+	# liberação por nível, nível difícil e cartão dos desafios (9/11/2026)
+	"Nível %d · difícil": ["Level %d · hard", "Nivel %d · difícil"],
+	"Nível difícil": ["Hard level", "Nivel difícil"],
+	"Abre no nível %d": ["Unlocks at level %d", "Se abre en el nivel %d"],
+	"Novo: %s!": ["New: %s!", "¡Nuevo: %s!"],
+	"Legal!": ["Nice!", "¡Genial!"],
+	"Eventos": ["Events", "Eventos"],
+	"20 desafios novos à meia-noite, iguais para todo mundo.": ["20 new challenges at midnight, the same for everyone.", "20 desafíos nuevos a medianoche, iguales para todos."],
+	"Compita com outros jogadores e suba de liga.": ["Compete with other players and climb the leagues.", "Compite con otros jugadores y sube de liga."],
+	"Medalhas, frascos e molduras para colecionar.": ["Medals, flasks and frames to collect.", "Medallas, frascos y marcos para coleccionar."],
+	"Desafie um amigo na mesma fase depois de vencer.": ["Challenge a friend on the same stage after you win.", "Desafía a un amigo en la misma fase después de ganar."],
+	"Fases com tema e prêmios por tempo limitado, no hub Na Lata.": ["Themed stages with prizes for a limited time, in the Na Lata hub.", "Fases con tema y premios por tiempo limitado, en el hub Na Lata."],
 	"+1 frasco": ["+1 flask", "+1 frasco"],
 	"Jogar de novo": ["Play again", "Jugar de nuevo"],
 	"Nenhum evento agora.": ["No event right now.", "Ningún evento ahora."],

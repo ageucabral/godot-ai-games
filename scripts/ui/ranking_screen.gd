@@ -211,8 +211,8 @@ func _fetch() -> void:
 
 func refresh() -> void:
 	var online := Server.online()
-	tabs.visible = online
-	if not online:
+	tabs.visible = online and Rules.unlocked("league", GameState.current_level())
+	if not tabs.visible:
 		tab = "global"
 	for id: String in tab_buttons:
 		var b: GlossButton = tab_buttons[id]

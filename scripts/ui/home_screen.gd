@@ -1,7 +1,8 @@
 extends Control
 ## Tela inicial do Poção de Cores, como na proposta aprovada (Ageu, 9/11/2026): pontos do mês, a sequência de dias e
 ## configurações em cima, nome do jogo, o mapa de níveis (os já feitos com estrelas, o de agora em verde e os próximos),
-## o botão verde "Nível N", logo abaixo o botão laranja dos desafios do dia (com quantos já foram feitos) e, na lateral
+## o botão verde "Nível N" (roxo com "difícil" a cada 10 níveis), logo abaixo o cartão dos desafios do dia (menor,
+## com a barra 3/20; trancado até o nível Rules.UNLOCKS.daily) e, na lateral
 ## direita, os ícones Jogos · Ranking (Ageu, 8/11/2026: sem barra embaixo; o perfil fica dentro da engrenagem).
 ## O evento fica no hub Na Lata (cartão com a trilha de prêmios).
 
@@ -21,7 +22,7 @@ var streak_label: Label
 var streak_flame: Extras.FlameIcon
 var level_map: LevelMap
 var level_button: GlossButton
-var daily_button: GlossButton
+var daily_button: DailyCard
 var settings_button: IconButton
 ## Ícones da lateral, por nome: "games", "ranking".
 var side_buttons: Dictionary = {}
@@ -93,10 +94,8 @@ func _build() -> void:
 	level_button.pulse = true
 	level_button.pressed.connect(func() -> void: level_requested.emit())
 	buttons.add_child(level_button)
-	# desafios do dia, logo abaixo: mostra quantos já foram feitos
-	daily_button = GameStyle.make_button("", false, 34, DAILY_COLOR)
-	daily_button.custom_minimum_size = Vector2(0, 88)
-	daily_button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	# desafios do dia, logo abaixo, menor que o nível: cartão com a barra de quantos já foram feitos
+	daily_button = DailyCard.new()
 	daily_button.pressed.connect(func() -> void: daily_requested.emit())
 	buttons.add_child(daily_button)
 
@@ -153,10 +152,17 @@ func refresh() -> void:
 	_shown_day = GameState.today()
 	var month := Rules.month_for(GameState.now_unix())
 	points_label.text = str(GameState.game_month_total("potion", month).points)
-	level_button.text = tr("Nível %d") % GameState.current_level()
+	var level := GameState.current_level()
+	var hard := Rules.is_hard_level(level)
+	level_button.text = tr("Nível %d · difícil") % level if hard else tr("Nível %d") % level
+	level_button.fill = GameStyle.PURPLE if hard else GameStyle.GREEN
+	level_button.queue_redraw()
 	var done := Menus.daily_done()
 	daily_button.text = daily_text(done)
+	daily_button.done = done
+	daily_button.locked_at = 0 if Rules.unlocked("daily", level) else int(Rules.UNLOCKS.daily)
 	daily_button.fill = GameStyle.PURPLE if done >= Rules.DAILY_COUNT else DAILY_COLOR
+	daily_button.disabled = daily_button.locked_at > 0
 	daily_button.queue_redraw()
 	var s := GameState.streak()
 	streak_label.text = str(s.count)
@@ -180,6 +186,54 @@ static func _spacer(h: float) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(0, h)
 	return c
+
+
+## Cartão dos desafios do dia: claro, menor que o botão do nível, com o nome à esquerda, "3/20" à direita e a barra
+## de progresso embaixo. Trancado ("Abre no nível 5") antes de liberar.
+class DailyCard extends Button:
+	var done: int = 0
+	## Nível que libera (0 = liberado).
+	var locked_at: int = 0
+	var fill: Color = Color("ff8a1f")
+
+	func _init() -> void:
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		custom_minimum_size = Vector2(0, 96)
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+			add_theme_color_override(c, Color(0, 0, 0, 0))
+
+	func _draw() -> void:
+		var sink := 3.0 if is_pressed() else 0.0
+		var r := Rect2(Vector2(0, sink), Vector2(size.x, size.y - 4))
+		var box := GameStyle.card_box()
+		box.set_content_margin_all(0)
+		box.bg_color = Color("e8e4f3") if locked_at > 0 else GameStyle.PAPER
+		draw_style_box(box, r)
+		var font := GameStyle.title_font()
+		var ink := Color(GameStyle.INK, 0.55) if locked_at > 0 else GameStyle.INK
+		var parts := text.split("  ")
+		var name_text: String = parts[0]
+		var count_text: String = parts[1] if parts.size() > 1 else ""
+		var y := r.position.y + 42
+		draw_string(font, Vector2(28, y), name_text, HORIZONTAL_ALIGNMENT_LEFT, size.x - 56, 30, ink)
+		if locked_at > 0:
+			var lock := tr("Abre no nível %d") % locked_at
+			draw_string(font, Vector2(28, y), lock, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 56, 26, Color(GameStyle.PURPLE, 0.9))
+			return
+		draw_string(font, Vector2(28, y), count_text, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 56, 32, fill)
+		# barra de progresso
+		var bar := Rect2(28, r.position.y + 60, size.x - 56, 14)
+		var bar_box := StyleBoxFlat.new()
+		bar_box.set_corner_radius_all(7)
+		bar_box.bg_color = Color("e4dcf5")
+		draw_style_box(bar_box, bar)
+		if done > 0:
+			var full := StyleBoxFlat.new()
+			full.set_corner_radius_all(7)
+			full.bg_color = fill
+			draw_style_box(full, Rect2(bar.position, Vector2(maxf(14.0, bar.size.x * minf(1.0, float(done) / Rules.DAILY_COUNT)), bar.size.y)))
 
 
 ## Mapa dos níveis: um caminho de bolinhas subindo a tela, os 2 últimos feitos (dourados, com as estrelas), o de
