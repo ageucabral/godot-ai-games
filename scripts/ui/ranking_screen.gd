@@ -184,13 +184,15 @@ func refresh() -> void:
 	var total := GameState.global_month_total(month)
 	points_label.text = tr("%d pts") % total.points
 	var position: Variant = total.get("position")
-	position_label.text = ("%dº" % int(position)) if position != null else "–"
 	if position != null:
+		position_label.text = "%dº" % int(position)
 		detail_label.text = gap_text(rows, position)
-	elif total.points > 0:
-		detail_label.text = tr("%d jogadas no mês") % total.moves  # sem servidor (Web): sem posição
 	else:
-		detail_label.text = tr("Jogue para entrar no ranking")
+		position_label.text = "–"
+		if total.points > 0:
+			detail_label.text = tr("%d jogadas no mês") % total.moves  # sem servidor (Web): sem posição
+		else:
+			detail_label.text = tr("Jogue para entrar no ranking")
 	var online := Server.online()
 	claim_button.visible = online and not Prizes.pending_payouts().is_empty()
 	invite_button.visible = online
@@ -265,12 +267,10 @@ func _fill_top() -> void:
 		c.queue_free()
 	top_card.visible = not rows.is_empty()
 	var last_prize := _last_prize_position()
-	var i := 0
-	for r in rows:
-		var pos := int(r[0])
+	for i in rows.size():
+		var r: Array = rows[i]
 		top_list.add_child(_row(r, i))
-		i += 1
-		if last_prize > 0 and pos == last_prize and r != rows.back():
+		if last_prize > 0 and int(r[0]) == last_prize and i < rows.size() - 1:
 			var cut := GameStyle.make_label("— " + tr("até aqui ganha prêmio") + " —", 20, false, Color(GameStyle.INK, 0.55))
 			top_list.add_child(cut)
 
@@ -280,7 +280,12 @@ func _row(r: Array, index: int) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = ME_COLOR if mine else (ROW_ALT if index % 2 == 0 else Color(0, 0, 0, 0))
+	if mine:
+		bg.bg_color = ME_COLOR
+	elif index % 2 == 0:
+		bg.bg_color = ROW_ALT
+	else:
+		bg.bg_color = Color(0, 0, 0, 0)
 	bg.set_corner_radius_all(16)
 	bg.content_margin_left = 12
 	bg.content_margin_right = 16
@@ -358,7 +363,7 @@ class DeltaMark extends Control:
 		var font := GameStyle.title_font()
 		var c := Vector2(14, size.y * 0.5)
 		if d == 0:
-			draw_line(c + Vector2(-8, 0), c + Vector2(8, 0), Color(GameStyle.INK if not on_dark else Color.WHITE, 0.5), 4.0)
+			draw_line(c + Vector2(-8, 0), c + Vector2(8, 0), Color(Color.WHITE if on_dark else GameStyle.INK, 0.5), 4.0)
 			return
 		var col := UP if d > 0 else DOWN
 		if on_dark:

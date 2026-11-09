@@ -132,7 +132,7 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 		_show_loading(false)
 		# um nível pedido antes ainda a caminho: espera chegar, senão o servidor pode abri-lo depois
 		# deste desafio e fechar a partida do desafio
-		if not _next_level.is_empty() and not _next_level.has("res"):
+		if _next_level_pending():
 			await _next_level_arrived
 		drop_next_level()
 		var body := {"mode": "daily", "index": index}
@@ -184,7 +184,7 @@ func prefetch_next_level() -> void:
 func _take_next_level() -> Dictionary:
 	if _next_level.is_empty():
 		return {}
-	if not _next_level.has("res"):
+	if _next_level_pending():
 		busy = true  # nada de pausa ou ajudas na partida anterior enquanto espera
 		dialog.open("Carregando…", "", [])
 		await _next_level_arrived
@@ -194,6 +194,11 @@ func _take_next_level() -> Dictionary:
 	if not item.has("res") or Time.get_ticks_msec() - int(item.at) > PREFETCH_TTL_MS:
 		return {}
 	return item.res
+
+
+## O nível foi pedido e a resposta ainda não chegou.
+func _next_level_pending() -> bool:
+	return not _next_level.is_empty() and not _next_level.has("res")
 
 
 ## Esquece o nível pedido antes (outra partida vai abrir e o servidor fecha a dele).

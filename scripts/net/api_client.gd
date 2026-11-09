@@ -231,8 +231,7 @@ static func link(config: Dictionary, key: String) -> String:
 	return DEFAULT_LINKS.get(key, "")
 
 
-## Prêmios do mês (GET /ranking › prizes) em linhas: "1º lugar: US$ 100", "4º ao 10º: US$ 5 cada".
-## Faixas de prêmio curtas para as pílulas do ranking: [["1º", "US$ 10"], ["4º–10º", "US$ 1"]].
+## Prêmios do mês (GET /ranking › prizes) em faixas curtas para as pílulas do ranking: [["1º", "US$ 10"], ["4º–10º", "US$ 1"]].
 static func prize_chips(prizes: Variant) -> Array:
 	var out: Array = []
 	if not prizes is Array:
