@@ -112,6 +112,9 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 			return _ok({"matchId": "m-1", "solved": true, "rejected": false, "movesUsed": 3, "par": 3, "fullPoints": 6,
 				"points": server_points, "credited": server_points, "best": null, "newBest": true, "nextLevel": level_number + 1,
 				"gamePoints": 140, "gamePosition": 2, "extras": finish_extras})
+		"/pocao/missions/exact1/claim":
+			home_extras["missions"] = [{"id": "solve3", "goal": 3, "value": 1, "claimed": false}, {"id": "exact1", "goal": 1, "value": 1, "claimed": true}, {"id": "daily3", "goal": 3, "value": 0, "claimed": false}]
+			return _ok({"freeBoosts": 1, "missions": home_extras["missions"]})
 		"/pocao/duels":
 			return _ok({"code": "AB12CD", "expiresAt": "2026-11-14T15:00:00Z"})
 		"/pocao/duels/AB12CD":
@@ -602,6 +605,29 @@ func test_interstitial_between_levels_follows_panel_rules() -> void:
 			for e in c[2].events:
 				names.append(e.name)
 	assert_true("interstitial_shown" in names, "mede quando o anúncio apareceu: " + str(names))
+
+
+func test_daily_missions_show_progress_and_claim_a_free_boost() -> void:
+	home_extras["missions"] = [{"id": "solve3", "goal": 3, "value": 1, "claimed": false}, {"id": "exact1", "goal": 1, "value": 1, "claimed": false}, {"id": "daily3", "goal": 3, "value": 0, "claimed": false}]
+	home_extras["streak"] = {"count": 1, "best": 1, "playedToday": true, "freeBoosts": 0}
+	await Server.load_config()
+	await Server.refresh_home()
+	main.show_screen(main.home)
+	assert_true(main.home.side_buttons["missions"].visible, "3º ícone lateral: Missões (nível 4 já libera)")
+	Extras.open_missions(main.home.dialog)
+	assert_eq(main.home.dialog.title_label.text, "🎯 Missões do dia")
+	var claim: Array = main.home.dialog.find_children("*", "GlossButton", true, false).filter(func(b: Button) -> bool: return b.text == "Resgatar")
+	assert_eq(claim.size(), 1, "só a missão concluída tem Resgatar")
+	(claim[0] as Button).pressed.emit()
+	await wait_physics_frames(4)
+	assert_true(_paths().has("/pocao/missions/exact1/claim"), "pediu a ajuda ao servidor")
+	assert_eq(int(GameState.streak().free_boosts), 1, "ajuda grátis guardada")
+	assert_eq(main.home.dialog.find_children("*", "GlossButton", true, false).filter(func(b: Button) -> bool: return b.text == "Resgatar").size(), 0, "já resgatada: sem botão")
+	# sem missões (sem servidor) ou antes do nível 3, o ícone some
+	home_extras.erase("missions")
+	await Server.refresh_home()
+	main.home.refresh()
+	assert_false(main.home.side_buttons["missions"].visible)
 
 
 ## Liga a loja de mentira: entra no servidor, busca o menu e espera a Play responder.

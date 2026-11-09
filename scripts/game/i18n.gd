@@ -10,6 +10,15 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
 	"Vibração": ["Vibration", "Vibración"],
+	# missões do dia (9/11/2026)
+	"Missões": ["Missions", "Misiones"],
+	"Missões do dia": ["Daily missions", "Misiones del día"],
+	"3 tarefas por dia; cada uma concluída dá 1 ajuda grátis.": ["3 tasks a day; each one you finish gives 1 free boost.", "3 tareas por día; cada una completada da 1 ayuda gratis."],
+	"Cada missão concluída dá 1 ajuda grátis. Missões novas à meia-noite.": ["Each finished mission gives 1 free boost. New missions at midnight.", "Cada misión completada da 1 ayuda gratis. Misiones nuevas a medianoche."],
+	"Resolva 3 fases": ["Solve 3 stages", "Resuelve 3 fases"],
+	"Faça 1 fase com jogadas exatas": ["Finish 1 stage with exact moves", "Haz 1 fase con jugadas exactas"],
+	"Jogue 3 desafios do dia": ["Play 3 daily challenges", "Juega 3 desafíos del día"],
+	"Resgatar": ["Claim", "Canjear"],
 	# liberação por nível, nível difícil e cartão dos desafios (9/11/2026)
 	"Nível %d · difícil": ["Level %d · hard", "Nivel %d · difícil"],
 	"Nível difícil": ["Hard level", "Nivel difícil"],

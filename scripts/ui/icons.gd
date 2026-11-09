@@ -81,6 +81,17 @@ static func draw_line_icon(ci: CanvasItem, kind: String, c: Vector2, s: float) -
 				# o segundo quadradinho é cheio (dourado); os outros, só a borda
 				var sb := _round_box(int(g * 0.3), 0, GameStyle.GOLD) if i == 1 else _round_box(int(g * 0.3), int(w), col)
 				ci.draw_style_box(sb, rect)
+		"missions":
+			# três linhas de lista; a primeira já marcada (dourada)
+			for i in 3:
+				var y := c.y + (i - 1) * s * 0.62
+				var done := i == 0
+				var mark := GameStyle.GOLD if done else col
+				if done:
+					ci.draw_polyline(PackedVector2Array([Vector2(c.x - s * 0.82, y), Vector2(c.x - s * 0.62, y + s * 0.2), Vector2(c.x - s * 0.36, y - s * 0.22)]), mark, w, true)
+				else:
+					ci.draw_arc(Vector2(c.x - s * 0.6, y), s * 0.2, 0, TAU, 16, mark, w, true)
+				ci.draw_line(Vector2(c.x - s * 0.16, y), Vector2(c.x + s * 0.85, y), col, w, true)
 		"trophy":
 			var cup := PackedVector2Array()
 			for i in 13:

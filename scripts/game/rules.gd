@@ -59,6 +59,7 @@ const LEVEL_STEPS: Array = [
 ## "Novo!" de uma frase. Antes disso o jogador novo vê só o Nível e a engrenagem.
 ## área: [nível que libera, nome, frase do aviso]
 const UNLOCKS := {
+	"missions": [3, "Missões do dia", "3 tarefas por dia; cada uma concluída dá 1 ajuda grátis."],
 	"daily": [5, "Desafios do dia", "20 desafios novos à meia-noite, iguais para todo mundo."],
 	"league": [10, "Liga da semana", "Compita com outros jogadores e suba de liga."],
 	"collection": [15, "Conquistas e frascos", "Medalhas, frascos e molduras para colecionar."],

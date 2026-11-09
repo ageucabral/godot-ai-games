@@ -186,6 +186,80 @@ static func _streak_box(d: Array) -> Control:
 	return col
 
 
+# ---------- missões do dia ----------
+
+## Nome de cada missão do servidor (`id` → texto).
+const MISSION_NAMES := {"solve3": "Resolva 3 fases", "exact1": "Faça 1 fase com jogadas exatas", "daily3": "Jogue 3 desafios do dia"}
+
+
+## Missões do dia: 3 tarefas, cada uma com barra de progresso e "Resgatar" quando concluída (+1 ajuda grátis).
+static func open_missions(dialog: DialogBox) -> void:
+	var free := int(GameState.streak().free_boosts)
+	var text := I18n.t("Cada missão concluída dá 1 ajuda grátis. Missões novas à meia-noite.")
+	if free > 0:
+		text += "\n🎁 " + I18n.t("Ajudas grátis guardadas: %d") % free
+	dialog.open_card("🎯 " + I18n.t("Missões do dia"), text, [["Fechar", func() -> void: pass, true]], GameStyle.GOLD)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	for m: Dictionary in GameState.missions():
+		box.add_child(_mission_row(dialog, m))
+	dialog.add_content(box)
+
+
+static func _mission_row(dialog: DialogBox, m: Dictionary) -> Control:
+	var id := str(m.get("id", ""))
+	var goal := int(m.get("goal", 1))
+	var value := int(m.get("value", 0))
+	var claimed := bool(m.get("claimed", false))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 6)
+	var name := GameStyle.make_label(MISSION_NAMES.get(id, id), 24, true)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	col.add_child(name)
+	var sub := I18n.t("Abre no nível %d") % Rules.unlock_level("daily") if id == "daily3" and not Rules.unlocked("daily", GameState.current_level()) else "%d/%d" % [value, goal]
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	var bar := ProgressLine.new(float(value) / float(goal))
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(bar)
+	var count := GameStyle.make_label(sub, 20, true, Color(GameStyle.INK, 0.8))
+	count.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	line.add_child(count)
+	col.add_child(line)
+	row.add_child(col)
+	if claimed:
+		var ok := GameStyle.make_label("✓", 30, true, GameStyle.GREEN)
+		ok.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		ok.custom_minimum_size = Vector2(150, 0)
+		row.add_child(ok)
+	elif value >= goal:
+		var b := GameStyle.make_button("Resgatar", true, 24)
+		b.custom_minimum_size = Vector2(150, 56)
+		b.pressed.connect(func() -> void: _claim_mission(dialog, id))
+		row.add_child(b)
+	else:
+		var gift := GameStyle.make_label("🎁", 30)
+		gift.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		gift.custom_minimum_size = Vector2(150, 0)
+		row.add_child(gift)
+	return row
+
+
+## Pede a ajuda grátis da missão ao servidor e redesenha a janela.
+static func _claim_mission(dialog: DialogBox, id: String) -> void:
+	dialog.open("Carregando…", "", [])
+	var res: Dictionary = await Server.call_api("POST", "/pocao/missions/%s/claim" % id)
+	if res.ok:
+		GameState.apply_mission_claim(res.data)
+		Sfx.play("win")
+	else:
+		await Server.refresh_home()  # já resgatada em outro aparelho, ou ainda não concluída: mostra o estado certo
+	open_missions(dialog)
+
+
 ## Mostra a sequência sozinha na primeira abertura do dia (só jogando pelo servidor). true se abriu.
 static func maybe_show_streak(dialog: DialogBox) -> bool:
 	if GameState.extras.is_empty() or str(GameState.get_setting("streak_seen", "")) == GameState.today():
