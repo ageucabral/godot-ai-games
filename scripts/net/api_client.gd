@@ -37,6 +37,11 @@ const ERROR_TEXTS := {
 	"FX_UNAVAILABLE": "Não deu para calcular o valor agora. Tente mais tarde.",
 	"EXPIRED": "O prazo para resgatar este prêmio terminou.",
 	"ALREADY_SUBMITTED": "Seus dados já foram enviados.",
+	"NO_EVENT": "Nenhum evento agora.",
+	"EVENT_DONE": "Você já completou este evento.",
+	"DUEL_EXPIRED": "Este duelo já acabou.",
+	"OWN_DUEL": "Este duelo é seu. Mande o link para um amigo.",
+	"NO_FREE_BOOST": "Você não tem ajuda grátis.",
 }
 
 ## Número do projeto Google Cloud do Na Lata (o mesmo do login com Google): vai no pedido do Play Integrity.

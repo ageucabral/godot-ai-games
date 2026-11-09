@@ -44,6 +44,14 @@ func test_local_streak_and_level_stars() -> void:
 	assert_eq(int(GameState.streak().best), 2)
 
 
+func test_daily_without_improving_still_counts_for_streak() -> void:
+	var key := ChallengeGenerator.key_for(GameState.today(), 0)
+	assert_true(GameState.save_result(key, 10, 5))
+	GameState.fixed_unix += 86400
+	assert_false(GameState.save_result(key, 8, 6), "pior que o melhor")
+	assert_eq(int(GameState.streak().count), 2, "resolveu no dia seguinte: a sequência sobe mesmo sem melhorar")
+
+
 func test_duel_code_from_links() -> void:
 	assert_eq(Extras.duel_code_from("nalata://duelo/ab12cd"), "AB12CD")
 	assert_eq(Extras.duel_code_from("https://nalatagame.tech/duelo/AB12CD?x=1"), "AB12CD")

@@ -9,6 +9,9 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
+	"Nenhum evento agora.": ["No event right now.", "Ningún evento ahora."],
+	"Você já completou este evento.": ["You already completed this event.", "Ya completaste este evento."],
+	"Você não tem ajuda grátis.": ["You have no free help.", "No tienes ayuda gratis."],
 	# ideias novas (9/11/2026): sequência, conquistas, frascos, liga, duelo, evento, avisos e música
 	"%d dias seguidos": ["%d days in a row", "%d días seguidos"],
 	"%d dias seguidos!": ["%d days in a row!", "¡%d días seguidos!"],

@@ -874,13 +874,14 @@ func _show_online_win(points: int, used: int, extras: Variant) -> void:
 
 
 ## Janela da vitória: título, estrelas, o texto com as novidades (sequência, conquistas, duelo) e os botões.
-## Nos níveis e desafios pelo servidor dá para desafiar um amigo com a mesma fase.
+## Nos níveis pelo servidor dá para desafiar um amigo com a mesma fase (desafio do dia e evento não: ainda valem
+## pontos para o amigo, que treinaria de graça).
 func _show_win(points: int, used: int, text: String, extras: Variant, buttons: Array) -> void:
 	_celebrate()
 	var lines := Extras.win_lines(extras)
 	if not lines.is_empty():
 		text += "\n\n" + "\n".join(lines)
-	if is_online() and challenge.get("mode", "") in ["level", "daily"]:
+	if is_online() and is_level():
 		var match_id: String = challenge.match_id
 		buttons.insert(buttons.size() - 1, ["Desafiar amigo", func() -> void:
 			Extras.share_duel(dialog, match_id, used, func() -> void: _open_win(points, used, text, buttons))])

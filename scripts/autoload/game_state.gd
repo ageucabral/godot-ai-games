@@ -187,8 +187,8 @@ func save_result(key: String, points: int, moves: int) -> bool:
 	if better:
 		_cfg.set_value(key, "best_points", points)
 		_cfg.set_value(key, "best_moves", moves)
-		note_played()
-		_save()
+	note_played()  # resolveu hoje: vale para a sequência mesmo sem melhorar (igual ao servidor)
+	_save()
 	return better
 
 

@@ -33,12 +33,12 @@ const MONTH_NAMES: Array[String] = ["janeiro", "fevereiro", "março", "abril", "
 	"julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
-## Degraus do modo por níveis (Ageu, 7/11/2026: dificuldade subindo aos poucos, com mais frascos e
-## jogadas diferentes). [a partir do nível, cores, cores repetidas, vazias, cobertas, camadas "?", jogadas mínimas]
 ## Novas mecânicas (Ageu, 9/11/2026): garrafa de gelo a partir do nível 40 e garrafa de uma cor a partir do 55.
 const ICE_FROM: int = 40
 const ONLY_FROM: int = 55
 
+## Degraus do modo por níveis (Ageu, 7/11/2026: dificuldade subindo aos poucos, com mais frascos e
+## jogadas diferentes). [a partir do nível, cores, cores repetidas, vazias, cobertas, camadas "?", jogadas mínimas]
 const LEVEL_STEPS: Array = [
 	[1, 3, 0, 2, 0, false, 4],
 	[3, 4, 0, 2, 0, false, 6],
@@ -55,8 +55,6 @@ const LEVEL_STEPS: Array = [
 ]
 
 
-## Como cada nível é montado: segue o degrau do nível e, dentro dele, pede um pouco mais de jogadas
-## a cada 3 níveis (até +3), para a subida ser gradual.
 ## Estrelas de uma fase: 3 = jogadas exatas, 2 = até 3 a mais, 1 = só passou (igual ao servidor).
 static func stars_for(moves: int, par: int) -> int:
 	if moves <= par:
@@ -86,6 +84,8 @@ static func add_days(date: String, n: int) -> String:
 	return Time.get_date_string_from_unix_time(d + n * 86400)
 
 
+## Como cada nível é montado: segue o degrau do nível e, dentro dele, pede um pouco mais de jogadas
+## a cada 3 níveis (até +3), para a subida ser gradual.
 static func level_setup(level: int) -> Dictionary:
 	var step: Array = LEVEL_STEPS[0]
 	for s in LEVEL_STEPS:
