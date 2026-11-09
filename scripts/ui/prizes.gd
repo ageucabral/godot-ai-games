@@ -17,10 +17,13 @@ static func open_invite(dialog: DialogBox) -> void:
 	var d: Dictionary = res.data
 	var code := str(d.get("code", ""))
 	var link := str(d.get("link", ""))
+	var picker := InviteBanners.Picker.new()
 	dialog.open("Convidar amigos", invite_text(d), [
-		["Compartilhar convite", func() -> void: share_invite(dialog, code, link), true],
+		["Compartilhar convite", func() -> void: share_invite(dialog, code, link, picker.chosen(), picker.selected), true],
 		["Voltar", func() -> void: pass],
 	])
+	dialog.add_content(picker)
+	picker.fill(code)
 
 
 ## Texto da tela de convite (função pura, testada).
@@ -50,14 +53,19 @@ static func invite_text(d: Dictionary) -> String:
 	return "\n".join(lines)
 
 
-static func share_invite(dialog: DialogBox, code: String, link: String) -> void:
+## Compartilha o convite: a figura escolhida (com o código) e o texto com o código e o link.
+static func share_invite(dialog: DialogBox, code: String, link: String, banner: Image = null, style: int = 0) -> void:
 	var text := I18n.t("Jogue o Na Lata comigo e concorra a prêmios! Meu código: %s") % code
 	if not link.is_empty():
 		text += "\n" + link
-	Server.track("invite_shared")
+	Server.track("invite_shared", {"banner": style})
 	var plugin := Server.native_with("install_referrer")
 	if plugin:
-		plugin.share(text)
+		var path := InviteBanners.file_path(style)
+		if banner != null and banner.save_png(path) == OK:
+			plugin.shareImage(ProjectSettings.globalize_path(path), text)
+		else:
+			plugin.share(text)
 		return
 	DisplayServer.clipboard_set(text)
 	dialog.open("Convite copiado", I18n.t("O convite foi copiado. Cole numa conversa para mandar aos amigos."), [

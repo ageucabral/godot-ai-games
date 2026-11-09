@@ -156,6 +156,12 @@ func add_input(placeholder: String, value: String = "", kind: String = "text", m
 	return field
 
 
+## Põe um conteúdo próprio (ex.: as figuras do convite) no que está aberto, acima dos botões.
+func add_content(control: Control) -> void:
+	_inputs.visible = true
+	_inputs.add_child(control)
+
+
 ## Campos abertos agora (útil nos testes).
 func inputs() -> Array[Control]:
 	var out: Array[Control] = []
