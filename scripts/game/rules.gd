@@ -20,7 +20,6 @@ const DAILY_COUNT: int = DAILY_EASY + DAILY_MEDIUM + DAILY_HARD
 ## Ajudas da partida (Ageu, 7/11/2026; dica no lugar do embaralhar em 9/11/2026, como nos jogos do gênero): dica e
 ## frasco extra. Cada uso pede propaganda e tira BOOST_COST ponto(s) da fase (3 dicas, 1 frasco). Desfazer é grátis.
 const HINTS_PER_STAGE: int = 3
-const SHUFFLES_PER_STAGE: int = 3  # app antigo (1.3.3); o servidor ainda aceita
 const EXTRA_BOTTLES_PER_STAGE: int = 1
 const BOOST_COST: int = 1
 
