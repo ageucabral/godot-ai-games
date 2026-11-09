@@ -338,7 +338,7 @@ func test_account_shows_nickname_and_country() -> void:
 	Account.open_account(dialog)
 	assert_true(dialog.text_label.text.contains("Apelido: Ageu"), dialog.text_label.text)
 	assert_true(dialog.text_label.text.contains("País: Brasil"), dialog.text_label.text)
-	assert_eq(dialog.button_texts(), ["Trocar apelido", "Apagar conta", "Voltar"])
+	assert_eq(dialog.button_texts(), ["Meus prêmios", "Trocar apelido", "Apagar conta", "Voltar"])
 
 
 # ---------- ajuda ----------

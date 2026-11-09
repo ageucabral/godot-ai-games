@@ -47,14 +47,13 @@ func test_second_attempt_asks_for_ad() -> void:
 	assert_true(main.get_node("Game").visible)
 
 
-func test_ranking_shows_month_points() -> void:
+func test_game_ranking_button_opens_global() -> void:
 	GameState.save_result("2026-11-02#0", 10, 6)
 	main.get_node("Home").ranking_requested.emit()
 	var ranking: Control = main.get_node("Ranking")
 	assert_true(ranking.visible)
-	assert_eq(ranking.title_label.text, "Ranking do Poção de Cores")
+	assert_eq(ranking.title_label.text, "Ranking Global", "só existe o ranking global")
 	assert_eq(ranking.points_label.text, "10 pts")
-	assert_false(ranking.prize_banner.visible, "o ranking do jogo não vale prêmio")
 	ranking.back_requested.emit()
 	assert_true(main.get_node("Home").visible, "volta ao menu do jogo")
 
@@ -62,25 +61,21 @@ func test_ranking_shows_month_points() -> void:
 func test_global_ranking_opens_from_hub() -> void:
 	GameState.save_result("2026-11-02#0", 10, 6)
 	var hub: Control = main.get_node("Hub")
-	assert_eq(hub.rank_banner.points, 10, "a faixa do hub mostra os pontos globais")
 	assert_eq(hub.rank_banner.countdown, "23d 12h")
 	hub.rank_banner.pressed.emit()
 	var ranking: Control = main.get_node("Ranking")
 	assert_true(ranking.visible)
 	assert_eq(ranking.title_label.text, "Ranking Global")
-	assert_true(ranking.prize_banner.visible, "o global vale prêmio")
 	assert_eq(ranking.points_label.text, "10 pts")
 	ranking.back_requested.emit()
 	assert_true(hub.visible, "volta ao hub")
 
 
-func test_hub_banner_resets_when_month_turns() -> void:
-	GameState.save_result("2026-11-02#0", 10, 6)
+func test_hub_banner_countdown_turns_with_month() -> void:
 	var hub: Control = main.get_node("Hub")
-	assert_eq(hub.rank_banner.points, 10)
 	GameState.fixed_unix = 1794063600 + 24 * 86400  # 1/12/2026 meio-dia em Brasília
 	hub._update_countdown()
-	assert_eq(hub.rank_banner.points, 0, "mês novo começa do zero")
+	assert_eq(hub._month, "2026-12", "mês novo")
 
 
 func test_declining_ad_returns_to_menu() -> void:

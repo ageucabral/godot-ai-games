@@ -201,6 +201,33 @@ func test_level_is_scored_by_the_server() -> void:
 	assert_eq(int(GameState.game_month_total("potion", "2026-11").points), 140)
 
 
+func _count(path: String) -> int:
+	return calls.filter(func(c: Array) -> bool: return c[1] == path).size()
+
+
+func test_next_level_is_fetched_during_the_win() -> void:
+	main.play_level()
+	await wait_physics_frames(1)
+	_solve()
+	await wait_physics_frames(2)
+	var before := _count("/pocao/matches")
+	assert_eq(before, 2, "a vitória já pede o próximo nível")
+	level_number = 5
+	game.next_level_requested.emit()
+	await wait_physics_frames(1)
+	assert_eq(_count("/pocao/matches"), before, "abre sem pedir de novo")
+	assert_true(game.is_online())
+	assert_false(game._subtitle.visible, "nível não mostra a dificuldade")
+
+
+func test_daily_drops_the_fetched_level() -> void:
+	game.prefetch_next_level()
+	await wait_physics_frames(1)
+	main.request_play(TODAY, 1)
+	await wait_physics_frames(2)
+	assert_true(game._next_level.is_empty(), "outra partida descarta o nível pedido antes")
+
+
 func test_flask_needs_server_reward() -> void:
 	main.play_level()
 	await wait_physics_frames(1)
@@ -284,13 +311,13 @@ func test_finish_without_connection_can_retry() -> void:
 
 
 func test_global_ranking_lists_players() -> void:
-	main.open_global_ranking()
+	main.open_ranking(main.get_node("Hub"))
 	await wait_physics_frames(1)
 	var ranking: Control = main.get_node("Ranking")
 	assert_true(ranking.top_card.visible, "mostra a lista")
 	assert_eq(ranking.top_list.get_child_count(), 2)
 	assert_eq(ranking.points_label.text, "120 pts")
-	assert_eq(ranking.detail_label.text, "12º lugar")
+	assert_eq(ranking.position_label.text, "12º")
 
 
 func test_real_ad_sends_reward_id_for_ssv() -> void:
@@ -450,7 +477,7 @@ func test_prize_is_announced_once_and_claim_button_shows() -> void:
 	main.dialog.press("Depois")
 	main._on_server_home()
 	assert_false(main.dialog.visible, "avisa uma vez só")
-	main.open_global_ranking()
+	main.open_ranking(main.get_node("Hub"))
 	var ranking: Control = main.get_node("Ranking")
 	Server.home = {"payouts": [{"id": "p9", "status": "pending"}]}
 	ranking.refresh()
@@ -471,3 +498,20 @@ func test_leaving_a_level_midway_is_measured() -> void:
 			for e in c[2].events:
 				names.append(e.name)
 	assert_true("match_quit" in names, str(names))
+
+
+func test_my_prizes_lists_every_status() -> void:
+	var text := Prizes.my_prizes_text([
+		{"id": "p1", "status": "pending", "monthLabel": "outubro de 2026", "position": 2, "amountLabel": "US$ 5", "deadlineAt": "2026-11-19T12:00:00Z"},
+		{"id": "p2", "status": "paid", "monthLabel": "setembro de 2026", "position": 7, "amountLabel": "US$ 1"},
+	])
+	assert_true(text.contains("outubro de 2026 · 2º lugar · US$ 5"), text)
+	assert_true(text.contains("Falta enviar seus dados"), text)
+	assert_true(text.contains("Pago"), text)
+	assert_true(Prizes.my_prizes_text([]).begins_with("Você ainda não ganhou"))
+
+
+func test_gap_to_next_position() -> void:
+	var list := [[9, "Ana", 25, false], [10, "Eu", 24, true]]
+	assert_eq(RankingScreen.gap_text(list, 10), "Faltam 2 pts para o 9º")
+	assert_eq(RankingScreen.gap_text(list, 1), "Você está na frente!")

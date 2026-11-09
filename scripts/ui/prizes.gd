@@ -93,6 +93,52 @@ static func _short_date(iso: String) -> String:
 	return Rules.pretty_date(Rules.date_for(int(Time.get_unix_time_from_datetime_string(iso.left(19)))))
 
 
+# ---------- meus prêmios ----------
+
+## "Meus prêmios": todos os prêmios da conta. Os que esperam os dados viram botão de resgatar.
+static func open_my_prizes(dialog: DialogBox) -> void:
+	if Server.is_guest():
+		dialog.open("Meus prêmios", I18n.t("Entre com Google para resgatar o prêmio."), [["Ok", func() -> void: pass, true]])
+		return
+	dialog.open("Carregando…", "", [])
+	var res: Dictionary = await Server.call_api("GET", "/payouts")
+	if not res.ok:
+		Account.show_error(dialog, res, func() -> void: open_my_prizes(dialog))
+		return
+	var list: Array = res.data.get("payouts", []) if res.data.get("payouts") is Array else []
+	var buttons: Array = []
+	for p in list:
+		if p is Dictionary and str(p.get("status", "")) == "pending":
+			var id := str(p.get("id", ""))
+			buttons.append([I18n.t("Resgatar %s") % str(p.get("amountLabel", "")), func() -> void: open_claim(dialog, id), true])
+	buttons.append(["Fechar", func() -> void: pass])
+	dialog.open("Meus prêmios", my_prizes_text(list), buttons)
+
+
+## Texto da lista "Meus prêmios" (função pura, testada): mês, posição, valor e situação de cada prêmio.
+static func my_prizes_text(list: Array) -> String:
+	if list.is_empty():
+		return I18n.t("Você ainda não ganhou prêmios. Fique entre os primeiros do Ranking Global no fim do mês!")
+	var status_text := {
+		"pending": "Falta enviar seus dados (até %s)",
+		"submitted": "Dados recebidos, pagamento a caminho",
+		"paid": "Pago",
+		"expired": "Prazo de resgate encerrado",
+		"cancelled": "Cancelado",
+	}
+	var lines: Array[String] = []
+	for p in list:
+		if not p is Dictionary:
+			continue
+		var status := str(p.get("status", ""))
+		var situation := I18n.t(status_text.get(status, status))
+		if status == "pending":
+			situation = situation % _short_date(str(p.get("deadlineAt", "")))
+		lines.append(I18n.t("%s · %dº lugar · %s") % [str(p.get("monthLabel", "")), int(p.get("position", 0)), str(p.get("amountLabel", ""))]
+				+ "\n" + situation)
+	return "\n\n".join(lines)
+
+
 # ---------- resgate ----------
 
 ## Abre o resgate de um prêmio: confere país e forma de receber e mostra o formulário.
