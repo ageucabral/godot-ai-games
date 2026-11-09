@@ -44,6 +44,8 @@ export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$NALATA_KEYSTORE_PASSWORD"
 rm -f "$OUT"
 "$ROOT/tools/godot.sh" --headless --path "$ROOT" --export-release "Android Play" "$OUT"
 test -s "$OUT"
+# Símbolos de depuração do motor dentro do AAB (a Play mostra os travamentos com nomes de funções).
+"$ROOT/tools/android_debug_symbols.sh" "$OUT" "$SIGN_KEYSTORE" "$NALATA_KEY_ALIAS"
 # O AAB é assinado com jarsigner: confere a assinatura e mostra a impressão digital (SHA-1/SHA-256) da chave,
 # que tem de ser a mesma "chave de upload" cadastrada na Play Console.
 # (um AAB SEM assinatura também sai com 0, só dizendo "jar is unsigned": por isso confere o texto)
