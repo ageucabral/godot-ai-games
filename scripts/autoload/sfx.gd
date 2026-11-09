@@ -101,7 +101,8 @@ func _next_in_playlist() -> void:
 	if playlist.is_empty():
 		return
 	_playlist_at = (_playlist_at + 1) % playlist.size()
-	_switch_to(playlist[_playlist_at])
+	_music.stream = playlist[_playlist_at]  # com uma música só, é a mesma: toca de novo
+	_update_music()
 
 
 func _switch_to(stream: AudioStream) -> void:
@@ -131,7 +132,7 @@ func vibration_enabled() -> bool:
 
 func set_vibration_enabled(on: bool) -> void:
 	GameState.set_setting("vibration", on)
-	if on:
+	if on and OS.has_feature("mobile"):
 		Input.vibrate_handheld(20, 0.5)  # mostra como fica
 
 
@@ -140,7 +141,9 @@ func play(sound: String, volume_db: float = 0.0) -> void:
 		vibrated.append(sound)
 		if vibrated.size() > PLAYED_MAX:
 			vibrated.remove_at(0)
-		Input.vibrate_handheld(HAPTICS[sound][0], HAPTICS[sound][1])
+		# só no celular (a chave fica na engrenagem do celular; na Web não há como desligar)
+		if OS.has_feature("mobile"):
+			Input.vibrate_handheld(HAPTICS[sound][0], HAPTICS[sound][1])
 	if not enabled() or not _streams.has(sound):
 		return
 	played.append(sound)

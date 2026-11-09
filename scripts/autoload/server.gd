@@ -169,11 +169,16 @@ func sync_music() -> void:
 			var path := music_dir.path_join(file)
 			if not FileAccess.file_exists(path):
 				var bytes := await _download_music("/pocao/music/%d?v=%s" % [int(m.slot), str(m.version)])
-				var out := FileAccess.open(path, FileAccess.WRITE) if not bytes.is_empty() else null
+				# grava num arquivo temporário e só depois renomeia: um arquivo cortado no meio nunca fica com o nome final
+				var part := path + ".part"
+				var out := FileAccess.open(part, FileAccess.WRITE) if not bytes.is_empty() else null
 				if out == null:
 					continue
 				out.store_buffer(bytes)
 				out.close()
+				if DirAccess.rename_absolute(part, path) != OK:
+					DirAccess.remove_absolute(part)
+					continue
 			keep.append(file)
 		for file in _music_files():
 			if not file in keep:

@@ -94,12 +94,12 @@ func _init() -> void:
 	_scroll.add_child(_buttons)
 
 
-## buttons: lista de [texto, ação (Callable), principal (bool)].
 ## Botão que pede propaganda: ícone de vídeo + a recompensa em poucas palavras (ex.: "+1 frasco").
 static func ad(text: String, action: Callable, main: bool = true) -> Array:
 	return [text, action, main, true]
 
 
+## buttons: lista de [texto, ação (Callable), principal (bool), ícone de vídeo (bool, veja `ad`)].
 func open(title: String, text: String, buttons: Array) -> void:
 	_open("header", title, text, buttons)
 

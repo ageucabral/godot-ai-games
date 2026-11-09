@@ -139,7 +139,6 @@ func set_covered(covered: bool, animated: bool = true) -> void:
 	_cover_tween.tween_property(self, "cover_amount", 0.0, 0.6)
 
 
-## Balança de leve quando a jogada não é permitida.
 ## Frasco ficou completo: pulinho, brilho da cor do líquido e estrelinhas saindo da boca.
 func celebrate(color: int) -> void:
 	_done_color = GameStyle.liquid_color(color)
@@ -150,9 +149,12 @@ func celebrate(color: int) -> void:
 	t.tween_property(self, "_done_t", 1.0, 0.9).from(0.0)
 	t.tween_property(self, "_done_t", -1.0, 0.0)
 	t.tween_property(self, "z_index", 0, 0.0)
-	var hop := create_tween().set_trans(Tween.TRANS_SINE)
-	hop.tween_property(self, "_lift", LIFT * 0.6, 0.14).set_ease(Tween.EASE_OUT)
-	hop.tween_property(self, "_lift", 0.0, 0.32).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	# o pulinho usa o mesmo `_tween` da subida: tocar no frasco no meio dele não deixa os dois brigando pelo `_lift`
+	if _tween:
+		_tween.kill()
+	_tween = create_tween().set_trans(Tween.TRANS_SINE)
+	_tween.tween_property(self, "_lift", LIFT * 0.6, 0.14).set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "_lift", 0.0, 0.32).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 
 ## Posição (grade 60 x 160) e tamanho da estrelinha `i` de `n` no instante `t` da festa: saem do meio do frasco
@@ -163,6 +165,7 @@ static func done_spark(i: int, n: int, t: float) -> Array:
 	return [SPARK_CENTER + Vector2(cos(a) * 0.9, sin(a) * 1.3) * dist, 10.0 * (1.0 - t * 0.6)]
 
 
+## Balança de leve quando a jogada não é permitida.
 func shake() -> void:
 	var t := create_tween()
 	for dx in [-10.0, 10.0, -6.0, 6.0, 0.0]:
