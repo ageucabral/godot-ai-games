@@ -1,14 +1,14 @@
 extends Control
-## Tela inicial do Poção de Cores, enxuta: pontos do mês, a sequência de dias e configurações em cima, nome do jogo,
-## mascote, o caminho dos últimos níveis com as estrelas, o botão verde "Nível N", logo abaixo o botão laranja dos
-## desafios do dia (com quantos já foram feitos), o botão do evento (só com um evento no ar) e, na lateral direita,
-## os ícones Jogos · Ranking (Ageu, 8/11/2026: sem barra embaixo; o perfil fica dentro da engrenagem).
+## Tela inicial do Poção de Cores, como na proposta aprovada (Ageu, 9/11/2026): pontos do mês, a sequência de dias e
+## configurações em cima, nome do jogo, o mapa de níveis (os já feitos com estrelas, o de agora em verde e os próximos),
+## o botão verde "Nível N", logo abaixo o botão laranja dos desafios do dia (com quantos já foram feitos) e, na lateral
+## direita, os ícones Jogos · Ranking (Ageu, 8/11/2026: sem barra embaixo; o perfil fica dentro da engrenagem).
+## O evento fica no hub Na Lata (cartão com a trilha de prêmios).
 
 signal level_requested
 signal daily_requested
 signal ranking_requested
 signal hub_requested
-signal event_requested
 
 const GAME_NAME := "Poção de Cores"
 ## Ícones da lateral: [nome, texto, ícone].
@@ -19,11 +19,9 @@ const DAILY_COLOR := Color("ff8a1f")
 var points_label: Label
 var streak_label: Label
 var streak_flame: Extras.FlameIcon
-var level_path: LevelPath
-var event_button: GlossButton
+var level_map: LevelMap
 var level_button: GlossButton
 var daily_button: GlossButton
-var mascot: MascotView
 var settings_button: IconButton
 ## Ícones da lateral, por nome: "games", "ranking".
 var side_buttons: Dictionary = {}
@@ -74,52 +72,37 @@ func _build() -> void:
 	top.add_child(settings_button)
 
 	# nome do jogo
-	var title_box := VBoxContainer.new()
-	title_box.add_theme_constant_override("separation", -12)
-	box.add_child(title_box)
-	var hub_label := GameStyle.make_title("Na Lata", 30, GameStyle.GOLD)
-	hub_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	title_box.add_child(hub_label)
-	title_box.add_child(GameStyle.make_title(GAME_NAME, 66))
+	box.add_child(GameStyle.make_title(GAME_NAME, 66))
 
-	# meio: mascote
-	var middle := CenterContainer.new()
-	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(middle)
-	mascot = MascotView.new()
-	middle.add_child(mascot)
+	# meio: o mapa dos níveis (tocar no de agora joga)
+	level_map = LevelMap.new()
+	level_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	level_map.play.connect(func() -> void: level_requested.emit())
+	box.add_child(level_map)
 
 	var button_margin := MarginContainer.new()
-	button_margin.add_theme_constant_override("margin_left", 110)
-	button_margin.add_theme_constant_override("margin_right", 110)
-	button_margin.add_theme_constant_override("margin_bottom", 18)
+	button_margin.add_theme_constant_override("margin_left", 30)
+	button_margin.add_theme_constant_override("margin_right", 30)
+	button_margin.add_theme_constant_override("margin_bottom", 10)
 	box.add_child(button_margin)
 	var buttons := VBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 22)
+	buttons.add_theme_constant_override("separation", 18)
 	button_margin.add_child(buttons)
-	level_path = LevelPath.new()
-	buttons.add_child(level_path)
-	level_button = GameStyle.make_button("", true, 60)
-	level_button.custom_minimum_size = Vector2(0, 128)
+	level_button = GameStyle.make_button("", true, 52)
+	level_button.custom_minimum_size = Vector2(0, 112)
 	level_button.pulse = true
 	level_button.pressed.connect(func() -> void: level_requested.emit())
 	buttons.add_child(level_button)
 	# desafios do dia, logo abaixo: mostra quantos já foram feitos
-	daily_button = GameStyle.make_button("", false, 38, DAILY_COLOR)
-	daily_button.custom_minimum_size = Vector2(0, 100)
+	daily_button = GameStyle.make_button("", false, 34, DAILY_COLOR)
+	daily_button.custom_minimum_size = Vector2(0, 88)
 	daily_button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	daily_button.pressed.connect(func() -> void: daily_requested.emit())
 	buttons.add_child(daily_button)
-	# evento de tempo limitado (só aparece com um evento no ar e fases a fazer)
-	event_button = GameStyle.make_button("", false, 32, Color("e04fd0"))
-	event_button.custom_minimum_size = Vector2(0, 84)
-	event_button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	event_button.pressed.connect(func() -> void: event_requested.emit())
-	buttons.add_child(event_button)
 
-	box.add_child(_spacer(44))
+	box.add_child(_spacer(36))
 
-	# ícones da lateral direita, bem espaçados, na altura do mascote
+	# ícones da lateral direita, bem espaçados, na altura do mapa
 	var rail := VBoxContainer.new()
 	rail.anchor_left = 1.0
 	rail.anchor_right = 1.0
@@ -179,13 +162,7 @@ func refresh() -> void:
 	streak_label.text = str(s.count)
 	streak_flame.lit = bool(s.played_today)
 	streak_flame.queue_redraw()
-	level_path.set_levels(GameState.current_level())
-	var ev: Variant = GameState.extras.get("event")
-	event_button.visible = ev is Dictionary and int(ev.get("done", 0)) < int(ev.get("levels", 0))
-	if event_button.visible:
-		event_button.text = "%s  %d/%d" % [str(ev.get("name", "")), int(ev.get("done", 0)), int(ev.get("levels", 0))]
-		event_button.fill = Extras.EVENT_COLORS.get(str(ev.get("theme", "")), Color("e04fd0"))
-		event_button.queue_redraw()
+	level_map.set_level(GameState.current_level())
 
 
 ## Texto do botão dos desafios: "Desafios do dia 3/20"; com o dia completo, "Desafios feitos! 20/20".
@@ -205,43 +182,77 @@ static func _spacer(h: float) -> Control:
 	return c
 
 
-## Caminho dos últimos níveis: bolinhas com o número e as estrelas de cada um, terminando no nível de agora.
-class LevelPath extends Control:
+## Mapa dos níveis: um caminho de bolinhas subindo a tela, os 2 últimos feitos (dourados, com as estrelas), o de
+## agora (verde, maior, pulsando) e os 2 próximos (apagados). Tocar no de agora joga.
+class LevelMap extends Control:
+	signal play
 	const SHOWN := 5
+	## Posição de cada bolinha, de baixo para cima (fração da largura e da altura).
+	const SPOTS := [Vector2(0.58, 0.88), Vector2(0.32, 0.68), Vector2(0.56, 0.48), Vector2(0.32, 0.28), Vector2(0.48, 0.09)]
+	const PAST := Color("ffc72e")
+	const FUTURE := Color("5b5a8c")
 	var current: int = 1
-	var stars: Array[int] = []
+	var first: int = 1
+	var stars: Dictionary = {}
+	var _time: float = 0.0
 
 	func _init() -> void:
-		custom_minimum_size = Vector2(0, 96)
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(0, 360)
 
-	func set_levels(level: int) -> void:
+	func set_level(level: int) -> void:
 		current = level
-		stars = []
-		for n in range(maxi(1, level - SHOWN + 1), level):
-			stars.append(GameState.level_stars(n))
-		visible = level > 1
+		first = maxi(1, level - 2)
+		stars = {}
+		for n in range(first, level):
+			stars[n] = GameState.level_stars(n)
 		queue_redraw()
 
+	func _process(delta: float) -> void:
+		_time += delta
+		queue_redraw()
+
+	func _spot(i: int) -> Vector2:
+		var s: Vector2 = SPOTS[i]
+		return Vector2(size.x * s.x, size.y * s.y)
+
+	func _radius(n: int) -> float:
+		return minf(66.0, size.y * 0.1) if n == current else minf(48.0, size.y * 0.075)
+
 	func _draw() -> void:
-		var count := stars.size() + 1
-		var first := current - stars.size()
-		var step := size.x / SHOWN
-		var x0 := (size.x - step * (count - 1)) * 0.5
-		var y := 34.0
-		draw_line(Vector2(x0, y), Vector2(x0 + step * (count - 1), y), Color(1, 1, 1, 0.55), 6.0, true)
+		# trilha de pontinhos brancos entre as bolinhas (curva suave)
+		for i in SHOWN - 1:
+			var a := _spot(i)
+			var b := _spot(i + 1)
+			var ctrl := (a + b) * 0.5 + Vector2((b.y - a.y) * 0.35, 0)
+			var length := a.distance_to(b)
+			var dots := int(length / 24.0)
+			for k in range(1, dots):
+				var t := float(k) / dots
+				var p := a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t)
+				draw_circle(p, 6.0, Color(1, 1, 1, 0.85))
 		var font := GameStyle.title_font()
-		for i in count:
-			var c := Vector2(x0 + step * i, y)
-			var now := i == count - 1
-			var r := 30.0 if now else 24.0
-			draw_circle(c, r + 4, GameStyle.INK)
-			draw_circle(c, r, GameStyle.GREEN if now else Color("7d43e8"))
-			var label := str(first + i)
-			var fs := 26 if now else 22
+		for i in SHOWN:
+			var n := first + i
+			var c := _spot(i)
+			var r := _radius(n)
+			if n == current:
+				r *= 1.0 + 0.04 * sin(_time * 3.0)
+				draw_circle(c, r + 12, Color(1, 1, 1, 0.35))
+			draw_circle(c, r + 6, GameStyle.INK)
+			draw_circle(c, r, GameStyle.GREEN if n == current else (PAST if n < current else FUTURE))
+			draw_circle(c + Vector2(-r * 0.3, -r * 0.35), r * 0.3, Color(1, 1, 1, 0.25))
+			var label := str(n)
+			var fs := int(r * 0.8)
 			var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-			draw_string(font, c + Vector2(-w * 0.5, fs * 0.36), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
-			if now:
-				continue
-			for k in 3:
-				GameStyle.draw_star(self, c + Vector2((k - 1) * 18.0, 42.0), 9.0, k < stars[i], Color(0, 0, 0, 0.3))
+			var pos := c + Vector2(-w * 0.5, fs * 0.36)
+			draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, GameStyle.INK)
+			draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE if n <= current else Color("d9d6f5"))
+			if n < current:
+				for k in 3:
+					GameStyle.draw_star(self, c + Vector2((k - 1) * 22.0, -r - 16.0), 11.0, k < int(stars.get(n, 0)), Color(0, 0, 0, 0.3))
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			var i := current - first
+			if i >= 0 and i < SHOWN and event.position.distance_to(_spot(i)) <= _radius(current) + 14:
+				play.emit()

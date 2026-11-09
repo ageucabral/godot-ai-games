@@ -4,7 +4,7 @@ extends RefCounted
 ## como jogar, ajuda e termos).
 ## A conta e a ajuda ficam em `scripts/ui/account.gd`.
 
-const VERSION := "1.3.2"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
+const VERSION := "1.3.3"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
 
 ## Desafios de hoje já resolvidos.
@@ -17,36 +17,27 @@ static func daily_done() -> int:
 	return done
 
 
+## Configurações como na proposta: uma lista com ícone, nome e, à direita, "›", o idioma ou uma chave de liga/desliga.
+## As chaves mudam na hora, sem fechar a janela. "NOVO" marca as entradas da versão 1.3.2.
 static func open_settings(dialog: DialogBox) -> void:
-	var buttons: Array = [["Sua conta", func() -> void: Account.open_account(dialog)]]
+	dialog.open_card("Configurações", "", [])
+	dialog.add_row(Row.new("👤", "Sua conta", func() -> void: Account.open_account(dialog)))
 	if not GameState.extras.is_empty():
-		buttons.append(["Conquistas e frascos", func() -> void: Extras.open_achievements(dialog)])
-	buttons.append_array([
-		[I18n.t("Idioma: %s") % I18n.language_name(GameState.language()), func() -> void: open_language(dialog)],
-		["Sons e avisos", func() -> void: open_sounds(dialog)],
-		["Como jogar", func() -> void: open_how_to_play(dialog)],
-		["Ajuda e termos", func() -> void: Account.open_help(dialog)],
-		["Fechar", func() -> void: pass, true],
-	])
-	dialog.open("Configurações", I18n.t("Versão %s") % VERSION, buttons)
-
-
-## Som, música e o aviso do dia no celular (este só no app do Android).
-static func open_sounds(dialog: DialogBox) -> void:
-	var buttons: Array = [
-		[I18n.t("Som: ligado") if Sfx.enabled() else I18n.t("Som: desligado"), func() -> void:
-			Sfx.set_enabled(not Sfx.enabled())
-			open_sounds(dialog)],
-		[I18n.t("Música: ligada") if Sfx.music_enabled() else I18n.t("Música: desligada"), func() -> void:
-			Sfx.set_music_enabled(not Sfx.music_enabled())
-			open_sounds(dialog)],
-	]
+		dialog.add_row(Row.new("🏅", "Conquistas e frascos", func() -> void: Extras.open_collection(dialog), true))
+	dialog.add_row(Row.new("🌐", "Idioma", func() -> void: open_language(dialog)).with_value(I18n.language_name(GameState.language())))
+	dialog.add_row(Row.new("🎵", "Música", Sfx.set_music_enabled, true).with_switch(Sfx.music_enabled()))
+	dialog.add_row(Row.new("🔊", "Sons", Sfx.set_enabled).with_switch(Sfx.enabled()))
 	if Reminders.plugin() != null:
-		buttons.append([I18n.t("Avisos no celular: ligados") if Reminders.enabled() else I18n.t("Avisos no celular: desligados"), func() -> void:
-			await Reminders.set_enabled(not Reminders.enabled())
-			open_sounds(dialog)])
-	buttons.append(["Voltar", func() -> void: open_settings(dialog), true])
-	dialog.open("Sons e avisos", "", buttons)
+		dialog.add_row(Row.new("🔔", "Avisos no celular", Reminders.set_enabled, true).with_switch(Reminders.enabled()))
+	dialog.add_row(Row.new("❓", "Como jogar", func() -> void: open_how_to_play(dialog)))
+	dialog.add_row(Row.new("📄", "Ajuda e termos", func() -> void: Account.open_help(dialog)))
+	var close := GameStyle.make_button("Fechar", true, 30)
+	close.custom_minimum_size = Vector2(0, 84)
+	close.pressed.connect(dialog.close)
+	dialog.add_row(close)
+	var version := GameStyle.make_label(I18n.t("Versão %s") % VERSION, 20, false, Color(GameStyle.INK, 0.5))
+	version.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	dialog.add_row(version)
 
 
 static func open_language(dialog: DialogBox) -> void:
@@ -54,7 +45,7 @@ static func open_language(dialog: DialogBox) -> void:
 	for lang in I18n.LANGUAGES:
 		var code: String = lang[0]
 		buttons.append([lang[1], func() -> void: GameState.set_language(code), code == GameState.language()])
-	buttons.append(["Voltar", func() -> void: open_settings(dialog)])
+	buttons.append(["Voltar", func() -> void: open_settings(dialog), true])
 	dialog.open("Idioma", "Escolha o idioma do jogo.", buttons)
 
 
@@ -81,3 +72,117 @@ static func make_coin_pill(label_out: Array) -> PanelContainer:
 	row.add_child(l)
 	label_out.append(l)
 	return pill
+
+
+## Uma linha das configurações. Sem chave: tocar fecha a janela e chama `action`. Com chave (`with_switch`):
+## tocar vira a chave na hora e chama `action(ligada)`, sem fechar.
+class Row extends Button:
+	var action: Callable
+	var switch_on: bool = false
+	var has_switch: bool = false
+	var _right: HBoxContainer
+	var _switch: Switch
+
+	func _init(icon: String, label: String, on_press: Callable, is_new: bool = false) -> void:
+		action = on_press
+		set_meta("label", label)
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		custom_minimum_size = Vector2(0, 76)
+		for st in ["normal", "hover", "pressed"]:
+			var box := StyleBoxFlat.new()
+			box.bg_color = Color(GameStyle.INK, 0.06) if st == "pressed" else Color(0, 0, 0, 0)
+			box.border_color = Color(GameStyle.INK, 0.12)
+			box.border_width_bottom = 2
+			add_theme_stylebox_override(st, box)
+		var row := HBoxContainer.new()
+		row.set_anchors_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = 6
+		row.offset_right = -6
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(row)
+		var ic := GameStyle.make_label(icon, 30)
+		ic.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		row.add_child(ic)
+		var name := GameStyle.make_label(label, 28, true)
+		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.add_child(name)
+		if is_new:
+			row.add_child(_new_pill())
+		var space := Control.new()
+		space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(space)
+		_right = HBoxContainer.new()
+		row.add_child(_right)
+		_right.add_child(GameStyle.make_label("›", 40, true, Color(GameStyle.INK, 0.6)))
+		for c in row.get_children():
+			(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+			(c as Control).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pressed.connect(_on_pressed)
+
+	## Mostra um valor à direita (ex.: o idioma) no lugar do "›".
+	func with_value(text: String) -> Row:
+		_right.get_child(0).queue_free()
+		var v := GameStyle.make_label(text, 26, true, GameStyle.ACCENT)
+		v.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		_right.add_child(v)
+		return self
+
+	## Troca o "›" por uma chave de liga/desliga.
+	func with_switch(on: bool) -> Row:
+		has_switch = true
+		switch_on = on
+		_right.get_child(0).queue_free()
+		_switch = Switch.new()
+		_switch.on = on
+		_right.add_child(_switch)
+		return self
+
+	func _on_pressed() -> void:
+		if has_switch:
+			switch_on = not switch_on
+			_switch.on = switch_on
+			_switch.queue_redraw()
+			action.call(switch_on)
+			return
+		var dialog := get_parent()
+		while dialog != null and not dialog is DialogBox:
+			dialog = dialog.get_parent()
+		if dialog != null:
+			(dialog as DialogBox).close()
+		action.call()
+
+	static func _new_pill() -> Control:
+		var p := PanelContainer.new()
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color("ff4f6d")
+		st.set_corner_radius_all(14)
+		st.content_margin_left = 10
+		st.content_margin_right = 10
+		st.content_margin_top = 1
+		st.content_margin_bottom = 1
+		p.add_theme_stylebox_override("panel", st)
+		p.add_child(GameStyle.make_label("NOVO", 18, true, Color.WHITE))
+		return p
+
+
+## Chave verde de liga/desliga.
+class Switch extends Control:
+	var on: bool = false
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(92, 52)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var r := size.y * 0.5
+		var rect := Rect2(Vector2.ZERO, size)
+		var st := StyleBoxFlat.new()
+		st.bg_color = GameStyle.GREEN if on else Color("cfc8dc")
+		st.border_color = GameStyle.INK
+		st.set_border_width_all(4)
+		st.set_corner_radius_all(int(r))
+		draw_style_box(st, rect)
+		var knob := Vector2(size.x - r if on else r, r)
+		draw_circle(knob, r - 9, Color.WHITE)

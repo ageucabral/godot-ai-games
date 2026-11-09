@@ -1,15 +1,17 @@
 extends Control
-## Hub Na Lata: a faixa da competição do mês (abre o Ranking Global, o que vale prêmios) e a lista de jogos.
-## O primeiro jogo é o Poção de Cores; os outros chegam depois.
+## Hub Na Lata: o cartão do evento no ar (com a trilha de prêmios), a faixa da competição do mês (abre o Ranking
+## Global, o que vale prêmios) e a lista de jogos. O primeiro jogo é o Poção de Cores; os outros chegam depois.
 
 signal game_requested(game_id: String)
 signal global_ranking_requested
+signal event_requested
 
 ## [id, nome, liberado, ilustração]. Um jogo não liberado aparece com cadeado ("Em breve"); embaixo da
 ## lista fica sempre o aviso discreto "Mais jogos em breve".
 const GAMES: Array = [["potion", "Poção de Cores", true, "res://assets/art/potion_card.jpg"]]
 
 var rank_banner: GlobalRankBanner
+var event_card: EventCard
 var cards: Dictionary = {}
 var dialog: DialogBox
 ## Mês mostrado agora: quando vira o mês, os pontos voltam a zero junto com a contagem.
@@ -37,6 +39,11 @@ func _ready() -> void:
 	var logo := GameStyle.make_title("Na Lata", 140, GameStyle.GOLD)
 	logo.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	box.add_child(logo)
+
+	event_card = EventCard.new()
+	event_card.visible = false
+	event_card.pressed.connect(func() -> void: event_requested.emit())
+	box.add_child(event_card)
 
 	rank_banner = GlobalRankBanner.new()
 	rank_banner.pressed.connect(func() -> void: global_ranking_requested.emit())
@@ -78,6 +85,8 @@ func _ready() -> void:
 ## A faixa mostra quanto falta para o mês (e a competição) acabar.
 func refresh() -> void:
 	_month = Rules.month_for(GameState.now_unix())
+	var ev: Variant = GameState.extras.get("event")
+	event_card.set_event(ev if ev is Dictionary and Server.online() else null)
 	_update_countdown()
 	for c in cards.values():
 		c.queue_redraw()
@@ -88,3 +97,5 @@ func _update_countdown() -> void:
 		refresh()
 		return
 	rank_banner.countdown = Rules.short_countdown(Rules.seconds_to_month_end(GameState.now_unix()))
+	if event_card.visible:
+		event_card.update_countdown()

@@ -270,7 +270,8 @@ func refresh() -> void:
 	info_label.text = "\n\n".join(lines)
 
 
-## Liga da semana: nome da liga, quanto falta para acabar e a lista do grupo (verde sobe, vermelho desce).
+## Liga da semana, como na proposta: medalha e nome da liga, quanto falta e quantos jogadores, "Sobem para a Liga X"
+## (verde), o meio resumido em "⋮" (mostrando você, se estiver lá) e "Descem para a Liga Y" (vermelho).
 func _fill_league() -> void:
 	for c in league_list.get_children():
 		c.queue_free()
@@ -279,21 +280,68 @@ func _fill_league() -> void:
 		subtitle_label.text = tr("Resolva uma fase para entrar na liga desta semana. Os 5 primeiros sobem de liga e os 5 últimos descem. Não vale dinheiro.")
 		league_card.visible = false
 		return
+	subtitle_label.text = tr("Os 5 primeiros sobem e os 5 últimos descem. Não vale dinheiro.")
+	var tier := int(league.tier)
+	var list: Array = (league.get("rows", []) as Array).filter(func(r: Variant) -> bool: return r is Dictionary)
 	var ends := Rules.unix_from_iso(str(league.get("endsAt", "")))
-	var days := maxi(1, ceili((ends - GameState.now_unix()) / 86400.0))
-	subtitle_label.text = tr("%s · termina em %d dias\nOs 5 primeiros sobem e os 5 últimos descem") % [
-		tr(Extras.league_name(int(league.tier))), days]
-	var i := 0
-	for row in league.get("rows", []):
-		if not row is Dictionary:
-			continue
-		var r := [int(row.get("position", 0)), str(row.get("nickname", "")), int(row.get("points", 0)), bool(row.get("me", false)), null]
-		var panel := _row(r, i)
-		var zone := str(row.get("zone", ""))
-		if zone in ["up", "down"] and not r[3]:
-			(panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Color("dff5d5") if zone == "up" else Color("fde0e0")
+	league_list.add_child(_league_head(tier, tr("Termina em %s · %d jogadores") % [Rules.short_countdown(maxi(0, ends - GameState.now_unix())), list.size()]))
+	var zone_of := func(r: Dictionary) -> String: return str(r.get("zone", "stay"))
+	var ups := list.filter(func(r: Dictionary) -> bool: return zone_of.call(r) == "up")
+	var stays := list.filter(func(r: Dictionary) -> bool: return zone_of.call(r) == "stay")
+	var downs := list.filter(func(r: Dictionary) -> bool: return zone_of.call(r) == "down")
+	if not ups.is_empty():
+		league_list.add_child(_zone_label(tr("Sobem para a %s") % tr(Extras.league_name(tier + 1)), Color("2f9a1a")))
+		_league_rows(ups, Color("dff5d5"))
+	# o meio fica resumido: só você (se estiver nele), entre reticências
+	var mine := stays.filter(func(r: Dictionary) -> bool: return bool(r.get("me", false)))
+	if not stays.is_empty():
+		if mine.is_empty() or stays.size() > 1:
+			league_list.add_child(_zone_label("⋮", Color(GameStyle.INK, 0.5)))
+		if not mine.is_empty():
+			_league_rows(mine, ROW_ALT)
+			if stays.size() > 1:
+				league_list.add_child(_zone_label("⋮", Color(GameStyle.INK, 0.5)))
+	if not downs.is_empty():
+		league_list.add_child(_zone_label(tr("Descem para a %s") % tr(Extras.league_name(tier - 1)), Color("d23b3b")))
+		_league_rows(downs, Color("fde0e0"))
+
+
+func _league_rows(list: Array, color: Color) -> void:
+	for row: Dictionary in list:
+		var r := [int(row.get("position", 0)), str(row.get("nickname", "")), int(row.get("points", 0)), bool(row.get("me", false)), null,
+			row.get("badge"), row.get("frame")]
+		var panel := _row(r, 1)
+		if not r[3]:
+			(panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = color
 		league_list.add_child(panel)
-		i += 1
+
+
+## Cabeçalho da liga: medalha, "Liga Ouro" e "Termina em 3d 06h · 30 jogadores".
+func _league_head(tier: int, sub: String) -> Control:
+	var head := HBoxContainer.new()
+	head.mouse_filter = Control.MOUSE_FILTER_PASS
+	head.add_theme_constant_override("separation", 14)
+	var medal := GameStyle.make_label(Extras.league_medal(tier), 56)
+	medal.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	head.add_child(medal)
+	var texts := VBoxContainer.new()
+	texts.add_theme_constant_override("separation", -4)
+	head.add_child(texts)
+	var name := GameStyle.make_label(Extras.league_name(tier), 40, true)
+	name.add_theme_font_override("font", GameStyle.title_font())
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	texts.add_child(name)
+	var s := GameStyle.make_label(sub, 22, true, Color(GameStyle.INK, 0.65))
+	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	s.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	texts.add_child(s)
+	return head
+
+
+static func _zone_label(text: String, color: Color) -> Label:
+	var l := GameStyle.make_label(text.to_upper(), 22, true, color)
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	return l
 
 
 ## Quanto falta para subir uma posição ("Faltam 3 pts para o 9º"); no 1º lugar, um parabéns.
@@ -390,13 +438,20 @@ func _row(r: Array, index: int) -> PanelContainer:
 	badge.medal = MEDALS[pos - 1] if pos >= 1 and pos <= 3 else Color(0, 0, 0, 0)
 	badge.text_color = color
 	row.add_child(badge)
-	var nick := GameStyle.make_label(tr("Você") if mine else str(r[1]), 26, mine, color)
+	# selo escolhido (ícone da conquista) ao lado do apelido
+	var seal := Extras.achievement_icon(str(r[5])) if r.size() > 5 and r[5] != null else ""
+	var nick := GameStyle.make_label((tr("Você") if mine else str(r[1])) + ("  " + seal if seal != "" else ""), 26, mine, color)
 	nick.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	nick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nick.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	if not mine:
 		nick.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	row.add_child(nick)
+	# moldura do apelido: borda colorida em volta da linha
+	var frame := Extras.frame_color(r[6] if r.size() > 6 else null)
+	if frame.a > 0:
+		bg.border_color = frame
+		bg.set_border_width_all(5)
 	var move := DeltaMark.new()
 	move.delta = r[4] if r.size() > 4 else null
 	move.on_dark = mine

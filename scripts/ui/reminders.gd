@@ -1,7 +1,8 @@
 class_name Reminders
 extends RefCounted
-## Aviso no celular (só no Android com o plugin): no máximo um por dia, às 19h de Brasília, lembrando da
-## sequência de dias ou dos desafios novos. Fica sempre só um agendado: cada abertura do app troca pelo próximo.
+## Aviso no celular (só no Android com o plugin): no máximo um por dia, às 19h de Brasília, só para o que importa,
+## nesta ordem: prêmio para resgatar, ranking do mês fechando (últimos 2 dias), sequência em risco e desafios novos.
+## Fica sempre só um agendado: cada abertura do app troca pelo próximo.
 ## O jogador liga e desliga na engrenagem; no Android 13+ o sistema pede a permissão na primeira vez.
 
 const HOUR := 19
@@ -24,11 +25,17 @@ static func next_time(now: int, played_today: bool) -> int:
 	return at + 86400 if played_today or now >= at else at
 
 
-## [título, texto] do aviso: com sequência, lembra dela; senão, dos desafios novos.
-static func message(streak: int) -> Array[String]:
+## [título, texto] do aviso para a hora `at`. `streak` = dias seguidos; `position` = lugar no Ranking Global do mês
+## (null = fora); `prize` = tem prêmio para resgatar.
+static func message(streak: int, at: int = 0, position: Variant = null, prize: bool = false) -> Array[String]:
+	if prize:
+		return ["Na Lata", I18n.t("Você tem um prêmio para resgatar. Abra o app e peça o seu!")]
+	var days := ceili(Rules.seconds_to_month_end(at) / 86400.0) if at > 0 else 99
+	if position != null and days <= 2:
+		return ["Na Lata", I18n.t("Faltam %d dias para o ranking do mês fechar. Você está em %dº.") % [days, int(position)]]
 	if streak >= 2:
-		return [I18n.t("%d dias seguidos!") % streak, I18n.t("Resolva uma fase hoje para não perder a sequência.")]
-	return [I18n.t("Desafios novos no ar"), I18n.t("Os 20 desafios de hoje estão esperando por você.")]
+		return [I18n.t("Poção de Cores"), "🔥 " + I18n.t("Sua sequência de %d dias acaba à meia-noite. Uma fase basta!") % streak]
+	return [I18n.t("Poção de Cores"), I18n.t("Os %d desafios de hoje chegaram! Seja o primeiro a resolver") % Rules.DAILY_COUNT + " 🧪"]
 
 
 ## Agenda (ou desliga) o aviso. Chamado ao abrir o app, ao sair dele e ao mudar a escolha.
@@ -40,8 +47,10 @@ static func update() -> void:
 		p.cancelReminder()
 		return
 	var s := GameState.streak()
-	var m := message(int(s.count))
-	p.scheduleReminder(next_time(GameState.now_unix(), bool(s.played_today)) * 1000, m[0], m[1])
+	var at := next_time(GameState.now_unix(), bool(s.played_today))
+	var month := GameState.global_month_total(Rules.month_for(at))
+	var m := message(int(s.count), at, month.get("position"), not Prizes.pending_payouts().is_empty())
+	p.scheduleReminder(at * 1000, m[0], m[1])
 
 
 ## Liga ou desliga pela engrenagem. Ao ligar, pede a permissão do Android se faltar.
