@@ -143,6 +143,10 @@ func load_config() -> bool:
 	var plugin := native()
 	if plugin:
 		plugin.adsInit()
+	# já deixa uma propaganda carregada: o toque em "assistir" abre na hora (plugin novo, com o sinal "rewarded_ready")
+	var preload_plugin := native_with("rewarded_ready")
+	if preload_plugin and not rewarded_unit_id().is_empty():
+		preload_plugin.preloadRewarded(rewarded_unit_id())
 	return true
 
 

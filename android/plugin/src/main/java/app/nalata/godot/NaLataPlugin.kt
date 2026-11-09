@@ -53,12 +53,21 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     private val tag = "NaLata"
     private val io = Executors.newSingleThreadExecutor()
     private var adsReady = false
+    // propaganda premiada já carregada (para abrir na hora do toque); vale 1 h no AdMob, usamos até 50 min
+    private var cachedAd: RewardedAd? = null
+    private var cachedUnit = ""
+    private var cachedAt = 0L
+    private var loadingUnit = ""
+    private val waiting = mutableListOf<(RewardedAd?) -> Unit>()
+    private var lastLoadError = ""
 
     override fun getPluginName() = "NaLata"
 
     override fun getPluginSignals(): Set<SignalInfo> = setOf(
         // ok, código do erro ("" se deu certo)
         SignalInfo("ads_initialized", java.lang.Boolean::class.java),
+        // a próxima propaganda premiada ficou pronta (ou não), para abrir sem espera
+        SignalInfo("rewarded_ready", java.lang.Boolean::class.java),
         // ganhou a recompensa (assistiu até o fim), código do erro ("" se deu certo)
         SignalInfo("rewarded_finished", java.lang.Boolean::class.java, String::class.java),
         // idToken ("" se não entrou), erro ("" | "cancelled" | "no_account" | mensagem)
@@ -88,37 +97,76 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         }
     }
 
+    /** Já deixa uma propaganda premiada carregada, para o toque em "assistir" abrir sem espera. */
+    @UsedByGodot
+    fun preloadRewarded(unitId: String) {
+        val a = act() ?: return
+        a.runOnUiThread { load(a, unitId) { emitSignal("rewarded_ready", it != null) } }
+    }
+
+    private fun freshAd(unitId: String): RewardedAd? =
+        cachedAd?.takeIf { cachedUnit == unitId && System.currentTimeMillis() - cachedAt < 50 * 60 * 1000L }
+
+    /** Carrega uma propaganda (ou usa a guardada) e guarda; `done(null)` se não veio. Roda na thread da tela. */
+    private fun load(a: Activity, unitId: String, done: (RewardedAd?) -> Unit) {
+        freshAd(unitId)?.let { return done(it) }
+        waiting.add(done)
+        if (loadingUnit == unitId) return  // já está carregando: recebe quando chegar
+        loadingUnit = unitId
+        RewardedAd.load(a, unitId, AdRequest.Builder().build(), object : RewardedAdLoadCallback() {
+            override fun onAdLoaded(ad: RewardedAd) {
+                loadingUnit = ""
+                cachedAd = ad
+                cachedUnit = unitId
+                cachedAt = System.currentTimeMillis()
+                answer(ad)
+            }
+
+            override fun onAdFailedToLoad(e: LoadAdError) {
+                loadingUnit = ""
+                Log.w(tag, "rewarded load: ${e.code} ${e.message}")
+                lastLoadError = if (e.code == AdRequest.ERROR_CODE_NO_FILL) "no_fill" else "load_${e.code}"
+                answer(null)
+            }
+        })
+    }
+
+    private fun answer(ad: RewardedAd?) {
+        val all = waiting.toList()
+        waiting.clear()
+        all.forEach { it(ad) }
+    }
+
     /**
-     * Carrega e mostra uma propaganda premiada. `customData` e `userId` vão na confirmação (SSV) que o
-     * Google manda ao servidor (/v1/admob/ssv). Responde com `rewarded_finished(ganhou, erro)`.
+     * Mostra uma propaganda premiada (a já carregada, se houver; senão carrega agora). `customData` e `userId` vão na
+     * confirmação (SSV) que o Google manda ao servidor (/v1/admob/ssv). Responde com `rewarded_finished(ganhou, erro)`.
+     * Depois de mostrar, já carrega a próxima.
      */
     @UsedByGodot
     fun showRewarded(unitId: String, userId: String, customData: String) {
         val a = act() ?: return emitSignal("rewarded_finished", false, "no_activity")
         a.runOnUiThread {
-            RewardedAd.load(a, unitId, AdRequest.Builder().build(), object : RewardedAdLoadCallback() {
-                override fun onAdLoaded(ad: RewardedAd) {
-                    ad.setServerSideVerificationOptions(
-                        ServerSideVerificationOptions.Builder().setUserId(userId).setCustomData(customData).build()
-                    )
-                    var earned = false
-                    ad.fullScreenContentCallback = object : FullScreenContentCallback() {
-                        override fun onAdDismissedFullScreenContent() {
-                            emitSignal("rewarded_finished", earned, if (earned) "" else "closed")
-                        }
-
-                        override fun onAdFailedToShowFullScreenContent(e: AdError) {
-                            emitSignal("rewarded_finished", false, "show_${e.code}")
-                        }
+            val show = fun(ad: RewardedAd?) {
+                if (ad == null) return emitSignal("rewarded_finished", false, lastLoadError.ifEmpty { "load" })
+                cachedAd = null
+                ad.setServerSideVerificationOptions(
+                    ServerSideVerificationOptions.Builder().setUserId(userId).setCustomData(customData).build()
+                )
+                var earned = false
+                ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                    override fun onAdDismissedFullScreenContent() {
+                        emitSignal("rewarded_finished", earned, if (earned) "" else "closed")
+                        load(a, unitId) {}
                     }
-                    ad.show(a) { earned = true }
-                }
 
-                override fun onAdFailedToLoad(e: LoadAdError) {
-                    Log.w(tag, "rewarded load: ${e.code} ${e.message}")
-                    emitSignal("rewarded_finished", false, if (e.code == AdRequest.ERROR_CODE_NO_FILL) "no_fill" else "load_${e.code}")
+                    override fun onAdFailedToShowFullScreenContent(e: AdError) {
+                        emitSignal("rewarded_finished", false, "show_${e.code}")
+                        load(a, unitId) {}
+                    }
                 }
-            })
+                ad.show(a) { earned = true }
+            }
+            load(a, unitId) { show(it) }
         }
     }
 

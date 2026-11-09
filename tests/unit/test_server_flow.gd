@@ -125,12 +125,17 @@ class FakePlugin extends RefCounted:
 	signal rewarded_finished(earned: bool, error: String)
 	signal google_signed_in(id_token: String, error: String)
 	signal ads_initialized(ok: bool)
+	signal rewarded_ready(ok: bool)
 	var shown: Array = []
+	var preloaded: Array = []
 	var earn: bool = true
 	var id_token: String = "id-tok"
 
 	func adsInit() -> void:
 		pass
+
+	func preloadRewarded(unit_id: String) -> void:
+		preloaded.append(unit_id)
 
 	func showRewarded(unit_id: String, user_id: String, custom_data: String) -> void:
 		shown.append([unit_id, user_id, custom_data])
@@ -362,6 +367,7 @@ func test_real_ad_sends_reward_id_for_ssv() -> void:
 	game._boost_online("flask")
 	await wait_physics_frames(10)
 	assert_eq(plugin.shown.size(), 1, "mostrou a propaganda do AdMob")
+	assert_eq(plugin.preloaded, ["unit-rw"], "a propaganda já fica carregada ao abrir o app")
 	assert_eq(plugin.shown[0][0], "unit-rw", "bloco vem do painel")
 	assert_eq(plugin.shown[0][1], "u1", "id do jogador vai na confirmação")
 	assert_true(str(plugin.shown[0][2]).begins_with("r-"), "rewardId vai como customData")
