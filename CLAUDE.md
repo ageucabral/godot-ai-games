@@ -195,5 +195,6 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
   Para a Play vão também x86/x86_64 (Chromebooks e aparelhos Intel; a Play entrega só a parte de cada aparelho) e as
   bibliotecas nativas comprimidas. Avisos da Play que não têm conserto: o Godot exige OpenGL ES 3.0 (celulares muito
-  antigos ficam de fora) e o motor oficial não traz símbolos de depuração nem usa R8.
+  antigos ficam de fora). Os **símbolos de depuração** do motor vão dentro do AAB (`tools/android_debug_symbols.sh`, chamado
+  pelo `export_android_release.sh`: baixa os oficiais do Godot, confere o Build ID e assina de novo).
   A cada nova versão da Play, suba `version/code` (e `version/name` + `Menus.VERSION`).
