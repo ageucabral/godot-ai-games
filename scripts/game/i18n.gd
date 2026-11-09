@@ -15,7 +15,7 @@ const STRINGS := {
 	"%d dias seguidos: ganhou uma ajuda grátis!": ["%d days in a row: you got a free help!", "%d días seguidos: ¡ganaste una ayuda gratis!"],
 	"%d jogadas.": ["%d moves.", "%d jugadas."],
 	"%s fez esta fase em %d jogadas. Consegue fazer em menos?\nO duelo não vale pontos no ranking.": ["%s did this stage in %d moves. Can you do it in fewer?\nDuels don't give ranking points.", "%s hizo esta fase en %d jugadas. ¿Puedes hacerlo en menos?\nEl duelo no da puntos en el ranking."],
-	"%s · termina em %d dias · os 5 primeiros sobem, os 5 últimos descem": ["%s · ends in %d days · top 5 go up, bottom 5 go down", "%s · termina en %d días · los 5 primeros suben, los 5 últimos bajan"],
+	"%s · termina em %d dias\nOs 5 primeiros sobem e os 5 últimos descem": ["%s · ends in %d days\nThe top 5 move up and the bottom 5 move down", "%s · termina en %d días\nLos 5 primeros suben y los 5 últimos bajan"],
 	"Aceitar o duelo": ["Accept the duel", "Aceptar el duelo"],
 	"Ajudas grátis guardadas: %d": ["Free helps saved: %d", "Ayudas gratis guardadas: %d"],
 	"Alquimista perfeito": ["Perfect alchemist", "Alquimista perfecto"],

@@ -281,7 +281,7 @@ func _fill_league() -> void:
 		return
 	var ends := Time.get_unix_time_from_datetime_string(str(league.get("endsAt", "")))
 	var days := maxi(1, ceili((ends - GameState.now_unix()) / 86400.0))
-	subtitle_label.text = tr("%s · termina em %d dias · os 5 primeiros sobem, os 5 últimos descem") % [
+	subtitle_label.text = tr("%s · termina em %d dias\nOs 5 primeiros sobem e os 5 últimos descem") % [
 		tr(Extras.league_name(int(league.tier))), days]
 	var i := 0
 	for row in league.get("rows", []):
