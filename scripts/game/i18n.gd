@@ -486,7 +486,10 @@ const STRINGS := {
 	"Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.": [
 		"Watch an ad to get +%d moves.\nEach move beyond %d costs 1 point.",
 		"Mira un anuncio para ganar +%d jugadas.\nCada jugada más allá de %d quita 1 punto."],
+	"Ganhe +%d jogadas.\nCada jogada além de %d tira 1 ponto.": ["Get +%d moves.\nEach move beyond %d costs 1 point.", "Gana +%d jugadas.\nCada jugada más allá de %d quita 1 punto."],
 	"Pontuação zerada": ["Score is zero", "Puntuación en cero"],
+	"Recomece este desafio.": ["Restart this challenge.", "Reinicia este desafío."],
+	"Recomece este nível, ou termine sem pontos.": ["Restart this level, or finish it without points.", "Reinicia este nivel, o termínalo sin puntos."],
 	"Assista a uma propaganda para recomeçar este desafio.": ["Watch an ad to restart this challenge.", "Mira un anuncio para reiniciar este desafío."],
 	"Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.": [
 		"Watch an ad to restart this level, or finish it without points.",

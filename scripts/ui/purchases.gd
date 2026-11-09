@@ -42,13 +42,25 @@ static func open(dialog: DialogBox) -> void:
 	_dialog = dialog
 	dialog.open_card("Remover anúncios", I18n.t("Sem anúncio entre níveis, e as ajudas não pedem mais vídeo (continuam custando pontos).\nCompra única, guardada na sua conta."), [
 		[I18n.t("Comprar por %s") % price, func() -> void: _buy(dialog), true],
-		["Voltar", func() -> void: _done(); Menus.open_settings(dialog)],
+		["Voltar", _back.bind(dialog)],
 	])
 
 
 static func _buy(dialog: DialogBox) -> void:
-	dialog.open("Remover anúncios", "Abrindo a loja do Google Play…", [["Voltar", func() -> void: _done(); Menus.open_settings(dialog)]])
-	plugin().buy(PRODUCT, str(Server.profile.get("id", "")))
+	dialog.open("Remover anúncios", "Abrindo a loja do Google Play…", [["Voltar", _back.bind(dialog)]])
+	plugin().buy(PRODUCT, Server.user_id())
+
+
+## Desistiu: volta para a engrenagem.
+static func _back(dialog: DialogBox) -> void:
+	_done()
+	Menus.open_settings(dialog)
+
+
+## Aviso de uma frase (só se a janela da compra ainda estiver aberta).
+static func _say(dialog: DialogBox, title: String, text: String) -> void:
+	if dialog:
+		dialog.open(title, text, [["Fechar", func() -> void: pass, true]])
 
 
 ## O fluxo de compra acabou: um resultado que chegue depois (pagamento pendente que concluiu) não abre janela nenhuma.
@@ -76,12 +88,10 @@ static func _on_purchase_done(product: String, token: String, error: String) -> 
 				Menus.open_settings(dialog)
 		"pending":
 			_done()
-			if dialog:
-				dialog.open("Quase lá", "Pagamento pendente. Quando o Google Play confirmar, os anúncios somem sozinhos.", [["Fechar", func() -> void: pass, true]])
+			_say(dialog, "Quase lá", "Pagamento pendente. Quando o Google Play confirmar, os anúncios somem sozinhos.")
 		_:
 			_done()
-			if dialog:
-				dialog.open("Ops!", "Não deu para concluir a compra. Tente de novo mais tarde.", [["Fechar", func() -> void: pass, true]])
+			_say(dialog, "Ops!", "Não deu para concluir a compra. Tente de novo mais tarde.")
 
 
 ## Manda o token ao servidor; aceito, confirma para a Play e atualiza o menu (`adsFree` no /pocao/home).
@@ -93,8 +103,8 @@ static func _confirm(product: String, token: String, dialog: DialogBox) -> void:
 		await Server.refresh_home()
 		if dialog:
 			dialog.open("Pronto!", "Sem anúncios. Bom jogo!", [["Legal!", func() -> void: pass, true]])
-	elif dialog:
+	else:
 		var text := "Não deu para confirmar a compra. Tente de novo em instantes: ela fica guardada no Google Play."
 		if res.code == "PURCHASE_TAKEN":
 			text = "Esta compra já está em outra conta do Na Lata. Entre com a conta que comprou para ficar sem anúncios."
-		dialog.open("Ops!", text, [["Fechar", func() -> void: pass, true]])
+		_say(dialog, "Ops!", text)

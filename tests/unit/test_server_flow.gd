@@ -30,6 +30,8 @@ func before_each() -> void:
 	Ads.last_ad_unix = 0
 	Ads.levels_since_inter = 0
 	Ads.rewarded_since_inter = false
+	Purchases.price = ""
+	Purchases._dialog = null
 	calls = []
 	forced = {}
 	home_extras = {}
@@ -602,15 +604,26 @@ func test_interstitial_between_levels_follows_panel_rules() -> void:
 	assert_true("interstitial_shown" in names, "mede quando o anúncio apareceu: " + str(names))
 
 
-func test_remove_ads_purchase_is_confirmed_by_server_and_skips_ads() -> void:
-	var plugin := FakePlugin.new()
+## Liga a loja de mentira: entra no servidor, busca o menu e espera a Play responder.
+func _store(plugin: FakePlugin, frames: int) -> void:
 	Server.native_override = plugin
-	Ads.instant = false
-	Purchases.price = ""
 	await Server.load_config()
 	await Server.refresh_home()
 	Purchases.start()
-	await wait_physics_frames(2)
+	await wait_physics_frames(frames)
+
+
+## Abre "Remover anúncios" e toca em comprar.
+func _press_buy(frames: int) -> void:
+	Purchases.open(main.dialog)
+	main.dialog.press("Comprar por R$ 19,90")
+	await wait_physics_frames(frames)
+
+
+func test_remove_ads_purchase_is_confirmed_by_server_and_skips_ads() -> void:
+	var plugin := FakePlugin.new()
+	Ads.instant = false
+	await _store(plugin, 2)
 	assert_eq(Purchases.price, "R$ 19,90", "preço vem da loja")
 	assert_true(Purchases.available(), "aparece na engrenagem antes de comprar")
 	Menus.open_settings(main.dialog)
@@ -643,25 +656,15 @@ func test_remove_ads_restore_is_skipped_when_already_ads_free() -> void:
 	var plugin := FakePlugin.new()
 	plugin.owned = ["tok-old"]
 	home_extras["adsFree"] = true
-	Server.native_override = plugin
-	await Server.load_config()
-	await Server.refresh_home()
-	Purchases.start()
-	await wait_physics_frames(4)
+	await _store(plugin, 4)
 	assert_false(_paths().has("/purchases"), "já restaurada: não pede ao servidor a cada abertura")
 
 
 func test_remove_ads_pending_and_failed_purchases_explain_and_stop() -> void:
 	var plugin := FakePlugin.new()
 	plugin.buy_error = "pending"
-	Server.native_override = plugin
-	await Server.load_config()
-	await Server.refresh_home()
-	Purchases.start()
-	await wait_physics_frames(2)
-	Purchases.open(main.dialog)
-	main.dialog.press("Comprar por R$ 19,90")
-	await wait_physics_frames(4)
+	await _store(plugin, 2)
+	await _press_buy(4)
 	assert_eq(main.dialog.title_label.text, "Quase lá", "pagamento pendente é explicado")
 	main.dialog.press("Fechar")
 	# o pagamento conclui mais tarde: a compra vai ao servidor sem abrir janela em cima do jogo
@@ -675,9 +678,7 @@ func test_remove_ads_pending_and_failed_purchases_explain_and_stop() -> void:
 	forced["/purchases"] = [ApiClient.error_result(409, "PURCHASE_TAKEN", "")]
 	plugin.buy_error = ""
 	await Server.refresh_home()
-	Purchases.open(main.dialog)
-	main.dialog.press("Comprar por R$ 19,90")
-	await wait_physics_frames(6)
+	await _press_buy(6)
 	assert_eq(main.dialog.title_label.text, "Ops!")
 	assert_true(main.dialog.text_label.text.begins_with("Esta compra já está em outra conta"), main.dialog.text_label.text)
 	assert_eq(plugin.acknowledged.size(), 1, "só a compra aceita foi confirmada para a Play")
@@ -686,11 +687,7 @@ func test_remove_ads_pending_and_failed_purchases_explain_and_stop() -> void:
 func test_remove_ads_purchase_is_restored_from_the_store() -> void:
 	var plugin := FakePlugin.new()
 	plugin.owned = ["tok-old"]
-	Server.native_override = plugin
-	await Server.load_config()
-	await Server.refresh_home()
-	Purchases.start()
-	await wait_physics_frames(6)
+	await _store(plugin, 6)
 	assert_true(_paths().has("/purchases"), "compra antiga vai ao servidor")
 	assert_eq(plugin.acknowledged, ["tok-old"])
 	assert_true(Server.ads_free(), "restaurou sem o jogador fazer nada")
@@ -699,14 +696,8 @@ func test_remove_ads_purchase_is_restored_from_the_store() -> void:
 func test_remove_ads_cancelled_purchase_goes_back_to_settings() -> void:
 	var plugin := FakePlugin.new()
 	plugin.buy_error = "cancelled"
-	Server.native_override = plugin
-	await Server.load_config()
-	await Server.refresh_home()
-	Purchases.start()
-	await wait_physics_frames(2)
-	Purchases.open(main.dialog)
-	main.dialog.press("Comprar por R$ 19,90")
-	await wait_physics_frames(4)
+	await _store(plugin, 2)
+	await _press_buy(4)
 	assert_false(_paths().has("/purchases"), "cancelou: nada vai ao servidor")
 	assert_false(Server.ads_free())
 	assert_eq(main.dialog.title_label.text, "Configurações", "volta para a engrenagem")

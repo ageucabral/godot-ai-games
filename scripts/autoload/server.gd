@@ -116,6 +116,11 @@ func ads_free() -> bool:
 
 
 ## Ainda é visitante (não entrou com Google).
+## Id do jogador no servidor (vazio antes de entrar); vai para a Play nas propagandas e na compra.
+func user_id() -> String:
+	return str(profile.get("id", ""))
+
+
 func is_guest() -> bool:
 	return bool(profile.get("guest", true))
 

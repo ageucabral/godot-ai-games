@@ -96,7 +96,7 @@ func _init() -> void:
 
 ## Botão que pede propaganda: ícone de vídeo + a recompensa em poucas palavras (ex.: "+1 frasco").
 static func ad(text: String, action: Callable, main: bool = true) -> Array:
-	return [text, action, main, true]
+	return [text, action, main, not Server.ads_free()]  # sem anúncios (compra): botão comum, não há vídeo
 
 
 ## buttons: lista de [texto, ação (Callable), principal (bool), ícone de vídeo (bool, veja `ad`)].
