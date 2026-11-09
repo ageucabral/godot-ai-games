@@ -15,6 +15,8 @@ var _cfg := ConfigFile.new()
 var server_month: Dictionary = {}
 ## Conta os resultados do servidor guardados (um menu que chega depois de um resultado é descartado).
 var server_result_seq: int = 0
+## Extras do GET /pocao/home (sequência, conquistas, frascos, evento, duelos). Vazio = jogando só no aparelho.
+var extras: Dictionary = {}
 
 
 const PLAYER := "player"
@@ -44,6 +46,7 @@ func load_progress() -> void:
 func reset_all() -> void:
 	_cfg = ConfigFile.new()
 	server_month = {}
+	extras = {}
 	I18n.apply(language())
 	_save()
 
@@ -51,13 +54,14 @@ func reset_all() -> void:
 ## Apaga o progresso deste aparelho (conta apagada), mas guarda as escolhas (idioma, som).
 func reset_progress() -> void:
 	var keep := {}
-	for key in ["language", "sound"]:
+	for key in ["language", "sound", "music", "reminders"]:
 		if _cfg.has_section_key(PLAYER, key):
 			keep[key] = _cfg.get_value(PLAYER, key)
 	_cfg = ConfigFile.new()
 	for key in keep:
 		_cfg.set_value(PLAYER, key, keep[key])
 	server_month = {}
+	extras = {}
 	_save()
 
 
@@ -90,17 +94,62 @@ func current_level() -> int:
 	return _cfg.get_value(PLAYER, "level", 1)
 
 
-## Guarda o nível resolvido (vale para o ranking do mês em que foi resolvido) e libera o próximo.
+## Guarda o nível resolvido (vale para o ranking do mês em que foi resolvido), as estrelas e libera o próximo.
 ## Só conta uma vez: resolver de novo um nível que já passou não muda nada.
-func complete_level(level: int, points: int, moves: int) -> void:
+func complete_level(level: int, points: int, moves: int, par: int = 0) -> void:
 	if level != current_level():
 		return
 	var key := LevelGenerator.key_for(level)
 	_cfg.set_value(key, "best_points", points)
 	_cfg.set_value(key, "best_moves", moves)
 	_cfg.set_value(key, "month", Rules.month_for(now_unix()))
+	if par > 0:
+		_cfg.set_value(key, "stars", Rules.stars_for(moves, par))
 	_cfg.set_value(PLAYER, "level", level + 1)
+	note_played()
 	_save()
+
+
+## Estrelas de um nível já resolvido (0 = ainda não).
+func level_stars(level: int) -> int:
+	return int(_cfg.get_value(LevelGenerator.key_for(level), "stars", 0))
+
+
+# ---------- sequência de dias, frascos e fundos ----------
+
+## Resolveu uma fase hoje: a sequência de dias (neste aparelho) soma 1 no primeiro acerto do dia.
+func note_played() -> void:
+	var last: String = _cfg.get_value(PLAYER, "streak_last", "")
+	var count := Rules.next_streak(last, int(_cfg.get_value(PLAYER, "streak", 0)), today())
+	_cfg.set_value(PLAYER, "streak", count)
+	_cfg.set_value(PLAYER, "streak_last", today())
+	_cfg.set_value(PLAYER, "streak_best", maxi(count, int(_cfg.get_value(PLAYER, "streak_best", 0))))
+
+
+## Sequência de dias que vale hoje: {count, best, played_today, free_boosts}. Pelo servidor, a dele.
+func streak() -> Dictionary:
+	var s: Variant = extras.get("streak")
+	if s is Dictionary:
+		return {"count": int(s.get("count", 0)), "best": int(s.get("best", 0)), "played_today": bool(s.get("playedToday", false)),
+			"free_boosts": int(s.get("freeBoosts", 0))}
+	var last: String = _cfg.get_value(PLAYER, "streak_last", "")
+	return {"count": Rules.live_streak(last, int(_cfg.get_value(PLAYER, "streak", 0)), today()),
+		"best": int(_cfg.get_value(PLAYER, "streak_best", 0)), "played_today": last == today(), "free_boosts": 0}
+
+
+## Gastou uma ajuda grátis (o servidor já descontou; aqui só atualiza a tela até o próximo menu).
+func use_free_boost() -> void:
+	var s: Variant = extras.get("streak")
+	if s is Dictionary:
+		s["freeBoosts"] = maxi(0, int(s.get("freeBoosts", 0)) - 1)
+
+
+## Frasco e fundo escolhidos e os liberados ({skin, bg, skins, backgrounds}). Sem servidor, só os de sempre.
+func looks() -> Dictionary:
+	var l: Variant = extras.get("looks")
+	if l is Dictionary:
+		return l
+	return {"skin": "classic", "bg": "night", "skins": ["classic"], "backgrounds": ["night"]}
 
 
 func attempts(key: String) -> int:
@@ -138,6 +187,7 @@ func save_result(key: String, points: int, moves: int) -> bool:
 	if better:
 		_cfg.set_value(key, "best_points", points)
 		_cfg.set_value(key, "best_moves", moves)
+		note_played()
 		_save()
 	return better
 
@@ -207,6 +257,13 @@ func apply_server_home(home: Dictionary) -> void:
 		var solved := bool(d.get("solved", false)) and d.get("bestPoints") != null
 		_cfg.set_value(key, "best_points", int(d.bestPoints) if solved else -1)
 		_cfg.set_value(key, "best_moves", int(d.bestMoves) if solved and d.get("bestMoves") != null else 0)
+	for st in home.get("stars", []):
+		if st is Dictionary:
+			_cfg.set_value(LevelGenerator.key_for(int(st.get("level", 0))), "stars", int(st.get("stars", 0)))
+	extras = {}
+	for k in ["streak", "achievements", "looks", "event", "duels"]:
+		if home.get(k) != null:
+			extras[k] = home[k]
 	var month: Dictionary = home.get("month", {})
 	if month.has("id"):
 		server_month = {
@@ -226,11 +283,21 @@ func apply_server_result(challenge: Dictionary, result: Dictionary) -> void:
 		return
 	var points := int(result.get("points", 0))
 	var moves := int(result.get("movesUsed", 0))
-	if challenge.get("mode", "") == "level":
-		complete_level(int(challenge.level), points, moves)
+	var more: Variant = result.get("extras")
+	if more is Dictionary and extras.get("streak") is Dictionary:
+		# a sequência e as ajudas grátis mudam na hora (o menu do servidor confirma depois)
+		extras.streak["count"] = int(more.get("streak", extras.streak.get("count", 0)))
+		extras.streak["playedToday"] = true
+		extras.streak["freeBoosts"] = int(extras.streak.get("freeBoosts", 0)) + int(more.get("freeBoostsGained", 0))
+	var mode: String = challenge.get("mode", "")
+	var ev: Variant = extras.get("event")
+	if mode == "event" and ev is Dictionary and int(challenge.get("event_n", 0)) == int(ev.get("done", 0)) + 1:
+		ev["done"] = int(challenge.event_n)  # a fase do evento contou: o botão do menu já mostra a próxima
+	if mode == "level":
+		complete_level(int(challenge.level), points, moves, int(challenge.get("par", 0)))
 		if result.get("nextLevel") != null:
 			_cfg.set_value(PLAYER, "level", int(result.nextLevel))
-	else:
+	elif mode not in ["event", "duel"]:  # evento e duelo não mexem no nível nem nos desafios do dia
 		var key := ChallengeGenerator.key_for(str(challenge.get("date", "")), int(challenge.get("index", 0)))
 		var best: Variant = result.get("best")
 		if best is Dictionary:

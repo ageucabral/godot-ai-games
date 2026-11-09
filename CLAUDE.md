@@ -176,10 +176,22 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - **Sons** (`scripts/autoload/sfx.gd`, autoload `Sfx`; arquivos gerados por `tools/gen_sounds.py`), liga/desliga na
   engrenagem. **Primeira partida guiada** no nível 1 (setinha com `SortPuzzle.hint_move`). **Medição**: `Server.track`
   manda `POST /events` (app_open, screen_view, tutorial_done/skipped, match_quit, invite_shared).
-- Ainda não existem: música, aviso de consentimento de anúncios (Europa), avisos no celular.
+- **Ideias novas** (Ageu, 9/11/2026; telas em `scripts/ui/extras.gd`): **sequência de dias** (chama no menu; dias 3 e 5
+  dão uma ajuda grátis — `rewardId "free:…"` —, 7 libera o fundo Pôr do sol e 30 o frasco Coração), **estrelas** por nível
+  (`Rules.stars_for`: 3 = exato, 2 = até +3, 1 = passou; caminho dos últimos níveis acima do botão "Nível N" e na vitória),
+  **16 conquistas** e **Meus frascos** (frascos e fundos liberados por conquistas, `PUT /pocao/looks`; formatos em
+  `GameStyle.bottle_outline(skin)`), **Liga da semana** (aba no Ranking: grupos de 30, 5 sobem e 5 descem, sem dinheiro),
+  **duelo** com amigo (botão "Desafiar amigo" na vitória → link `nalatagame.tech/duelo/CÓDIGO`; o link abre o app pelo
+  `nalata://duelo/…` ou a Play com `referrer duel=…`; não vale ponto), **eventos** (criados no painel, aba Eventos; fases
+  próprias com fundo do tema, contam no Ranking Global), **música** (`tools/gen_music.py`, liga/desliga em "Sons e avisos")
+  e **aviso no celular** (`scripts/ui/reminders.gd`: no máximo um por dia, às 19h de Brasília; o plugin agenda pelo
+  AlarmManager). Mecânicas: **gelo** a partir do nível 40 (frasco travado por algumas jogadas) e **frasco de uma cor** a partir
+  do 55. No servidor elas só entram com a chave "Gelo e frasco de uma cor" (`rules.pcMechanics`) ligada no painel:
+  ligar **junto com a versão mínima 1.3.2**, depois que a 1.3.2 estiver na Play (a 1.3.1 não conhece essas peças).
+- Ainda não existe: aviso de consentimento de anúncios (Europa).
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
-  versionCode 21+ (o 20 foi só rascunho), versão 1.3.1 (versionCode 22; a 1.3.0 está **publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
+  versionCode 21+ (o 20 foi só rascunho), versão 1.3.2 (versionCode 23; a 1.3.1 está **publicada na Play**; o dono quer seguir em 1.3.x), ícones do app antigo em `assets/icons/`. A chave de envio (upload key, do expo.dev)
   **nunca** vai para o git: entra por variáveis `NALATA_*` no `tools/export_android_release.sh`.
   Para a Play vão também x86/x86_64 (Chromebooks e aparelhos Intel; a Play entrega só a parte de cada aparelho) e as
   bibliotecas nativas comprimidas. Avisos da Play que não têm conserto: o Godot exige OpenGL ES 3.0 (celulares muito

@@ -4,6 +4,7 @@ extends Control
 ## É o único ranking (Ageu, 9/11/2026): o botão de ranking de cada jogo também abre este.
 ## A página inteira rola: cabeçalho, cartão "Você", prêmios do mês, a lista dos jogadores e as regras.
 ## Jogando pelo servidor mostra a posição e a lista do mês; sem servidor, só os pontos deste aparelho.
+## Pelo servidor, duas abas: "Global do mês" (prêmios) e "Liga da semana" (grupos de 30, sem dinheiro).
 
 signal back_requested
 signal invite_requested
@@ -27,6 +28,16 @@ var info_label: Label
 var claim_button: GlossButton
 var invite_button: GlossButton
 var prizes_button: GlossButton
+var tabs: HBoxContainer
+var tab_buttons: Dictionary = {}
+var me_card: PanelContainer
+var info_card: PanelContainer
+var league_card: PanelContainer
+var league_list: VBoxContainer
+## Aba aberta: "global" ou "league".
+var tab: String = "global"
+## Do GET /pocao/league.
+var league: Dictionary = {}
 ## Do GET /ranking: linhas [posição, apelido, pontos, sou_eu], faixas de prêmio e regra do jogador.
 var rows: Array = []
 var prizes: Array = []
@@ -70,8 +81,30 @@ func _ready() -> void:
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(subtitle_label)
 
+	# abas: Global do mês | Liga da semana
+	tabs = HBoxContainer.new()
+	tabs.mouse_filter = Control.MOUSE_FILTER_PASS
+	tabs.add_theme_constant_override("separation", 12)
+	box.add_child(tabs)
+	for t: Array in [["global", "Global do mês"], ["league", "Liga da semana"]]:
+		var id: String = t[0]
+		var b := GameStyle.make_button(t[1], false, 26)
+		b.custom_minimum_size = Vector2(0, 76)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func() -> void: set_tab(id))
+		tabs.add_child(b)
+		tab_buttons[id] = b
+
+	# liga da semana: a lista do grupo, com quem sobe e quem desce
+	league_card = _card(GameStyle.PAPER)
+	box.add_child(league_card)
+	league_list = VBoxContainer.new()
+	league_list.mouse_filter = Control.MOUSE_FILTER_PASS
+	league_list.add_theme_constant_override("separation", 4)
+	league_card.add_child(league_list)
+
 	# cartão "Você": posição grande à esquerda, pontos e o que falta à direita
-	var me_card := _card(Color("e0662f"))
+	me_card = _card(Color("e0662f"))
 	box.add_child(me_card)
 	var me_row := HBoxContainer.new()
 	me_row.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -128,12 +161,12 @@ func _ready() -> void:
 	top_card.add_child(top_list)
 
 	# como concorrer: regra, desempate e os botões
-	var info := _card(GameStyle.PAPER)
-	box.add_child(info)
+	info_card = _card(GameStyle.PAPER)
+	box.add_child(info_card)
 	var info_box := VBoxContainer.new()
 	info_box.mouse_filter = Control.MOUSE_FILTER_PASS
 	info_box.add_theme_constant_override("separation", 14)
-	info.add_child(info_box)
+	info_card.add_child(info_box)
 	info_box.add_child(GameStyle.make_label("Como ganhar", 28, true, GameStyle.ACCENT))
 	info_label = GameStyle.make_label("", 24)
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -160,11 +193,23 @@ func _card(color: Color) -> PanelContainer:
 	return card
 
 
-## Abre o ranking e busca a lista do mês no servidor.
+## Abre o ranking (na aba do mês) e busca a lista no servidor.
 func open() -> void:
+	tab = "global"
 	refresh()
 	if Server.online():
 		_fetch()
+
+
+## Troca de aba; a liga é buscada quando abre.
+func set_tab(id: String) -> void:
+	tab = id
+	refresh()
+	if id == "league" and Server.online():
+		var res: Dictionary = await Server.call_api("GET", "/pocao/league")
+		if res.ok and is_inside_tree() and res.data is Dictionary:
+			league = res.data
+			refresh()
 
 
 func _fetch() -> void:
@@ -178,6 +223,23 @@ func _fetch() -> void:
 
 
 func refresh() -> void:
+	var online := Server.online()
+	tabs.visible = online
+	if not online:
+		tab = "global"
+	for id: String in tab_buttons:
+		var b: GlossButton = tab_buttons[id]
+		b.fill = GameStyle.PURPLE if id == tab else Color("3a2f7a")
+		b.queue_redraw()
+	var in_league := tab == "league"
+	for c: Control in [me_card, prize_card, top_card, info_card]:
+		c.visible = not in_league
+	league_card.visible = in_league
+	if in_league:
+		claim_button.visible = false
+		_fill_league()
+		return
+	title_label.text = tr("Ranking Global")
 	var now := GameState.now_unix()
 	var month := Rules.month_for(now)
 	subtitle_label.text = tr("%s · termina em %d dias · zera no dia 1") % [Rules.month_name(month), Rules.days_left_in_month(now)]
@@ -193,7 +255,6 @@ func refresh() -> void:
 			detail_label.text = tr("%d jogadas no mês") % total.moves  # sem servidor (Web): sem posição
 		else:
 			detail_label.text = tr("Jogue para entrar no ranking")
-	var online := Server.online()
 	claim_button.visible = online and not Prizes.pending_payouts().is_empty()
 	invite_button.visible = online
 	prizes_button.visible = online and not Server.is_guest()
@@ -207,6 +268,32 @@ func refresh() -> void:
 	if not Server.enabled:
 		lines.append(tr("A lista com todos os jogadores está no app da Play Store."))
 	info_label.text = "\n\n".join(lines)
+
+
+## Liga da semana: nome da liga, quanto falta para acabar e a lista do grupo (verde sobe, vermelho desce).
+func _fill_league() -> void:
+	for c in league_list.get_children():
+		c.queue_free()
+	title_label.text = tr("Liga da semana")
+	if league.get("tier") == null:
+		subtitle_label.text = tr("Resolva uma fase para entrar na liga desta semana. Os 5 primeiros sobem de liga e os 5 últimos descem. Não vale dinheiro.")
+		league_card.visible = false
+		return
+	var ends := Time.get_unix_time_from_datetime_string(str(league.get("endsAt", "")))
+	var days := maxi(1, ceili((ends - GameState.now_unix()) / 86400.0))
+	subtitle_label.text = tr("%s · termina em %d dias · os 5 primeiros sobem, os 5 últimos descem") % [
+		tr(Extras.league_name(int(league.tier))), days]
+	var i := 0
+	for row in league.get("rows", []):
+		if not row is Dictionary:
+			continue
+		var r := [int(row.get("position", 0)), str(row.get("nickname", "")), int(row.get("points", 0)), bool(row.get("me", false)), null]
+		var panel := _row(r, i)
+		var zone := str(row.get("zone", ""))
+		if zone in ["up", "down"] and not r[3]:
+			(panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Color("dff5d5") if zone == "up" else Color("fde0e0")
+		league_list.add_child(panel)
+		i += 1
 
 
 ## Quanto falta para subir uma posição ("Faltam 3 pts para o 9º"); no 1º lugar, um parabéns.

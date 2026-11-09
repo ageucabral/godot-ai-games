@@ -42,6 +42,8 @@ var invite_code: String = ""
 var age_blocked: int = 0
 ## Para testes: manda os eventos na hora (sem esperar juntar).
 var events_now: bool = false
+## Duelo que chegou por link (ou pelo link da Play) e ainda não foi mostrado.
+var pending_duel: String = ""
 
 var _cfg := ConfigFile.new()
 var _logging_in: bool = false
@@ -208,8 +210,21 @@ func load_install_referrer() -> void:
 	var code := ApiClient.invite_code_from_referrer(str(out[0]))
 	if not code.is_empty():
 		invite_code = code
+	var duel := Extras.duel_code_from(str(out[0]))
+	if not duel.is_empty():
+		pending_duel = duel
 	_cfg.set_value("session", "referrer_checked", true)
 	_save_session()
+
+
+## Link de duelo que abriu o app (nalata://duelo/CÓDIGO): o plugin guarda e entrega uma vez.
+func take_launch_link() -> void:
+	var plugin := native_with("notifications_allowed")
+	if plugin == null:
+		return
+	var code := Extras.duel_code_from(str(plugin.takeLink()))
+	if not code.is_empty():
+		pending_duel = code
 
 
 ## Marca guardada na sessão deste aparelho (ex.: "nick_asked").
@@ -341,7 +356,7 @@ func _send(method: String, path: String, body: Variant, auth: bool) -> Dictionar
 	var http := HTTPRequest.new()
 	http.timeout = TIMEOUT_S
 	add_child(http)
-	var methods := {"GET": HTTPClient.METHOD_GET, "POST": HTTPClient.METHOD_POST, "PATCH": HTTPClient.METHOD_PATCH, "DELETE": HTTPClient.METHOD_DELETE}
+	var methods := {"GET": HTTPClient.METHOD_GET, "POST": HTTPClient.METHOD_POST, "PATCH": HTTPClient.METHOD_PATCH, "PUT": HTTPClient.METHOD_PUT, "DELETE": HTTPClient.METHOD_DELETE}
 	var err := http.request(base_url + path, headers, methods.get(method, HTTPClient.METHOD_GET), payload)
 	if err != OK:
 		http.queue_free()

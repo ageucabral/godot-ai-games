@@ -4,6 +4,7 @@ extends Control
 signal back_requested
 signal next_requested(date: String, index: int)
 signal next_level_requested
+signal next_event_requested
 
 const POUR_MOVE_TIME: float = 0.22
 const POUR_FLOW_TIME: float = 0.38
@@ -31,6 +32,7 @@ var move_limit: int = 0
 var selected: int = -1
 var busy: bool = false
 var dialog: DialogBox
+var _bg: SceneBackground
 var _bottles: Array[BottleView] = []
 var _finished: bool = false
 ## Nos níveis: o jogador escolheu "Continuar sem pontos" (não mostra o aviso de novo).
@@ -61,8 +63,8 @@ signal _next_level_arrived
 
 func _ready() -> void:
 	theme = GameStyle.build_theme()
-	var bg := GameStyle.add_background(self, "night")
-	move_child(bg, 0)
+	_bg = GameStyle.add_background(self, "night")
+	move_child(_bg, 0)
 	_style_hud()
 	dialog = DialogBox.new()
 	add_child(dialog)
@@ -150,6 +152,16 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 	GameState.start_attempt(key())
 
 
+## Abre uma fase que só existe pelo servidor: `{"mode": "event"}` (próxima fase do evento) ou
+## `{"mode": "duel", "code": …}` (a fase de quem desafiou).
+func open_online_mode(body: Dictionary) -> void:
+	_show_loading(false)
+	if _next_level_pending():
+		await _next_level_arrived  # o servidor fecharia esta partida ao abrir o nível pedido antes
+	drop_next_level()
+	await _open_online(body)
+
+
 ## Abre um nível do modo por níveis (sem tentativas contadas).
 func open_level(level: int) -> void:
 	if Server.online():
@@ -224,6 +236,11 @@ func is_level() -> bool:
 	return challenge.get("mode", "daily") == "level"
 
 
+## Desafio do dia (os outros modos — nível, evento e duelo — não contam tentativas).
+func is_daily() -> bool:
+	return challenge.get("mode", "daily") == "daily"
+
+
 ## Esta partida foi aberta pelo servidor (ele confere as jogadas e dá os pontos).
 func is_online() -> bool:
 	return not str(challenge.get("match_id", "")).is_empty()
@@ -266,7 +283,7 @@ func open_with(data: Dictionary) -> void:
 	if _pour_tween and _pour_tween.is_valid():
 		_pour_tween.kill()  # um despejo da partida anterior não pode mexer na nova
 	challenge = data
-	puzzle = SortPuzzle.new(data.tubes, data.get("hidden", false), data.get("covers", []))
+	puzzle = SortPuzzle.new(data.tubes, data.get("hidden", false), data.get("covers", []), data.get("ice", []), data.get("only", []))
 	move_limit = data.par
 	selected = -1
 	busy = false
@@ -281,6 +298,11 @@ func open_with(data: Dictionary) -> void:
 	boost_cost = int(params.get("boost_cost", Rules.BOOST_COST))
 	extra_moves = int(params.get("extra_moves", Rules.EXTRA_MOVES))
 	dialog.close()
+	var ev: Variant = GameState.extras.get("event")
+	if challenge.get("mode", "") == "event" and ev is Dictionary:
+		_bg.kind = Extras.background_kind("event:" + str(ev.get("theme", "")))
+	else:
+		_bg.kind = Extras.background_kind(str(GameState.looks().get("bg", "night")))
 	_build_bottles()
 	tutorial = is_level() and int(data.get("level", 0)) == 1 and not bool(GameState.get_setting("tutorial_done", false))
 	_refresh()
@@ -349,8 +371,8 @@ func tap_bottle(i: int) -> void:
 	if out_of_moves():
 		_show_out_of_moves()
 		return
-	if puzzle.is_covered(i):
-		_bottles[i].shake()  # coberta: só abre ao completar a cor do selo
+	if puzzle.is_covered(i) or puzzle.is_frozen(i):
+		_bottles[i].shake()  # coberta (abre ao completar a cor do selo) ou congelada (derrete com as jogadas)
 		Sfx.play("wrong")
 		selected = -1
 		_refresh()
@@ -457,27 +479,28 @@ func _build_bottles() -> void:
 		var b := BottleView.new()
 		b.index = i
 		b.set_bottle_width(width)
+		b.skin = str(GameState.looks().get("skin", "classic"))
 		b.tapped.connect(tap_bottle)
 		(_row_top if i < top_count else _row_bottom).add_child(b)
 		_bottles.append(b)
 
 
 func _refresh() -> void:
+	var ice := puzzle.ice_left()
 	for i in _bottles.size():
 		_bottles[i].segments = BottleView.segments_from(puzzle.tubes[i], puzzle.hidden[i])
 		_bottles[i].selected = (i == selected)
 		_bottles[i].cover_key = SortPuzzle.cover_color(puzzle.covers[i])
 		_bottles[i].set_covered(puzzle.is_covered(i), animate)
+		_bottles[i].ice_left = ice[i]
+		_bottles[i].only_color = puzzle.only[i]
 	var used: int = puzzle.moves_used()
 	_moves_value.text = "%d / %d" % [used, move_limit]
 	_moves_value.add_theme_color_override("font_color", Color("ff7a8a") if used > challenge.par else Color.WHITE)
 	_show_points(current_points())
-	if is_level():
-		_challenge_value.text = tr("Nível %d") % challenge.level
-	else:
-		_challenge_value.text = tr("Desafio %d / %d") % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
+	_challenge_value.text = title_text()
 	# a dificuldade só aparece nos desafios do dia (nos níveis, o número do nível já diz tudo)
-	_subtitle.visible = not is_level()
+	_subtitle.visible = is_daily()
 	_subtitle.text = tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
 	_shuffle_button.badge = str(shuffles_left)
 	var boost_ok: bool = not _finished and can_use_boost()
@@ -485,6 +508,20 @@ func _refresh() -> void:
 	_bottle_button.badge = str(bottles_left)
 	_bottle_button.disabled = bottles_left <= 0 or not boost_ok
 	_update_hint()
+
+
+## Nome da fase no alto: "Nível 12", "Desafio 3 / 20", "Evento 2 / 15" ou "Duelo".
+func title_text() -> String:
+	match str(challenge.get("mode", "daily")):
+		"level":
+			return tr("Nível %d") % challenge.level
+		"event":
+			var ev: Variant = GameState.extras.get("event")
+			var total: int = int(ev.get("levels", 0)) if ev is Dictionary else 0
+			return tr("Evento %d / %d") % [int(challenge.get("event_n", 1)), total] if total > 0 else tr("Evento")
+		"duel":
+			return tr("Duelo")
+	return tr("Desafio %d / %d") % [challenge.get("index", 0) + 1, Rules.DAILY_COUNT]
 
 
 ## Placar ao vivo: quando passa do número exato de jogadas, cada jogada a mais tira 1 ponto
@@ -518,7 +555,7 @@ func _show_points(points: int) -> void:
 func _on_restart_pressed() -> void:
 	if busy:
 		return
-	var text := "Recomeçar pede uma propaganda." if is_level() else "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado."
+	var text := "Recomeçar pede uma propaganda." if not is_daily() else "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado."
 	dialog.open("Recomeçar?", tr(text), [
 		["Assistir e recomeçar", _restart_with_ad, true],
 		["Continuar jogando", func() -> void: pass],
@@ -526,6 +563,12 @@ func _on_restart_pressed() -> void:
 
 
 func _restart_with_ad() -> void:
+	if challenge.get("mode", "") in ["event", "duel"]:
+		var body := {"mode": challenge.mode}
+		if challenge.mode == "duel":
+			body["code"] = challenge.get("duel_code", "")
+		Ads.show_rewarded(func() -> void: open_online_mode(body))
+		return
 	if is_level():
 		var level: int = challenge.level
 		Ads.show_rewarded(func() -> void: open_level(level))
@@ -570,24 +613,30 @@ func _on_shuffle_pressed() -> void:
 			return
 		var at: int = puzzle.moves_used()
 		action = func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, at))
-	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
-		["Assistir e embaralhar", action, true],
-		["Voltar", func() -> void: pass],
-	])
+	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(),
+		_with_free_boost("shuffle", [["Assistir e embaralhar", action, true], ["Voltar", func() -> void: pass]]))
 
 
 ## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
 func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
-	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), [
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), _with_free_boost("flask", [
 		["Assistir e ganhar", func() -> void:
 			if is_online():
 				_boost_online("flask")
 			else:
 				Ads.show_rewarded(apply_extra_bottle), true],
 		["Voltar", func() -> void: pass],
-	])
+	]))
+
+
+## Com ajudas grátis da sequência de dias (pelo servidor), a primeira opção usa uma sem propaganda.
+func _with_free_boost(kind: String, buttons: Array) -> Array:
+	var free := int(GameState.streak().free_boosts)
+	if not is_online() or free <= 0:
+		return buttons
+	return [[tr("Usar ajuda grátis (%d)") % free, func() -> void: _boost_online(kind, true), true]] + buttons
 
 
 ## Aplica um embaralhado calculado antes da propaganda (`at` = jogadas feitas naquele momento:
@@ -615,19 +664,24 @@ func boost_cost_text() -> String:
 
 
 ## Nos desafios do dia, uma ajuda que zeraria os pontos obrigaria a recomeçar: não deixa usar.
-## (Nos níveis dá para seguir sem pontos.)
+## (Nos outros modos dá para seguir sem pontos.)
 func can_use_boost() -> bool:
-	return is_level() or current_points() > boost_cost
+	return not is_daily() or current_points() > boost_cost
 
 
 ## Ajuda pelo servidor: propaganda conferida → o servidor confere as jogadas até aqui, aplica a ajuda
-## e devolve o estado novo. kind = "shuffle" | "flask" | "moves".
-func _boost_online(kind: String) -> void:
+## e devolve o estado novo. kind = "shuffle" | "flask" | "moves". `free` = usa uma ajuda grátis da sequência de dias
+## (sem propaganda; o servidor desconta).
+func _boost_online(kind: String, free: bool = false) -> void:
 	if busy or _finished:
 		return
 	busy = true
 	var at: int = puzzle.moves_used()
-	var reward_id: String = await Server.rewarded(kind, {"matchId": challenge.match_id})
+	var reward_id: String
+	if free:
+		reward_id = "free:" + Crypto.new().generate_random_bytes(12).hex_encode()
+	else:
+		reward_id = await Server.rewarded(kind, {"matchId": challenge.match_id})
 	if reward_id.is_empty():
 		busy = false
 		_show_server_error({"code": "REWARD_NOT_VERIFIED"})
@@ -638,6 +692,8 @@ func _boost_online(kind: String) -> void:
 	if not res.ok:
 		_show_server_error(res, res.code in ["MOVES_DIVERGED", "INVALID_MOVES", "MATCH_ENDED", "CHALLENGE_CLOSED"])
 		return
+	if free:
+		GameState.use_free_boost()
 	if _finished or puzzle.moves_used() != at:
 		return
 	var st := ApiClient.state_from_match(res.data.get("match", {}))
@@ -685,7 +741,7 @@ func _show_out_of_moves() -> void:
 
 func _show_zero_points() -> void:
 	Sfx.play("lose")
-	if is_level():
+	if not is_daily():
 		# nos níveis dá para terminar sem pontos e seguir em frente
 		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
 			["Recomeçar", _restart_with_ad, true],
@@ -726,7 +782,7 @@ func _finish() -> void:
 	var points := current_points()
 	var used := puzzle.moves_used()
 	if is_level():
-		GameState.complete_level(challenge.level, points, used)
+		GameState.complete_level(challenge.level, points, used, int(challenge.par))
 		_show_level_win(points, used)
 		return
 	var improved := GameState.save_result(key(), points, used)
@@ -760,28 +816,31 @@ func _finish_online() -> void:
 		return
 	var points := int(r.get("points", 0))
 	var used := int(r.get("movesUsed", puzzle.moves_used()))
-	if is_level():
-		_show_level_win(points, used)
-		return
-	var best: Variant = r.get("best")
-	var best_points: int = int(best.points) if best is Dictionary else points
-	_show_daily_win(points, used, bool(r.get("newBest", true)), best_points)
+	var extras: Variant = r.get("extras")
+	match str(challenge.get("mode", "")):
+		"level":
+			_show_level_win(points, used, extras)
+		"event", "duel":
+			_show_online_win(points, used, extras)
+		_:
+			var best: Variant = r.get("best")
+			var best_points: int = int(best.points) if best is Dictionary else points
+			_show_daily_win(points, used, bool(r.get("newBest", true)), best_points, extras)
 
 
-func _show_level_win(points: int, used: int) -> void:
+func _show_level_win(points: int, used: int, extras: Variant = null) -> void:
 	var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
 	if points < challenge.full_points:
 		level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
-	_celebrate()
 	if is_online():
 		prefetch_next_level()
-	dialog.open(win_title(points, challenge.full_points), level_text, [
+	_show_win(points, used, level_text, extras, [
 		["Próximo nível", func() -> void: next_level_requested.emit(), true],
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
 
-func _show_daily_win(points: int, used: int, improved: bool, best_points: int) -> void:
+func _show_daily_win(points: int, used: int, improved: bool, best_points: int, extras: Variant = null) -> void:
 	var text := tr("+%d pontos em %d jogadas.") % [points, used]
 	if not improved:
 		text += tr("\nSeu melhor continua %d pontos.") % best_points
@@ -794,8 +853,43 @@ func _show_daily_win(points: int, used: int, improved: bool, best_points: int) -
 	if points < challenge.full_points:
 		buttons.append(["Tentar melhorar", _restart_with_ad])
 	buttons.append(["Menu", func() -> void: back_requested.emit()])
+	_show_win(points, used, text, extras, buttons)
+
+
+## Vitória no evento (pontos no Ranking Global) ou no duelo (sem pontos).
+func _show_online_win(points: int, used: int, extras: Variant) -> void:
+	var buttons: Array = []
+	var text: String
+	if challenge.mode == "duel":
+		text = tr("%d jogadas.") % used
+	else:
+		text = tr("+%d pontos em %d jogadas.") % [points, used]
+		var ev: Variant = GameState.extras.get("event")
+		if ev is Dictionary and int(ev.get("done", 0)) < int(ev.get("levels", 0)):
+			buttons.append(["Próxima fase do evento", func() -> void: next_event_requested.emit(), true])
+		else:
+			text += "\n" + tr("Você completou o evento!")
+	buttons.append(["Menu", func() -> void: back_requested.emit(), buttons.is_empty()])
+	_show_win(points, used, text, extras, buttons)
+
+
+## Janela da vitória: título, estrelas, o texto com as novidades (sequência, conquistas, duelo) e os botões.
+## Nos níveis e desafios pelo servidor dá para desafiar um amigo com a mesma fase.
+func _show_win(points: int, used: int, text: String, extras: Variant, buttons: Array) -> void:
 	_celebrate()
+	var lines := Extras.win_lines(extras)
+	if not lines.is_empty():
+		text += "\n\n" + "\n".join(lines)
+	if is_online() and challenge.get("mode", "") in ["level", "daily"]:
+		var match_id: String = challenge.match_id
+		buttons.insert(buttons.size() - 1, ["Desafiar amigo", func() -> void:
+			Extras.share_duel(dialog, match_id, used, func() -> void: _open_win(points, used, text, buttons))])
+	_open_win(points, used, text, buttons)
+
+
+func _open_win(points: int, used: int, text: String, buttons: Array) -> void:
 	dialog.open(win_title(points, challenge.full_points), text, buttons)
+	dialog.add_content(Extras.StarsView.new(Rules.stars_for(used, int(challenge.par)), 3, 34.0))
 
 
 ## "Perfeito!" com a pontuação cheia; senão "Muito bem!".

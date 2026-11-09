@@ -109,3 +109,32 @@ func test_shuffle_same_seed_same_result() -> void:
 	var r2 := RandomNumberGenerator.new()
 	r2.seed = 42
 	assert_eq(a.shuffled_state(r1), b.shuffled_state(r2), "a semente refaz o mesmo embaralhado")
+
+
+func test_ice_melts_with_moves() -> void:
+	var p := SortPuzzle.new([[0, 0, 1], [1, 1, 0], [0, 1], [], []], false, [], [2, 0, 0, 0, 0])
+	assert_true(p.is_frozen(0))
+	assert_false(p.can_pour(0, 3), "congelada não despeja")
+	assert_false(p.can_pour(2, 0), "nem recebe")
+	assert_eq(p.ice_left(), [2, 0, 0, 0, 0])
+	assert_eq(p.pour(2, 3), 1)
+	assert_eq(p.pour(2, 4), 1)
+	assert_eq(p.ice_left(), [0, 0, 0, 0, 0], "derreteu depois de 2 jogadas")
+	assert_true(p.can_pour(0, 3))
+
+
+func test_only_bottle_takes_one_color() -> void:
+	var p := SortPuzzle.new([[0, 1], [1, 0], []], false, [], [], [-1, -1, 0])
+	assert_true(p.can_pour(1, 2), "a cor certa entra")
+	assert_false(p.can_pour(0, 2), "outra cor não entra")
+	p.add_empty_tube()
+	assert_eq(p.only, [-1, -1, 0, -1])
+	assert_eq(p.ice, [0, 0, 0, 0])
+
+
+func test_solver_respects_ice_and_only() -> void:
+	var tubes := [[0, 0, 0, 1], [1, 1, 1, 0], []]
+	var plain := SortPuzzle.min_moves(tubes)
+	assert_true(SortPuzzle.min_moves(tubes, 400000, [], [], [-1, -1, 1]) >= plain, "frasco de uma cor nunca deixa mais curto")
+	var iced := SortPuzzle.min_moves(tubes, 400000, [], [3, 0, 0])
+	assert_true(iced == -1 or iced >= plain, "gelo nunca deixa mais curto")

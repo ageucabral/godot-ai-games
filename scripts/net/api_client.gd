@@ -110,6 +110,8 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		"difficulty": str(m.get("difficulty", "easy")),
 		"tubes": to_ints(m.get("tubes", [])),
 		"covers": to_ints(m.get("covers", [])),
+		"ice": to_ints(m.get("ice", [])),
+		"only": to_ints(m.get("only", [])),
 		"hidden": bool(m.get("hidden", false)),
 		"par": int(m.get("par", 0)),
 		"full_points": int(m.get("fullPoints", 0)),
@@ -126,6 +128,10 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		data["date"] = str(m.date)
 	if m.get("index") != null:
 		data["index"] = int(m.index)
+	if m.get("eventN") != null:
+		data["event_n"] = int(m.eventN)
+	if m.get("duelCode") != null:
+		data["duel_code"] = str(m.duelCode)
 	return data
 
 

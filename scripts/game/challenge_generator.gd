@@ -75,11 +75,13 @@ static func build_puzzle(rng: RandomNumberGenerator, shape: Dictionary, palette_
 		var covers := _pick_covers(rng, tubes, palette, int(shape.get("covers", 0)))
 		if _has_finished_tube(tubes):
 			continue  # as trocas do pano podem ter montado uma garrafa pronta
-		var par := SortPuzzle.min_moves(tubes, MAX_STATES, covers)
+		var ice := _pick_ice(rng, tubes, covers, int(shape.get("ice", 0)))
+		var only := _pick_only(rng, tubes, palette, int(shape.get("only", 0)))
+		var par := SortPuzzle.min_moves(tubes, MAX_STATES, covers, ice, only)
 		if par >= shape.min_par:
-			return {"tubes": tubes, "covers": covers, "par": par}
+			return _built(tubes, covers, par, ice, only)
 		if par > 0 and par > int(best.get("par", 0)):
-			best = {"tubes": tubes, "covers": covers, "par": par}
+			best = _built(tubes, covers, par, ice, only)
 	return best if accept_best else {}
 
 
@@ -128,6 +130,47 @@ static func _pick_covers(rng: RandomNumberGenerator, tubes: Array, palette: Arra
 	for n_i in n:
 		covers[chosen[n_i]] = keys[n_i]
 	return covers
+
+
+static func _built(tubes: Array, covers: Array, par: int, ice: Array, only: Array) -> Dictionary:
+	var out := {"tubes": tubes, "covers": covers, "par": par}
+	if not ice.is_empty():
+		out["ice"] = ice
+	if not only.is_empty():
+		out["only"] = only
+	return out
+
+
+## Gelo: `count` garrafas cheias e descobertas ficam presas de 3 a 6 jogadas. [] = fase sem gelo.
+static func _pick_ice(rng: RandomNumberGenerator, tubes: Array, covers: Array, count: int) -> Array:
+	if count <= 0:
+		return []
+	var ice: Array = []
+	var free: Array = []
+	for i in tubes.size():
+		ice.append(0)
+		if not (tubes[i] as Array).is_empty() and int(covers[i]) < 0:
+			free.append(i)
+	for _n in mini(count, free.size()):
+		var at: int = free.pop_at(rng.randi_range(0, free.size() - 1))
+		ice[at] = rng.randi_range(3, 6)
+	return ice
+
+
+## Frasco de uma cor: a última garrafa vazia só aceita uma cor da fase. [] = fase sem ele.
+static func _pick_only(rng: RandomNumberGenerator, tubes: Array, palette: Array, count: int) -> Array:
+	if count <= 0:
+		return []
+	var only: Array = []
+	for i in tubes.size():
+		only.append(-1)
+	var at := -1
+	for i in tubes.size():
+		if (tubes[i] as Array).is_empty():
+			at = i
+	if at >= 0:
+		only[at] = palette[rng.randi_range(0, palette.size() - 1)]
+	return only
 
 
 static func _no_covers(count: int) -> Array:

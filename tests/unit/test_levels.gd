@@ -98,3 +98,13 @@ func test_covered_levels_have_covers() -> void:
 		if int(c) >= 0:
 			covered += 1
 	assert_eq(covered, 1, "nível 12 tem um frasco coberto")
+
+
+func test_ice_and_only_bottles_appear_later() -> void:
+	assert_true(LevelGenerator.generate(39).get("ice", []).is_empty(), "sem gelo antes do 40")
+	var ice := LevelGenerator.generate(Rules.ICE_FROM)
+	assert_true((ice.ice as Array).any(func(v: int) -> bool: return v > 0), "gelo no 40")
+	var only := LevelGenerator.generate(Rules.ONLY_FROM)
+	assert_true((only.only as Array).any(func(v: int) -> bool: return v >= 0), "frasco de uma cor no 55")
+	var p := SortPuzzle.new(only.tubes, only.get("hidden", false), only.covers, only.ice, only.only)
+	assert_eq(SortPuzzle.min_moves(p.tubes, 400000, p.covers, p.ice, p.only), int(only.par), "o número exato confere")
