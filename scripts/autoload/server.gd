@@ -183,6 +183,8 @@ func sync_music() -> void:
 ## Arquivos de música guardados, em ordem de vaga ("1-…", "2-…", "3-…").
 func _music_files() -> Array[String]:
 	var files: Array[String] = []
+	if not DirAccess.dir_exists_absolute(music_dir):
+		return files
 	for f in DirAccess.get_files_at(music_dir):
 		if f.get_extension() in ["ogg", "mp3"]:
 			files.append(f)

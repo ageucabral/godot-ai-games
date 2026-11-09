@@ -1,11 +1,18 @@
 class_name BoosterButton
 extends GlossButton
-## Botão quadrado de ajuda na partida (recomeçar, embaralhar, frasco extra), com desenho e um selo vermelho.
+## Botão quadrado de ajuda na partida (desfazer, dica, frasco extra), com desenho e um selo no canto: o número de
+## ajudas grátis (verde) ou, sem nenhuma, o ícone de vídeo (a ajuda pede propaganda), como nos jogos do gênero.
 
-var icon_kind: String = "restart"
+var icon_kind: String = "undo"
+## Texto do selo ("2" = ajudas grátis). "" = sem selo.
 var badge: String = "":
 	set(value):
 		badge = value
+		queue_redraw()
+## Selo com o ícone de vídeo (quando não há ajuda grátis).
+var video_badge: bool = false:
+	set(value):
+		video_badge = value
 		queue_redraw()
 
 
@@ -21,22 +28,22 @@ func _draw() -> void:
 	super()
 	var c := Vector2(size.x * 0.5, (size.y - DEPTH) * 0.5 + (DEPTH * 0.6 if is_pressed() else 0.0))
 	var white := Color(1, 1, 1, 0.55 if disabled else 1.0)
-	if icon_kind == "restart":
-		draw_arc(c, 26, 0.6, TAU - 0.3, 24, GameStyle.INK, 15, true)
-		draw_arc(c, 26, 0.6, TAU - 0.3, 24, white, 9, true)
-		var tip := c + Vector2(cos(0.6), sin(0.6)) * 26
-		draw_colored_polygon(PackedVector2Array([tip + Vector2(-16, -2), tip + Vector2(10, -6), tip + Vector2(0, 16)]), white)
-	elif icon_kind == "shuffle":
-		# duas setas que se cruzam
-		for k in [-1.0, 1.0]:
-			var pts := PackedVector2Array()
-			for i in 13:
-				var t := i / 12.0
-				pts.append(c + Vector2(lerpf(-26, 22, t), k * 18.0 * cos(t * PI)))
-			draw_polyline(pts, GameStyle.INK, 15, true)
-			draw_polyline(pts, white, 9, true)
-			var tip := c + Vector2(30, -k * 18.0)
-			draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-14, -10), tip + Vector2(-14, 10)]), white)
+	if icon_kind == "undo":
+		# seta curva voltando para a esquerda
+		draw_arc(c + Vector2(0, 4), 24, PI * 1.15, TAU + PI * 0.5, 24, GameStyle.INK, 15, true)
+		draw_arc(c + Vector2(0, 4), 24, PI * 1.15, TAU + PI * 0.5, 24, white, 9, true)
+		var tip := c + Vector2(0, 4) + Vector2(cos(PI * 1.15), sin(PI * 1.15)) * 24
+		draw_colored_polygon(PackedVector2Array([tip + Vector2(-14, 4), tip + Vector2(10, -14), tip + Vector2(12, 8)]), white)
+	elif icon_kind == "hint":
+		# lâmpada acesa
+		draw_circle(c + Vector2(0, -8), 24, GameStyle.INK)
+		draw_circle(c + Vector2(0, -8), 19, white)
+		draw_rect(Rect2(c + Vector2(-13, 10), Vector2(26, 20)), GameStyle.INK)
+		draw_rect(Rect2(c + Vector2(-9, 13), Vector2(18, 7)), white)
+		draw_rect(Rect2(c + Vector2(-9, 23), Vector2(18, 5)), white)
+		for a in [-0.9, 0.0, 0.9]:
+			var d := Vector2(sin(a), -cos(a))
+			draw_line(c + Vector2(0, -8) + d * 30, c + Vector2(0, -8) + d * 40, white, 5, true)
 	elif icon_kind == "bottle":
 		# "+" e uma garrafinha
 		var b := Rect2(c + Vector2(-2, -22), Vector2(26, 44))
@@ -45,8 +52,10 @@ func _draw() -> void:
 		draw_rect(Rect2(b.position + Vector2(7, -10), Vector2(12, 12)), white)
 		draw_rect(Rect2(c + Vector2(-30, -4), Vector2(22, 8)), white)
 		draw_rect(Rect2(c + Vector2(-23, -11), Vector2(8, 22)), white)
+	var bc := Vector2(size.x - 14, size.y - 22)
 	if badge != "":
-		var bc := Vector2(size.x - 14, size.y - 22)
 		draw_circle(bc, 22, GameStyle.INK)
-		draw_circle(bc, 18, Color("e8324a"))
+		draw_circle(bc, 18, GameStyle.GREEN)
 		draw_string(GameStyle.title_font(), bc + Vector2(-20, 9), badge, HORIZONTAL_ALIGNMENT_CENTER, 40, 24, Color.WHITE)
+	elif video_badge:
+		Icons.draw(self, "video", bc, 34, Color.WHITE if not disabled else Color(1, 1, 1, 0.6))

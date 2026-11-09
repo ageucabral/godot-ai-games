@@ -9,7 +9,7 @@ const BASE_URL := "https://api.nalatagame.tech/v1"
 const SERVER_GAME_ID := "pocao"
 
 ## Tipo de recompensa do servidor para cada ajuda da partida.
-const REWARD_KINDS := {"shuffle": "pshuffle", "flask": "pflask", "moves": "pmoves", "retry": "pretry"}
+const REWARD_KINDS := {"hint": "phint", "flask": "pflask", "moves": "pmoves", "retry": "pretry"}
 
 ## Recados curtos para os erros que o jogador pode ver.
 const ERROR_TEXTS := {
@@ -121,7 +121,7 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		"par": int(m.get("par", 0)),
 		"full_points": int(m.get("fullPoints", 0)),
 		"params": {
-			"shuffles": int(params.get("shuffles", Rules.SHUFFLES_PER_STAGE)),
+			"hints": int(params.get("hints", params.get("shuffles", Rules.HINTS_PER_STAGE))),
 			"flasks": int(params.get("flasks", Rules.EXTRA_BOTTLES_PER_STAGE)),
 			"boost_cost": int(params.get("boostCost", Rules.BOOST_COST)),
 			"extra_moves": int(params.get("extraMoves", Rules.EXTRA_MOVES)),
@@ -146,7 +146,7 @@ static func state_from_match(m: Dictionary) -> Dictionary:
 	return {
 		"tubes": to_ints(s.get("tubes", [])),
 		"move_limit": int(s.get("moveLimit", 0)),
-		"shuffles_left": int(s.get("shufflesLeft", 0)),
+		"hints_left": int(s.get("hintsLeft", 0)),
 		"flasks_left": int(s.get("flasksLeft", 0)),
 	}
 

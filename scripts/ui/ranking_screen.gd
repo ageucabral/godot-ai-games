@@ -53,27 +53,23 @@ func _ready() -> void:
 	add_child(scroll)
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.mouse_filter = Control.MOUSE_FILTER_PASS
 	for side in ["left", "right"]:
 		margin.add_theme_constant_override("margin_" + side, 28)
 	margin.add_theme_constant_override("margin_top", 40)
 	margin.add_theme_constant_override("margin_bottom", 60)
 	scroll.add_child(margin)
 	var box := VBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_theme_constant_override("separation", 20)
 	margin.add_child(box)
 
 	# cabeçalho: voltar, título e o mês
 	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_PASS
 	box.add_child(head)
 	var back := GameStyle.make_button("Voltar", false, 26)
 	back.pressed.connect(func() -> void: back_requested.emit())
 	head.add_child(back)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_PASS
 	head.add_child(spacer)
 	title_label = GameStyle.make_title("Ranking Global", 48, GameStyle.GOLD)
 	box.add_child(title_label)
@@ -83,7 +79,6 @@ func _ready() -> void:
 
 	# abas: Global do mês | Liga da semana
 	tabs = HBoxContainer.new()
-	tabs.mouse_filter = Control.MOUSE_FILTER_PASS
 	tabs.add_theme_constant_override("separation", 12)
 	box.add_child(tabs)
 	for t: Array in [["global", "Global do mês"], ["league", "Liga da semana"]]:
@@ -99,7 +94,6 @@ func _ready() -> void:
 	league_card = _card(GameStyle.PAPER)
 	box.add_child(league_card)
 	league_list = VBoxContainer.new()
-	league_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	league_list.add_theme_constant_override("separation", 4)
 	league_card.add_child(league_list)
 
@@ -107,7 +101,6 @@ func _ready() -> void:
 	me_card = _card(Color("e0662f"))
 	box.add_child(me_card)
 	var me_row := HBoxContainer.new()
-	me_row.mouse_filter = Control.MOUSE_FILTER_PASS
 	me_row.add_theme_constant_override("separation", 20)
 	me_card.add_child(me_row)
 	position_label = GameStyle.make_title("", 60)
@@ -115,7 +108,6 @@ func _ready() -> void:
 	position_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	me_row.add_child(position_label)
 	var me_text := VBoxContainer.new()
-	me_text.mouse_filter = Control.MOUSE_FILTER_PASS
 	me_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	me_text.alignment = BoxContainer.ALIGNMENT_CENTER
 	me_row.add_child(me_text)
@@ -141,13 +133,11 @@ func _ready() -> void:
 	(prize_card.get_theme_stylebox("panel") as StyleBoxFlat).set_content_margin_all(12)
 	box.add_child(prize_card)
 	var prize_box := VBoxContainer.new()
-	prize_box.mouse_filter = Control.MOUSE_FILTER_PASS
 	prize_box.add_theme_constant_override("separation", 8)
 	prize_card.add_child(prize_box)
 	prize_box.add_child(GameStyle.make_label("Prêmios do mês", 24, true, GameStyle.INK))
 	prize_list = GridContainer.new()
 	prize_list.columns = 4
-	prize_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	prize_list.add_theme_constant_override("h_separation", 8)
 	prize_list.add_theme_constant_override("v_separation", 8)
 	prize_box.add_child(prize_list)
@@ -156,7 +146,6 @@ func _ready() -> void:
 	top_card = _card(GameStyle.PAPER)
 	box.add_child(top_card)
 	top_list = VBoxContainer.new()
-	top_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	top_list.add_theme_constant_override("separation", 4)
 	top_card.add_child(top_list)
 
@@ -164,7 +153,6 @@ func _ready() -> void:
 	info_card = _card(GameStyle.PAPER)
 	box.add_child(info_card)
 	var info_box := VBoxContainer.new()
-	info_box.mouse_filter = Control.MOUSE_FILTER_PASS
 	info_box.add_theme_constant_override("separation", 14)
 	info_card.add_child(info_box)
 	info_box.add_child(GameStyle.make_label("Como ganhar", 28, true, GameStyle.ACCENT))
@@ -185,7 +173,6 @@ func _ready() -> void:
 ## Cartão arredondado de uma cor; deixa o arrasto passar para a página rolar.
 func _card(color: Color) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.mouse_filter = Control.MOUSE_FILTER_PASS
 	var b := GameStyle.card_box()
 	b.bg_color = color
 	b.set_content_margin_all(20)
@@ -238,7 +225,13 @@ func refresh() -> void:
 	if in_league:
 		claim_button.visible = false
 		_fill_league()
-		return
+	else:
+		_refresh_global(online)
+	GameStyle.let_scroll(self)
+
+
+## Aba do Ranking Global: cartão "Você", prêmios, lista e "Como ganhar".
+func _refresh_global(online: bool) -> void:
 	title_label.text = tr("Ranking Global")
 	var now := GameState.now_unix()
 	var month := Rules.month_for(now)
@@ -319,7 +312,6 @@ func _league_rows(list: Array, color: Color) -> void:
 ## Cabeçalho da liga: medalha, "Liga Ouro" e "Termina em 3d 06h · 30 jogadores".
 func _league_head(tier: int, sub: String) -> Control:
 	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_PASS
 	head.add_theme_constant_override("separation", 14)
 	var medal := GameStyle.make_label(Extras.league_medal(tier), 56)
 	medal.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
@@ -369,7 +361,6 @@ func _fill_prizes() -> void:
 	prize_list.columns = clampi(chips.size(), 1, 4)
 	for c in chips:
 		var chip := PanelContainer.new()
-		chip.mouse_filter = Control.MOUSE_FILTER_PASS
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var b := StyleBoxFlat.new()
 		b.bg_color = GameStyle.CREAM
@@ -377,7 +368,6 @@ func _fill_prizes() -> void:
 		b.set_content_margin_all(6)
 		chip.add_theme_stylebox_override("panel", b)
 		var v := VBoxContainer.new()
-		v.mouse_filter = Control.MOUSE_FILTER_PASS
 		v.add_theme_constant_override("separation", -4)
 		chip.add_child(v)
 		for part in [[c[0], 20, GameStyle.ACCENT], [c[1], 26, GameStyle.INK]]:
@@ -413,7 +403,6 @@ func _fill_top() -> void:
 func _row(r: Array, index: int) -> PanelContainer:
 	var mine: bool = r[3]
 	var panel := PanelContainer.new()
-	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	var bg := StyleBoxFlat.new()
 	if mine:
 		bg.bg_color = ME_COLOR
@@ -428,7 +417,6 @@ func _row(r: Array, index: int) -> PanelContainer:
 	bg.content_margin_bottom = 8
 	panel.add_theme_stylebox_override("panel", bg)
 	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.add_theme_constant_override("separation", 14)
 	panel.add_child(row)
 	var color: Color = Color.WHITE if mine else GameStyle.INK

@@ -17,9 +17,9 @@ const DAILY_MEDIUM: int = 7
 const DAILY_HARD: int = 5
 const DAILY_COUNT: int = DAILY_EASY + DAILY_MEDIUM + DAILY_HARD
 
-## Ajudas da partida (Ageu, 7/11/2026): embaralhar e frasco extra. Cada uso pede propaganda e tira
-## BOOST_COST ponto(s) da fase. Quantidade por fase como nos jogos do gênero (3 embaralhadas, 1 frasco).
-const SHUFFLES_PER_STAGE: int = 3
+## Ajudas da partida (Ageu, 7/11/2026; dica no lugar do embaralhar em 9/11/2026, como nos jogos do gênero): dica e
+## frasco extra. Cada uso pede propaganda e tira BOOST_COST ponto(s) da fase (3 dicas, 1 frasco). Desfazer é grátis.
+const HINTS_PER_STAGE: int = 3
 const EXTRA_BOTTLES_PER_STAGE: int = 1
 const BOOST_COST: int = 1
 

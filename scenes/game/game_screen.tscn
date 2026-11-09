@@ -150,16 +150,16 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 36
 
-[node name="RestartButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
+[node name="UndoButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Recomeçar"
+text = "Desfazer"
 script = ExtResource("3_booster")
 
-[node name="ShuffleButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
+[node name="HintButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Embaralhar"
+text = "Dica"
 script = ExtResource("3_booster")
 
 [node name="BottleButton" type="Button" parent="Layout/BoosterRow/BoosterBar/Row"]

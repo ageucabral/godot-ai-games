@@ -123,7 +123,8 @@ func test_level_continue_without_points_does_not_nag() -> void:
 func test_restart_needs_ad_and_new_attempt() -> void:
 	screen.open_challenge("2026-11-07", 0)
 	assert_eq(GameState.attempts("2026-11-07#0"), 1)
-	screen.get_node("%RestartButton").pressed.emit()
+	screen._open_pause()
+	screen.dialog.press("Recomeçar")
 	screen.dialog.press("Recomeçar")
 	assert_eq(GameState.attempts("2026-11-07#0"), 2, "recomeçar gasta uma tentativa")
 	assert_eq(screen.puzzle.moves_used(), 0)
@@ -132,7 +133,7 @@ func test_restart_needs_ad_and_new_attempt() -> void:
 func test_restart_after_midnight_is_closed() -> void:
 	screen.open_challenge("2026-11-07", 0)
 	GameState.fixed_unix += 86400  # virou o dia com a partida aberta
-	screen.get_node("%RestartButton").pressed.emit()
+	screen._on_restart_pressed()
 	screen.dialog.press("Recomeçar")
 	assert_eq(screen.dialog.title_label.text, "Desafio encerrado")
 	assert_eq(GameState.attempts("2026-11-07#0"), 1, "não gasta tentativa de dia encerrado")
@@ -236,24 +237,37 @@ func test_extra_bottle_costs_one_point() -> void:
 	assert_true(screen.get_node("%BottleButton").disabled, "só um por fase")
 
 
-func test_shuffle_costs_one_point_and_keeps_colors() -> void:
+func test_hint_costs_one_point_and_points_the_arrow() -> void:
 	var data := SPARE.duplicate(true)
-	data.tubes = [[0, 1, 0, 1], [1, 0, 1, 0], [], []]
 	screen.open_with(data)
-	var before: Array = []
-	for t in screen.puzzle.tubes:
-		before.append_array(t)
-	before.sort()
-	screen.get_node("%ShuffleButton").pressed.emit()
-	screen.dialog.press("Embaralhar")
-	var after: Array = []
-	for t in screen.puzzle.tubes:
-		after.append_array(t)
-	after.sort()
-	assert_eq(after, before, "as mesmas camadas, só misturadas")
-	assert_eq(screen.shuffles_left, Rules.SHUFFLES_PER_STAGE - 1)
+	screen.get_node("%HintButton").pressed.emit()
+	screen.dialog.press("Dica")
+	assert_eq(screen.hints_left, Rules.HINTS_PER_STAGE - 1)
 	assert_eq(screen._points_value.text, "9", "custa 1 ponto")
-	assert_true(SortPuzzle.min_moves(screen.puzzle.tubes) >= 0, "continua com solução")
+	var target := -1
+	for i in screen._bottles.size():
+		if screen._bottles[i].hint:
+			target = i
+	assert_true(target >= 0, "setinha numa garrafa")
+	assert_true(screen.puzzle.can_pour(target, screen._hint_move[1]), "a dica é uma jogada possível")
+	screen.tap_bottle(target)
+	screen.tap_bottle(screen._hint_move[1])
+	assert_false(screen._bottles.any(func(b: BottleView) -> bool: return b.hint), "depois de jogar, a setinha some")
+
+
+func test_undo_restores_liquid_but_keeps_the_move_counted() -> void:
+	screen.open_with(SPARE.duplicate(true))
+	assert_true(screen.get_node("%UndoButton").disabled, "nada para desfazer no começo")
+	screen.tap_bottle(0)
+	screen.tap_bottle(2)
+	assert_eq(screen.puzzle.tubes, [[0, 0, 0], [1, 1, 1, 0], [1], []])
+	assert_false(screen.get_node("%UndoButton").disabled)
+	screen.get_node("%UndoButton").pressed.emit()
+	assert_eq(screen.puzzle.tubes, [[0, 0, 0, 1], [1, 1, 1, 0], [], []], "o líquido voltou")
+	assert_eq(screen.puzzle.moves_used(), 2, "a jogada errada e o desfazer contam")
+	assert_eq(screen._moves_value.text, "2 / 3")
+	assert_eq(screen._points_value.text, "10", "até o número exato não perde ponto")
+	assert_true(screen.get_node("%UndoButton").disabled, "só desfaz um despejo por vez")
 
 
 func test_boost_blocked_when_it_would_zero_a_daily() -> void:
@@ -283,5 +297,5 @@ func test_boost_dialog_shows_real_cost() -> void:
 	var data := SPARE.duplicate(true)
 	data["params"] = {"boost_cost": 2}
 	screen.open_with(data)
-	screen.get_node("%ShuffleButton").pressed.emit()
+	screen.get_node("%HintButton").pressed.emit()
 	assert_true(screen.dialog.text_label.text.ends_with("custa 2 pontos."), "custo das regras da partida")

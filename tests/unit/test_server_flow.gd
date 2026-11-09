@@ -66,10 +66,10 @@ func _match(body: Dictionary) -> Dictionary:
 		"id": "m-1", "mode": body.get("mode"), "key": ("nivel#%d" % level_number) if level else "%s#%d" % [TODAY, body.get("index", 0)],
 		"date": null if level else TODAY, "index": null if level else body.get("index"), "level": level_number if level else null,
 		"difficulty": "easy", "tubes": TUBES, "covers": [-1.0, -1.0, -1.0], "hidden": false, "par": 3.0, "fullPoints": 6.0,
-		"params": {"shuffles": 3.0, "flasks": 1.0, "boostCost": 2.0, "extraMoves": 7.0}, "attempt": null,
+		"params": {"hints": 3.0, "flasks": 1.0, "boostCost": 2.0, "extraMoves": 7.0}, "attempt": null,
 		"boosts": [], "moves": [], "eventN": 2.0 if body.get("mode") == "event" else null,
 		"duelCode": body.get("code") if body.get("mode") == "duel" else null,
-		"state": {"tubes": TUBES, "movesUsed": 0, "moveLimit": 3.0, "points": 6, "shufflesLeft": 3, "flasksLeft": 1, "solved": false},
+		"state": {"tubes": TUBES, "movesUsed": 0, "moveLimit": 3.0, "points": 6, "hintsLeft": 3, "flasksLeft": 1, "solved": false},
 	}
 
 
@@ -91,9 +91,9 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 			return _ok({"rewardId": "r-%d" % calls.size(), "ssvCustomData": "r-%d" % calls.size()})
 		"/pocao/matches/m-1/boost":
 			var m := _match({"mode": "level"})
-			m.state = {"tubes": [[0, 0, 1, 0], [1, 1, 0, 1], []], "movesUsed": 0, "moveLimit": 10, "points": 4,
-				"shufflesLeft": 2, "flasksLeft": 0, "solved": false}
-			return _ok({"match": m})
+			m.state = {"tubes": TUBES, "movesUsed": 0, "moveLimit": 10, "points": 4,
+				"hintsLeft": 2, "flasksLeft": 0, "solved": false}
+			return _ok({"match": m, "hint": [0, 2] if body.get("kind") == "hint" else null})
 		"/pocao/matches/m-1/finish":
 			return _ok({"matchId": "m-1", "solved": true, "rejected": false, "movesUsed": 3, "par": 3, "fullPoints": 6,
 				"points": server_points, "credited": server_points, "best": null, "newBest": true, "nextLevel": level_number + 1,
@@ -282,13 +282,18 @@ func test_flask_needs_server_reward() -> void:
 	assert_eq(game.current_points(), 4, "custo da ajuda vem das regras da partida (2)")
 
 
-func test_shuffle_uses_server_tubes() -> void:
+func test_hint_comes_from_server() -> void:
 	main.play_level()
 	await wait_physics_frames(1)
-	game._boost_online("shuffle")
+	game._boost_online("hint")
 	await wait_physics_frames(1)
-	assert_eq(game.puzzle.tubes, [[0, 0, 1, 0], [1, 1, 0, 1], []], "embaralhado sorteado pelo servidor")
-	assert_eq(game.shuffles_left, 2)
+	assert_eq(game.hints_left, 2)
+	assert_true(game._bottles[0].hint, "setinha na garrafa que o servidor indicou")
+	assert_eq(game.current_points(), 4, "custo da ajuda vem das regras da partida (2)")
+	game.tap_bottle(0)
+	assert_true(game._bottles[2].hint, "escolhida a origem, a setinha vai para o destino")
+	game.tap_bottle(2)
+	assert_false(game._bottles.any(func(b: BottleView) -> bool: return b.hint), "depois da jogada a dica some")
 
 
 func test_reward_waits_for_admob_confirmation() -> void:
@@ -657,7 +662,7 @@ func test_free_boost_skips_the_ad() -> void:
 	await _with_extras()
 	main.play_level()
 	await wait_physics_frames(1)
-	game._on_shuffle_pressed()
+	game._on_hint_pressed()
 	assert_eq(game.dialog.button_texts()[0], "Usar ajuda grátis (1)")
 	game.dialog.press("Usar ajuda grátis (1)")
 	await wait_physics_frames(1)

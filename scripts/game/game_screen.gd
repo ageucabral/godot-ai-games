@@ -20,8 +20,8 @@ const POINTS_OVER_COLOR := Color("e0303f")
 @onready var _points_value: Label = %PointsValue
 @onready var _subtitle: Label = %Subtitle
 @onready var _menu_button: Button = %MenuButton
-@onready var _restart_button: Button = %RestartButton
-@onready var _shuffle_button: BoosterButton = %ShuffleButton
+@onready var _undo_button: BoosterButton = %UndoButton
+@onready var _hint_button: BoosterButton = %HintButton
 @onready var _bottle_button: BoosterButton = %BottleButton
 
 ## Desliga a animação (os testes usam para as jogadas acontecerem na hora).
@@ -43,7 +43,9 @@ var _zero_accepted: bool = false
 var _pour_tween: Tween
 ## Pontos tirados pelas ajudas usadas nesta tentativa: cada uma pede propaganda e tira `boost_cost` (Ageu, 7/11/2026).
 var _penalty: int = 0
-var shuffles_left: int = 0
+var hints_left: int = 0
+## Dica comprada: a setinha fica na jogada sugerida até o jogador despejar.
+var _hint_active: bool = false
 var bottles_left: int = 0
 ## Pontos mostrados no placar (para perceber quando caem e animar o "-1").
 var _shown_points: int = -1
@@ -76,8 +78,8 @@ func _ready() -> void:
 	dialog = DialogBox.new()
 	add_child(dialog)
 	_menu_button.pressed.connect(_open_pause)
-	_restart_button.pressed.connect(_on_restart_pressed)
-	_shuffle_button.pressed.connect(_on_shuffle_pressed)
+	_undo_button.pressed.connect(_on_undo_pressed)
+	_hint_button.pressed.connect(_on_hint_pressed)
 	_bottle_button.pressed.connect(_on_bottle_pressed)
 
 
@@ -116,7 +118,8 @@ func _style_hud() -> void:
 	bar.content_margin_top = 18
 	bar.content_margin_bottom = 18
 	%BoosterBar.add_theme_stylebox_override("panel", bar)
-	_shuffle_button.icon_kind = "shuffle"
+	_undo_button.icon_kind = "undo"
+	_hint_button.icon_kind = "hint"
 	_bottle_button.icon_kind = "bottle"
 
 
@@ -299,7 +302,8 @@ func open_with(data: Dictionary) -> void:
 	_shown_points = -1
 	_penalty = 0
 	var params: Dictionary = data.get("params", {})
-	shuffles_left = int(params.get("shuffles", Rules.SHUFFLES_PER_STAGE))
+	hints_left = int(params.get("hints", Rules.HINTS_PER_STAGE))
+	_hint_active = false
 	bottles_left = int(params.get("flasks", Rules.EXTRA_BOTTLES_PER_STAGE))
 	boost_cost = int(params.get("boost_cost", Rules.BOOST_COST))
 	extra_moves = int(params.get("extra_moves", Rules.EXTRA_MOVES))
@@ -328,7 +332,7 @@ func end_tutorial(done: bool) -> void:
 	_update_hint()
 
 
-## Setinha da partida guiada: na garrafa de onde despejar, ou (já escolhida) na que recebe.
+## Setinha da partida guiada (ou da dica comprada): na garrafa de onde despejar, ou (já escolhida) na que recebe.
 ## Se escolheu a garrafa errada, a setinha volta para a certa. A busca só refaz quando as garrafas mudam.
 func _update_hint() -> void:
 	var move: Array = []
@@ -337,6 +341,8 @@ func _update_hint() -> void:
 		if _hint_key != key:
 			_hint_key = key
 			_hint_move = SortPuzzle.hint_move(puzzle.tubes, puzzle.covers)
+		move = _hint_move
+	elif _hint_active and not _finished:
 		move = _hint_move
 	var target := -1
 	if move.size() == 2:
@@ -405,6 +411,7 @@ func _do_pour(from: int, to: int) -> void:
 	var color: int = puzzle.tubes[from][-1]
 	var amount := puzzle.pour(from, to)
 	selected = -1
+	_hint_active = false
 	Sfx.play("pour")
 	if SortPuzzle.is_complete(puzzle.tubes[to]):
 		Sfx.play("bottle_done", -3.0)
@@ -512,10 +519,14 @@ func _refresh() -> void:
 	# a dificuldade só aparece nos desafios do dia (nos níveis, o número do nível já diz tudo)
 	_subtitle.visible = is_daily()
 	_subtitle.text = tr(Rules.DIFFICULTY_NAMES[challenge.difficulty])
-	_shuffle_button.badge = str(shuffles_left)
 	var boost_ok: bool = not _finished and can_use_boost()
-	_shuffle_button.disabled = shuffles_left <= 0 or not boost_ok
-	_bottle_button.badge = str(bottles_left)
+	_undo_button.disabled = _finished or not puzzle.can_undo() or out_of_moves()
+	# selo das ajudas: número de ajudas grátis (da sequência de dias) ou o ícone de vídeo
+	var free := _free_boosts()
+	for b: BoosterButton in [_hint_button, _bottle_button]:
+		b.badge = str(free) if free > 0 else ""
+		b.video_badge = free <= 0
+	_hint_button.disabled = hints_left <= 0 or not boost_ok
 	_bottle_button.disabled = bottles_left <= 0 or not boost_ok
 	pieces_card.update(pieces_lines(ice, puzzle.only))
 	_update_hint()
@@ -620,27 +631,36 @@ func _retry_daily_online() -> void:
 	open_challenge(date, index, reward_id)
 
 
-## Embaralhar: mistura de novo o líquido das garrafas abertas (sempre com solução).
-## Pede propaganda e tira `boost_cost` ponto(s). Até Rules.SHUFFLES_PER_STAGE vezes por fase.
-func _on_shuffle_pressed() -> void:
-	if busy or _finished or shuffles_left <= 0 or not can_use_boost():
+## Desfazer (grátis, padrão do gênero): o líquido volta, mas a jogada continua contada e os pontos não voltam.
+func _on_undo_pressed() -> void:
+	if busy or _finished or out_of_moves() or not puzzle.undo():
+		return
+	selected = -1
+	_hint_active = false
+	Sfx.play("tap")
+	_refresh()
+	if out_of_moves():
+		_show_out_of_moves()
+
+
+## Dica: a setinha mostra a próxima jogada de um caminho curto. Pede propaganda e tira `boost_cost` ponto(s).
+## Até Rules.HINTS_PER_STAGE vezes por fase. Pelo servidor, a jogada vem de lá; sem servidor, a busca é local.
+func _on_hint_pressed() -> void:
+	if busy or _finished or hints_left <= 0 or not can_use_boost():
 		return
 	var action: Callable
 	if is_online():
-		# o servidor sorteia o embaralhado
-		action = func() -> void: _boost_online("shuffle")
+		action = func() -> void: _boost_online("hint")
 	else:
-		# calcula o embaralhado ANTES da propaganda: se não der, o jogador não assiste à toa
-		var rng := RandomNumberGenerator.new()
-		rng.randomize()
-		var mixed: Array = puzzle.shuffled_state(rng)
-		if mixed.is_empty():
-			dialog.open("Embaralhar", "Não deu para embaralhar agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
+		# calcula a dica ANTES da propaganda: se não der, o jogador não assiste à toa
+		var move := SortPuzzle.hint_move(puzzle.tubes, puzzle.covers, 60000, puzzle.ice_left(), puzzle.only)
+		if move.is_empty():
+			dialog.open("Dica", "Não deu para achar uma dica agora. Nada foi cobrado.", [["Fechar", func() -> void: pass, true]])
 			return
 		var at: int = puzzle.moves_used()
-		action = func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, at))
-	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(),
-		_with_free_boost("shuffle", [DialogBox.ad("Embaralhar", action), ["Voltar", func() -> void: pass]]))
+		action = func() -> void: Ads.show_rewarded(func() -> void: apply_hint(move, at))
+	dialog.open("Dica?", tr("Mostra a próxima jogada de um caminho curto.\nPede uma propaganda e custa %s.") % boost_cost_text(),
+		_with_free_boost("hint", [DialogBox.ad("Dica", action), ["Voltar", func() -> void: pass]]))
 
 
 ## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
@@ -659,19 +679,30 @@ func _on_bottle_pressed() -> void:
 
 ## Com ajudas grátis da sequência de dias (pelo servidor), a primeira opção usa uma sem propaganda.
 func _with_free_boost(kind: String, buttons: Array) -> Array:
-	var free := int(GameState.streak().free_boosts)
-	if not is_online() or free <= 0:
+	var free := _free_boosts()
+	if free <= 0:
 		return buttons
 	return [[tr("Usar ajuda grátis (%d)") % free, func() -> void: _boost_online(kind, true), true]] + buttons
 
 
-## Aplica um embaralhado calculado antes da propaganda (`at` = jogadas feitas naquele momento:
-## se a partida mudou nesse meio-tempo, não aplica).
-func apply_shuffle(mixed: Array, at: int) -> void:
-	if _finished or shuffles_left <= 0 or puzzle.moves_used() != at:
+## Ajudas grátis da sequência de dias (só valem pelo servidor).
+func _free_boosts() -> int:
+	return int(GameState.streak().free_boosts) if is_online() else 0
+
+
+## Mostra a dica `move` ([de, para]) comprada (`at` = jogadas feitas naquele momento: se a partida mudou nesse
+## meio-tempo, não aplica).
+func apply_hint(move: Array, at: int) -> void:
+	if _finished or hints_left <= 0 or puzzle.moves_used() != at or move.size() != 2:
 		return
-	puzzle.apply_shuffled(mixed)
-	shuffles_left -= 1
+	hints_left -= 1
+	_show_hint(move)
+
+
+## Liga a setinha na jogada `move` e cobra a ajuda.
+func _show_hint(move: Array) -> void:
+	_hint_move = move
+	_hint_active = true
 	_use_boost()
 
 
@@ -696,7 +727,7 @@ func can_use_boost() -> bool:
 
 
 ## Ajuda pelo servidor: propaganda conferida → o servidor confere as jogadas até aqui, aplica a ajuda
-## e devolve o estado novo. kind = "shuffle" | "flask" | "moves". `free` = usa uma ajuda grátis da sequência de dias
+## e devolve o estado novo. kind = "hint" | "flask" | "moves". `free` = usa uma ajuda grátis da sequência de dias
 ## (sem propaganda; o servidor desconta).
 func _boost_online(kind: String, free: bool = false) -> void:
 	if busy or _finished:
@@ -724,10 +755,13 @@ func _boost_online(kind: String, free: bool = false) -> void:
 		return
 	var st := ApiClient.state_from_match(res.data.get("match", {}))
 	match kind:
-		"shuffle":
-			puzzle.apply_shuffled(st.tubes)
-			shuffles_left = st.shuffles_left
-			_use_boost()
+		"hint":
+			hints_left = st.hints_left
+			var move: Variant = res.data.get("hint")
+			if move is Array and (move as Array).size() == 2:
+				_show_hint([int(move[0]), int(move[1])])
+			else:
+				_use_boost()
 		"flask":
 			puzzle.add_empty_tube()
 			bottles_left = st.flasks_left
