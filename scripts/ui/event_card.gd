@@ -7,6 +7,7 @@ extends Button
 
 var event: Dictionary = {}
 var countdown: String = ""
+var _icon: Label
 var _name: Label
 var _sub: Label
 var _new: Control
@@ -29,10 +30,9 @@ func _init() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 14)
 	box.add_child(head)
-	var icon := GameStyle.make_label("", 64)
-	icon.name = "Icon"
-	icon.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	head.add_child(icon)
+	_icon = GameStyle.make_label("", 64)
+	_icon.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	head.add_child(_icon)
 	var texts := VBoxContainer.new()
 	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	texts.add_theme_constant_override("separation", -4)
@@ -64,7 +64,7 @@ func set_event(ev: Variant) -> void:
 		return
 	event = ev
 	var theme := str(event.get("theme", ""))
-	(find_child("Icon", true, false) as Label).text = Extras.event_icon(theme)
+	_icon.text = Extras.event_icon(theme)
 	_name.text = str(event.get("name", ""))
 	var done := int(event.get("done", 0))
 	var levels := int(event.get("levels", 0))
@@ -87,41 +87,39 @@ func update_countdown() -> void:
 	_sub.text = tr("Evento · termina em %s") % Rules.short_countdown(maxi(0, left))
 
 
+## Sombra, contorno e brilho do cartão (iguais em todo desenho) e o corpo em degradê (refeito só quando muda o tamanho ou o tema).
+static var _shadow := _box(Color(0, 0, 0, 0.3), 34)
+static var _base := _box(GameStyle.INK, 34)
+static var _gloss := _box(Color(1, 1, 1, 0.14), 22)
+var _body_key: Array = []
+var _body_pts := PackedVector2Array()
+var _body_cols := PackedColorArray()
+
+
+static func _box(color: Color, radius: int) -> StyleBoxFlat:
+	var b := StyleBoxFlat.new()
+	b.bg_color = color
+	b.set_corner_radius_all(radius)
+	return b
+
+
 func _draw() -> void:
 	var sink := 6.0 if is_pressed() else 0.0
-	var color := Extras.event_color(str(event.get("theme", "")))
-	var shadow := StyleBoxFlat.new()
-	shadow.bg_color = Color(0, 0, 0, 0.3)
-	shadow.set_corner_radius_all(34)
-	draw_style_box(shadow, Rect2(Vector2(0, 12), size - Vector2(0, 12)))
+	draw_style_box(_shadow, Rect2(Vector2(0, 12), size - Vector2(0, 12)))
 	var r := Rect2(Vector2(0, sink), size - Vector2(0, 12))
-	var base := StyleBoxFlat.new()
-	base.bg_color = GameStyle.INK
-	base.set_corner_radius_all(34)
-	draw_style_box(base, r)
+	draw_style_box(_base, r)
 	# corpo com degradê da cor do tema para o roxo
 	var body := r.grow(-6)
-	var pts := _rounded(body, 28.0)
-	var cols := PackedColorArray()
-	for p in pts:
-		cols.append(color.lerp(Color("7a2fd6"), clampf((p.x - body.position.x) / body.size.x * 0.9 + (p.y - body.position.y) / body.size.y * 0.2, 0, 1)))
-	draw_polygon(pts, cols)
-	var gloss := StyleBoxFlat.new()
-	gloss.bg_color = Color(1, 1, 1, 0.14)
-	gloss.set_corner_radius_all(22)
-	draw_style_box(gloss, Rect2(body.position + Vector2(10, 8), Vector2(body.size.x - 20, body.size.y * 0.36)))
-
-
-## Contorno de um retângulo de cantos redondos (para pintar com degradê).
-static func _rounded(rect: Rect2, radius: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	var corners := [rect.position + Vector2(rect.size.x - radius, radius), rect.position + rect.size - Vector2(radius, radius),
-		rect.position + Vector2(radius, rect.size.y - radius), rect.position + Vector2(radius, radius)]
-	for k in 4:
-		for i in 7:
-			var a := -PI * 0.5 + PI * 0.5 * k + PI * 0.5 * i / 6.0
-			pts.append(corners[k] + Vector2(cos(a), sin(a)) * radius)
-	return pts
+	var theme := str(event.get("theme", ""))
+	if _body_key != [body, theme]:
+		_body_key = [body, theme]
+		var color := Extras.event_color(theme)
+		_body_pts = GameStyle.rounded_points(body, 28.0)
+		_body_cols = PackedColorArray()
+		for p in _body_pts:
+			_body_cols.append(color.lerp(Color("7a2fd6"), clampf((p.x - body.position.x) / body.size.x * 0.9 + (p.y - body.position.y) / body.size.y * 0.2, 0, 1)))
+	draw_polygon(_body_pts, _body_cols)
+	draw_style_box(_gloss, Rect2(body.position + Vector2(10, 8), Vector2(body.size.x - 20, body.size.y * 0.36)))
 
 
 ## Trilha de prêmios do evento: bolinhas ligadas por uma linha; acesas (com borda dourada) quando alcançadas.

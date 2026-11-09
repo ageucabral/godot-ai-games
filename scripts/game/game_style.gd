@@ -53,11 +53,29 @@ static func title_font() -> Font:
 	return _with_emoji(TITLE_FONT_PATH)
 
 
+static var _body_fonts: Dictionary = {}
+
+
+## Uma letra por peso, guardada (criar uma nova a cada desenho refaz o cache de formas das letras).
 static func body_font(weight: int = 800) -> Font:
-	var v := FontVariation.new()
-	v.base_font = _with_emoji(BODY_FONT_PATH)
-	v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
-	return v
+	if not _body_fonts.has(weight):
+		var v := FontVariation.new()
+		v.base_font = _with_emoji(BODY_FONT_PATH)
+		v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
+		_body_fonts[weight] = v
+	return _body_fonts[weight]
+
+
+## Contorno de um retângulo de cantos redondos (7 pontos por canto), para pintar com degradê ou com uma imagem.
+static func rounded_points(r: Rect2, rad: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var corners := [[r.end - Vector2(rad, rad), 0.0], [Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5],
+		[r.position + Vector2(rad, rad), PI], [Vector2(r.end.x - rad, r.position.y + rad), PI * 1.5]]
+	for c in corners:
+		for j in 7:
+			var a: float = c[1] + PI * 0.5 * j / 6.0
+			pts.append(c[0] + Vector2(cos(a), sin(a)) * rad)
+	return pts
 
 
 ## A letra com os emojis de reserva (a letra carregada é uma só para o jogo todo, então basta ligar uma vez).

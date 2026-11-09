@@ -109,8 +109,13 @@ static func frame_color(frame: Variant) -> Color:
 
 ## As 7 caixinhas da sequência: [dia da semana ("Hoje" para hoje), aceso, ícone do prêmio, é hoje].
 ## O ciclo de 7 dias anda junto com a sequência: a 1ª caixa é o 1º dia da semana de sequência em que está hoje.
+## Número do dia de hoje na sequência (se ainda não jogou hoje, hoje seria o próximo).
+static func _streak_today(count: int, played_today: bool) -> int:
+	return count if played_today else count + 1
+
+
 static func streak_days(count: int, played_today: bool, today_unix: int) -> Array:
-	var t := count if played_today else count + 1  # número do dia de hoje na sequência
+	var t := _streak_today(count, played_today)
 	var base := 7 * int((t - 1) / 7)
 	var out: Array = []
 	for k in 7:
@@ -128,7 +133,7 @@ static func streak_days(count: int, played_today: bool, today_unix: int) -> Arra
 
 ## Os próximos 2 prêmios da sequência: "🎁 dia 5: 1 ajuda grátis".
 static func next_streak_rewards(count: int, played_today: bool) -> Array[String]:
-	var t := count if played_today else count + 1
+	var t := _streak_today(count, played_today)
 	var out: Array[String] = []
 	for r: Array in STREAK_REWARDS:
 		if out.size() < 2 and (int(r[0]) > t or (int(r[0]) == t and not played_today)):

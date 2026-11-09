@@ -78,8 +78,6 @@ static func make_coin_pill(label_out: Array) -> PanelContainer:
 ## tocar vira a chave na hora e chama `action(ligada)`, sem fechar.
 class Row extends Button:
 	var action: Callable
-	var switch_on: bool = false
-	var has_switch: bool = false
 	var _right: HBoxContainer
 	var _switch: Switch
 
@@ -100,7 +98,6 @@ class Row extends Button:
 		row.offset_left = 6
 		row.offset_right = -6
 		row.add_theme_constant_override("separation", 12)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(row)
 		var ic := GameStyle.make_label(icon, 30)
 		ic.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
@@ -117,8 +114,8 @@ class Row extends Button:
 		row.add_child(_right)
 		_right.add_child(GameStyle.make_label("›", 40, true, Color(GameStyle.INK, 0.6)))
 		for c in row.get_children():
-			(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 			(c as Control).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		Extras._ignore_mouse(self)
 		pressed.connect(_on_pressed)
 
 	## Mostra um valor à direita (ex.: o idioma) no lugar do "›".
@@ -131,8 +128,6 @@ class Row extends Button:
 
 	## Troca o "›" por uma chave de liga/desliga.
 	func with_switch(on: bool) -> Row:
-		has_switch = true
-		switch_on = on
 		_right.get_child(0).queue_free()
 		_switch = Switch.new()
 		_switch.on = on
@@ -140,11 +135,10 @@ class Row extends Button:
 		return self
 
 	func _on_pressed() -> void:
-		if has_switch:
-			switch_on = not switch_on
-			_switch.on = switch_on
+		if _switch != null:
+			_switch.on = not _switch.on
 			_switch.queue_redraw()
-			action.call(switch_on)
+			action.call(_switch.on)
 			return
 		var dialog := get_parent()
 		while dialog != null and not dialog is DialogBox:
@@ -175,14 +169,19 @@ class Switch extends Control:
 		custom_minimum_size = Vector2(92, 52)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	func _draw() -> void:
-		var r := size.y * 0.5
-		var rect := Rect2(Vector2.ZERO, size)
+	static var _on_box := _box(GameStyle.GREEN)
+	static var _off_box := _box(Color("cfc8dc"))
+
+	static func _box(color: Color) -> StyleBoxFlat:
 		var st := StyleBoxFlat.new()
-		st.bg_color = GameStyle.GREEN if on else Color("cfc8dc")
+		st.bg_color = color
 		st.border_color = GameStyle.INK
 		st.set_border_width_all(4)
-		st.set_corner_radius_all(int(r))
-		draw_style_box(st, rect)
+		st.set_corner_radius_all(26)
+		return st
+
+	func _draw() -> void:
+		var r := size.y * 0.5
+		draw_style_box(_on_box if on else _off_box, Rect2(Vector2.ZERO, size))
 		var knob := Vector2(size.x - r if on else r, r)
 		draw_circle(knob, r - 9, Color.WHITE)

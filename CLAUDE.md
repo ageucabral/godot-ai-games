@@ -128,7 +128,7 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
 - `scripts/autoload/ads.gd`: propaganda premiada. No Android com o plugin é o AdMob de verdade; sem o plugin
   (Web, testes) é uma **simulação** de 3 s.
 - Cena principal `scenes/main/main.tscn`: hub (`scenes/ui/hub_screen.tscn`), tela inicial do Poção de Cores
-  (`scenes/ui/home_screen.tscn`: pontos do mês, configurações, nome do jogo, mascote, botão "Nível N"
+  (`scenes/ui/home_screen.tscn`: pontos do mês, configurações, nome do jogo, mapa de níveis, botão "Nível N"
   e, logo abaixo, o botão laranja "Desafios do dia 3/20" (fica roxo com "Desafios feitos!" quando o dia acaba);
   na lateral direita, ícones de linha Jogos · Ranking (`scripts/ui/side_button.gd`); sem barra embaixo, o perfil fica dentro da engrenagem (Ageu, 8/11/2026)), desafios do dia
   (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, só mostra Fácil/Médio/Difícil nos desafios; com animação de despejo, pausa

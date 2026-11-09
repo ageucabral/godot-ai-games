@@ -186,7 +186,6 @@ static func _spacer(h: float) -> Control:
 ## agora (verde, maior, pulsando) e os 2 próximos (apagados). Tocar no de agora joga.
 class LevelMap extends Control:
 	signal play
-	const SHOWN := 5
 	## Posição de cada bolinha, de baixo para cima (fração da largura e da altura).
 	const SPOTS := [Vector2(0.58, 0.88), Vector2(0.32, 0.68), Vector2(0.56, 0.48), Vector2(0.32, 0.28), Vector2(0.48, 0.09)]
 	const PAST := Color("ffc72e")
@@ -194,10 +193,21 @@ class LevelMap extends Control:
 	var current: int = 1
 	var first: int = 1
 	var stars: Dictionary = {}
-	var _time: float = 0.0
+	## Só a bolinha de agora pulsa: fica num filho que cresce e encolhe (o caminho é desenhado uma vez só).
+	var _pulse: Control
 
 	func _init() -> void:
 		custom_minimum_size = Vector2(0, 360)
+		_pulse = Control.new()
+		_pulse.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pulse.draw.connect(_draw_pulse)
+		add_child(_pulse)
+		resized.connect(_place_pulse)
+
+	func _ready() -> void:
+		var tw := create_tween().set_loops().set_trans(Tween.TRANS_SINE)
+		tw.tween_property(_pulse, "scale", Vector2.ONE * 1.04, 1.05)
+		tw.tween_property(_pulse, "scale", Vector2.ONE * 0.96, 1.05)
 
 	func set_level(level: int) -> void:
 		current = level
@@ -205,13 +215,15 @@ class LevelMap extends Control:
 		stars = {}
 		for n in range(first, level):
 			stars[n] = GameState.level_stars(n)
+		_place_pulse()
 		queue_redraw()
 
-	func _process(delta: float) -> void:
-		if not is_visible_in_tree():
-			return  # com o menu escondido (partida, ranking) não precisa redesenhar
-		_time += delta
-		queue_redraw()
+	func _place_pulse() -> void:
+		var r := _radius(current) + 14
+		_pulse.size = Vector2.ONE * r * 2
+		_pulse.pivot_offset = _pulse.size * 0.5
+		_pulse.position = _spot(current - first) - _pulse.pivot_offset
+		_pulse.queue_redraw()
 
 	func _spot(i: int) -> Vector2:
 		var s: Vector2 = SPOTS[i]
@@ -222,7 +234,7 @@ class LevelMap extends Control:
 
 	func _draw() -> void:
 		# trilha de pontinhos brancos entre as bolinhas (curva suave)
-		for i in SHOWN - 1:
+		for i in SPOTS.size() - 1:
 			var a := _spot(i)
 			var b := _spot(i + 1)
 			var ctrl := (a + b) * 0.5 + Vector2((b.y - a.y) * 0.35, 0)
@@ -232,29 +244,35 @@ class LevelMap extends Control:
 				var t := float(k) / dots
 				var p := a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t)
 				draw_circle(p, 6.0, Color(1, 1, 1, 0.85))
-		var font := GameStyle.title_font()
-		for i in SHOWN:
+		for i in SPOTS.size():
 			var n := first + i
-			var c := _spot(i)
-			var r := _radius(n)
-			if n == current:
-				r *= 1.0 + 0.04 * sin(_time * 3.0)
-				draw_circle(c, r + 12, Color(1, 1, 1, 0.35))
-			draw_circle(c, r + 6, GameStyle.INK)
-			draw_circle(c, r, GameStyle.GREEN if n == current else (PAST if n < current else FUTURE))
-			draw_circle(c + Vector2(-r * 0.3, -r * 0.35), r * 0.3, Color(1, 1, 1, 0.25))
-			var label := str(n)
-			var fs := int(r * 0.8)
-			var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-			var pos := c + Vector2(-w * 0.5, fs * 0.36)
-			draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, GameStyle.INK)
-			draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE if n <= current else Color("d9d6f5"))
-			if n < current:
-				for k in 3:
-					GameStyle.draw_star(self, c + Vector2((k - 1) * 22.0, -r - 16.0), 11.0, k < int(stars.get(n, 0)), Color(0, 0, 0, 0.3))
+			if n != current:
+				_draw_node(self, _spot(i), n)
+
+	func _draw_pulse() -> void:
+		var c := _pulse.size * 0.5
+		_pulse.draw_circle(c, _radius(current) + 12, Color(1, 1, 1, 0.35))
+		_draw_node(_pulse, c, current)
+
+	## Uma bolinha com o número (e as estrelas, se já foi feita).
+	func _draw_node(on: CanvasItem, c: Vector2, n: int) -> void:
+		var r := _radius(n)
+		on.draw_circle(c, r + 6, GameStyle.INK)
+		on.draw_circle(c, r, GameStyle.GREEN if n == current else (PAST if n < current else FUTURE))
+		on.draw_circle(c + Vector2(-r * 0.3, -r * 0.35), r * 0.3, Color(1, 1, 1, 0.25))
+		var font := GameStyle.title_font()
+		var label := str(n)
+		var fs := int(r * 0.8)
+		var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var pos := c + Vector2(-w * 0.5, fs * 0.36)
+		on.draw_string_outline(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, GameStyle.INK)
+		on.draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE if n <= current else Color("d9d6f5"))
+		if n < current:
+			for k in 3:
+				GameStyle.draw_star(on, c + Vector2((k - 1) * 22.0, -r - 16.0), 11.0, k < int(stars.get(n, 0)), Color(0, 0, 0, 0.3))
 
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 			var i := current - first
-			if i >= 0 and i < SHOWN and event.position.distance_to(_spot(i)) <= _radius(current) + 14:
+			if i >= 0 and i < SPOTS.size() and event.position.distance_to(_spot(i)) <= _radius(current) + 14:
 				play.emit()
