@@ -612,7 +612,7 @@ func _on_restart_pressed() -> void:
 		return
 	var text := "Recomeçar pede uma propaganda." if not is_daily() else "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado."
 	dialog.open("Recomeçar?", tr(text), [
-		DialogBox.ad("Recomeçar", _restart_with_ad),
+		_ad_button("Recomeçar", _restart_with_ad),
 		["Continuar jogando", func() -> void: pass],
 	])
 
@@ -675,22 +675,34 @@ func _on_hint_pressed() -> void:
 			return
 		var at: int = puzzle.moves_used()
 		action = func() -> void: Ads.show_rewarded(func() -> void: apply_hint(move, at))
-	dialog.open("Dica?", tr("Mostra a próxima jogada de um caminho curto.\nPede uma propaganda e custa %s.") % boost_cost_text(),
-		_with_free_boost("hint", [DialogBox.ad("Dica", action), ["Voltar", func() -> void: pass]]))
+	dialog.open("Dica?", tr("Mostra a próxima jogada de um caminho curto.") + "\n" + _boost_price_text(),
+		_with_free_boost("hint", [_ad_button("Dica", action), ["Voltar", func() -> void: pass]]))
 
 
 ## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
 func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
-	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), _with_free_boost("flask", [
-		DialogBox.ad("+1 frasco", func() -> void:
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.") + "\n" + _boost_price_text(), _with_free_boost("flask", [
+		_ad_button("+1 frasco", func() -> void:
 			if is_online():
 				_boost_online("flask")
 			else:
 				Ads.show_rewarded(apply_extra_bottle)),
 		["Voltar", func() -> void: pass],
 	]))
+
+
+## "Pede uma propaganda e custa 1 ponto." — ou só o custo, para quem comprou "Remover anúncios".
+func _boost_price_text() -> String:
+	if Server.ads_free():
+		return tr("Custa %s.") % boost_cost_text()
+	return tr("Pede uma propaganda e custa %s.") % boost_cost_text()
+
+
+## Botão de ajuda: com o ícone de vídeo, ou um botão comum para quem comprou "Remover anúncios" (não há vídeo).
+func _ad_button(text: String, action: Callable, main: bool = true) -> Array:
+	return [text, action, main] if Server.ads_free() else DialogBox.ad(text, action, main)
 
 
 ## Com ajudas grátis da sequência de dias (pelo servidor), a primeira opção usa uma sem propaganda.
@@ -809,8 +821,8 @@ func _on_extra_moves_pressed() -> void:
 func _show_out_of_moves() -> void:
 	Sfx.play("lose")
 	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
-		DialogBox.ad(tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed),
-		DialogBox.ad("Recomeçar", _restart_with_ad, false),
+		_ad_button(tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed),
+		_ad_button("Recomeçar", _restart_with_ad, false),
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
@@ -820,13 +832,13 @@ func _show_zero_points() -> void:
 	if not is_daily():
 		# nos níveis dá para terminar sem pontos e seguir em frente
 		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
-			DialogBox.ad("Recomeçar", _restart_with_ad),
+			_ad_button("Recomeçar", _restart_with_ad),
 			["Continuar sem pontos", func() -> void: _zero_accepted = true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
 		return
 	dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este desafio.", [
-		DialogBox.ad("Recomeçar", _restart_with_ad),
+		_ad_button("Recomeçar", _restart_with_ad),
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
@@ -926,7 +938,7 @@ func _show_daily_win(points: int, used: int, improved: bool, best_points: int, e
 	if next_index >= 0:
 		buttons.append(["Próximo desafio", func() -> void: next_requested.emit(challenge.date, next_index), true])
 	if points < challenge.full_points:
-		buttons.append(DialogBox.ad("Tentar melhorar", _restart_with_ad, false))
+		buttons.append(_ad_button("Tentar melhorar", _restart_with_ad, false))
 	buttons.append(["Menu", func() -> void: back_requested.emit()])
 	_show_win(points, used, note, extras, buttons)
 

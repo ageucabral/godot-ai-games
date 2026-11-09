@@ -247,9 +247,12 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         }
     }
 
-    /** Abre a compra do produto (folha do Google Play). Responde com `purchase_done`. */
+    /**
+     * Abre a compra do produto (folha do Google Play). `userId` vai como conta ofuscada: o servidor confere que a compra
+     * é de quem a mandou. Responde com `purchase_done`.
+     */
     @UsedByGodot
-    fun buy(productId: String) {
+    fun buy(productId: String, userId: String) {
         val a = act()
         val client = billing
         val d = product
@@ -257,6 +260,7 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         a.runOnUiThread {
             val params = BillingFlowParams.newBuilder()
                 .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(d).build()))
+                .setObfuscatedAccountId(userId.take(64))
                 .build()
             val r = client.launchBillingFlow(a, params)
             if (r.responseCode != BillingClient.BillingResponseCode.OK) emitSignal("purchase_done", productId, "", "launch_${r.responseCode}")

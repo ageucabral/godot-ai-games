@@ -180,8 +180,8 @@ class FakePlugin extends RefCounted:
 		for token in owned:
 			purchase_found.emit.call_deferred(product, token)
 
-	func buy(product: String) -> void:
-		bought.append(product)
+	func buy(product: String, user_id: String) -> void:
+		bought.append([product, user_id])
 		purchase_done.emit.call_deferred(product, "tok-%d" % bought.size() if buy_error.is_empty() else "", buy_error)
 
 	func acknowledgePurchase(token: String) -> void:
@@ -619,7 +619,7 @@ func test_remove_ads_purchase_is_confirmed_by_server_and_skips_ads() -> void:
 	assert_eq(main.dialog.title_label.text, "Remover anúncios")
 	main.dialog.press("Comprar por R$ 19,90")
 	await wait_physics_frames(6)
-	assert_eq(plugin.bought, ["remove_ads"], "abriu a compra na Play")
+	assert_eq(plugin.bought, [["remove_ads", "u1"]], "abriu a compra na Play com a conta do jogador")
 	assert_true(_paths().has("/purchases"), "mandou o token ao servidor")
 	assert_eq(plugin.acknowledged, ["tok-1"], "confirmou a compra para a Play depois do servidor aceitar")
 	assert_true(Server.ads_free(), "a conta ficou sem anúncios")
@@ -632,6 +632,55 @@ func test_remove_ads_purchase_is_confirmed_by_server_and_skips_ads() -> void:
 	var reward_id: String = await Server.rewarded("flask", {"matchId": "m-1"})
 	assert_false(reward_id.is_empty(), "recompensa aceita")
 	assert_eq(plugin.shown.size(), 0, "sem vídeo")
+	# as janelas das ajudas param de falar em propaganda
+	main.play_level()
+	await wait_physics_frames(1)
+	game._on_bottle_pressed()
+	assert_true(game.dialog.text_label.text.ends_with(tr("Custa %s.") % game.boost_cost_text()), "sem 'pede uma propaganda': " + game.dialog.text_label.text)
+
+
+func test_remove_ads_restore_is_skipped_when_already_ads_free() -> void:
+	var plugin := FakePlugin.new()
+	plugin.owned = ["tok-old"]
+	home_extras["adsFree"] = true
+	Server.native_override = plugin
+	await Server.load_config()
+	await Server.refresh_home()
+	Purchases.start()
+	await wait_physics_frames(4)
+	assert_false(_paths().has("/purchases"), "já restaurada: não pede ao servidor a cada abertura")
+
+
+func test_remove_ads_pending_and_failed_purchases_explain_and_stop() -> void:
+	var plugin := FakePlugin.new()
+	plugin.buy_error = "pending"
+	Server.native_override = plugin
+	await Server.load_config()
+	await Server.refresh_home()
+	Purchases.start()
+	await wait_physics_frames(2)
+	Purchases.open(main.dialog)
+	main.dialog.press("Comprar por R$ 19,90")
+	await wait_physics_frames(4)
+	assert_eq(main.dialog.title_label.text, "Quase lá", "pagamento pendente é explicado")
+	main.dialog.press("Fechar")
+	# o pagamento conclui mais tarde: a compra vai ao servidor sem abrir janela em cima do jogo
+	plugin.purchase_done.emit("remove_ads", "tok-late", "")
+	await wait_physics_frames(6)
+	assert_true(_paths().has("/purchases"))
+	assert_true(Server.ads_free())
+	assert_false(main.dialog.visible, "nada abre em cima do que o jogador está fazendo")
+	# servidor recusa (token de outra conta)
+	home_extras.erase("adsFree")
+	forced["/purchases"] = [ApiClient.error_result(409, "PURCHASE_TAKEN", "")]
+	plugin.buy_error = ""
+	await Server.refresh_home()
+	Purchases.open(main.dialog)
+	main.dialog.press("Comprar por R$ 19,90")
+	await wait_physics_frames(6)
+	assert_eq(main.dialog.title_label.text, "Ops!")
+	assert_true(main.dialog.text_label.text.begins_with("Esta compra já está em outra conta"), main.dialog.text_label.text)
+	assert_eq(plugin.acknowledged.size(), 1, "só a compra aceita foi confirmada para a Play")
 
 
 func test_remove_ads_purchase_is_restored_from_the_store() -> void:
