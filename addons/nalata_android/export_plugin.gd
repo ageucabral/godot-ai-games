@@ -5,6 +5,7 @@ extends EditorExportPlugin
 
 const DEPENDENCIES := [
 	"com.google.android.gms:play-services-ads:24.4.0",
+	"com.android.billingclient:billing:8.0.0",
 	"androidx.credentials:credentials:1.3.0",
 	"androidx.credentials:credentials-play-services-auth:1.3.0",
 	"com.google.android.libraries.identity.googleid:googleid:1.1.1",

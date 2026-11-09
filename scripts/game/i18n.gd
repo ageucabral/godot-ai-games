@@ -361,6 +361,18 @@ const STRINGS := {
 	"Seus pontos, seu nível, seus convites e os prêmios ainda não pagos somem para sempre. Não dá para desfazer.": ["Your points, level, invites and unpaid prizes are gone forever. This can't be undone.", "Tus puntos, tu nivel, tus invitaciones y los premios no pagados se pierden para siempre. No se puede deshacer."],
 	"Sobre o que você quer falar?": ["What do you want to talk about?", "¿Sobre qué quieres hablar?"],
 	"Sua conta": ["Your account", "Tu cuenta"],
+	"Remover anúncios": ["Remove ads", "Quitar anuncios"],
+	"Sem anúncio entre níveis, e as ajudas não pedem mais vídeo (continuam custando pontos).\nCompra única, guardada na sua conta.": [
+		"No ads between levels, and boosts no longer ask for a video (they still cost points).\nOne-time purchase, saved to your account.",
+		"Sin anuncios entre niveles, y las ayudas ya no piden video (siguen costando puntos).\nCompra única, guardada en tu cuenta."],
+	"Comprar por %s": ["Buy for %s", "Comprar por %s"],
+	"Abrindo a loja do Google Play…": ["Opening the Google Play store…", "Abriendo la tienda de Google Play…"],
+	"Não deu para concluir a compra. Tente de novo mais tarde.": ["The purchase could not be completed. Try again later.", "No se pudo completar la compra. Inténtalo más tarde."],
+	"Pronto!": ["Done!", "¡Listo!"],
+	"Sem anúncios. Bom jogo!": ["No more ads. Have fun!", "Sin anuncios. ¡Buen juego!"],
+	"Não deu para confirmar a compra. Tente de novo em instantes: ela fica guardada no Google Play.": [
+		"The purchase could not be confirmed. Try again in a moment: it is kept in Google Play.",
+		"No se pudo confirmar la compra. Inténtalo en un momento: queda guardada en Google Play."],
 	"Sua idade": ["Your age", "Tu edad"],
 	"Sua mensagem": ["Your message", "Tu mensaje"],
 	"Telefone da chave Pix": ["Pix key phone", "Teléfono de la clave Pix"],

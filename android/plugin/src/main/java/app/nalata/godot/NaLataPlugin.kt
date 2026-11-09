@@ -17,6 +17,16 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.google.android.gms.ads.AdError
@@ -80,6 +90,12 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         SignalInfo("rewarded_finished", java.lang.Boolean::class.java, String::class.java),
         // o anúncio entre níveis fechou (true se chegou a aparecer)
         SignalInfo("interstitial_finished", java.lang.Boolean::class.java),
+        // loja do Google Play pronta (ok, preço formatado do produto, ex.: "R$ 19,90")
+        SignalInfo("billing_ready", java.lang.Boolean::class.java, String::class.java),
+        // compra já feita neste Google (restaurar): produto, purchaseToken
+        SignalInfo("purchase_found", String::class.java, String::class.java),
+        // resultado de uma compra: produto, purchaseToken ("" se não comprou), erro ("" | "cancelled" | "pending" | "owned" | …)
+        SignalInfo("purchase_done", String::class.java, String::class.java, String::class.java),
         // idToken ("" se não entrou), erro ("" | "cancelled" | "no_account" | mensagem)
         SignalInfo("google_signed_in", String::class.java, String::class.java),
         // token ("" se não deu), erro ("" se deu certo)
@@ -182,6 +198,89 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
             }
             ad.show(a)
         }
+    }
+
+    // ---------- Google Play Billing ("Remover anúncios") ----------
+
+    private var billing: BillingClient? = null
+    private var product: ProductDetails? = null
+
+    /**
+     * Liga a loja do Google Play, busca o preço do produto e as compras já feitas neste Google. Responde com
+     * `billing_ready(ok, preço)` e um `purchase_found(produto, token)` por compra existente (para restaurar).
+     */
+    @UsedByGodot
+    fun billingInit(productId: String) {
+        val a = act() ?: return emitSignal("billing_ready", false, "")
+        val client = billing ?: BillingClient.newBuilder(a)
+            .setListener { result, purchases -> onPurchases(result, purchases) }
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+            .enableAutoServiceReconnection()
+            .build()
+            .also { billing = it }
+        if (client.isReady) return queryStore(client, productId)
+        client.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(r: BillingResult) {
+                if (r.responseCode != BillingClient.BillingResponseCode.OK) {
+                    Log.w(tag, "billing setup: ${r.responseCode} ${r.debugMessage}")
+                    return emitSignal("billing_ready", false, "")
+                }
+                queryStore(client, productId)
+            }
+
+            override fun onBillingServiceDisconnected() {}
+        })
+    }
+
+    private fun queryStore(client: BillingClient, productId: String) {
+        val wanted = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(productId).setProductType(BillingClient.ProductType.INAPP).build()
+        client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(listOf(wanted)).build()) { r, result ->
+            val d = if (r.responseCode == BillingClient.BillingResponseCode.OK) result.productDetailsList.firstOrNull { it.productId == productId } else null
+            product = d
+            emitSignal("billing_ready", d != null, d?.oneTimePurchaseOfferDetails?.formattedPrice ?: "")
+        }
+        client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()) { r, list ->
+            if (r.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
+            list.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                .forEach { emitSignal("purchase_found", it.products.firstOrNull() ?: "", it.purchaseToken) }
+        }
+    }
+
+    /** Abre a compra do produto (folha do Google Play). Responde com `purchase_done`. */
+    @UsedByGodot
+    fun buy(productId: String) {
+        val a = act()
+        val client = billing
+        val d = product
+        if (a == null || client == null || d == null || d.productId != productId) return emitSignal("purchase_done", productId, "", "not_ready")
+        a.runOnUiThread {
+            val params = BillingFlowParams.newBuilder()
+                .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(d).build()))
+                .build()
+            val r = client.launchBillingFlow(a, params)
+            if (r.responseCode != BillingClient.BillingResponseCode.OK) emitSignal("purchase_done", productId, "", "launch_${r.responseCode}")
+        }
+    }
+
+    private fun onPurchases(result: BillingResult, purchases: List<Purchase>?) {
+        when (result.responseCode) {
+            BillingClient.BillingResponseCode.OK -> purchases?.forEach { p ->
+                val id = p.products.firstOrNull() ?: ""
+                if (p.purchaseState == Purchase.PurchaseState.PURCHASED) emitSignal("purchase_done", id, p.purchaseToken, "")
+                else emitSignal("purchase_done", id, "", "pending")
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> emitSignal("purchase_done", "", "", "cancelled")
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> emitSignal("purchase_done", "", "", "owned")
+            else -> emitSignal("purchase_done", "", "", "error_${result.responseCode}")
+        }
+    }
+
+    /** Confirma a compra para o Google depois que o servidor a aceitou (sem isso a Play devolve o dinheiro em 3 dias). */
+    @UsedByGodot
+    fun acknowledgePurchase(token: String) {
+        val client = billing ?: return
+        client.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(token).build()) {}
     }
 
     // ---------- Login com Google ----------

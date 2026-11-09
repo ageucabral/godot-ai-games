@@ -110,6 +110,11 @@ func native_with(signal_name: String) -> Object:
 	return plugin if plugin != null and plugin.has_signal(signal_name) else null
 
 
+## Comprou "Remover anúncios" (`adsFree` do GET /pocao/home): sem anúncio entre níveis e ajudas sem vídeo.
+func ads_free() -> bool:
+	return bool(home.get("adsFree", false))
+
+
 ## Ainda é visitante (não entrou com Google).
 func is_guest() -> bool:
 	return bool(profile.get("guest", true))
@@ -477,6 +482,8 @@ func rewarded(kind: String, extra: Dictionary = {}) -> String:
 	if not res.ok:
 		return ""
 	var reward_id := str(res.data.get("rewardId", ""))
+	if bool(res.data.get("free", false)):
+		return reward_id  # comprou "Remover anúncios": o servidor já aceitou, sem vídeo
 	if not await Ads.play(str(res.data.get("ssvCustomData", reward_id))):
 		return ""
 	return reward_id
