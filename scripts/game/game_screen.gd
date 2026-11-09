@@ -522,7 +522,7 @@ func _refresh() -> void:
 	var boost_ok: bool = not _finished and can_use_boost()
 	_undo_button.disabled = _finished or not puzzle.can_undo() or out_of_moves()
 	# selo das ajudas: número de ajudas grátis (da sequência de dias) ou o ícone de vídeo
-	var free := int(GameState.streak().free_boosts) if is_online() else 0
+	var free := _free_boosts()
 	for b: BoosterButton in [_hint_button, _bottle_button]:
 		b.badge = str(free) if free > 0 else ""
 		b.video_badge = free <= 0
@@ -679,10 +679,15 @@ func _on_bottle_pressed() -> void:
 
 ## Com ajudas grátis da sequência de dias (pelo servidor), a primeira opção usa uma sem propaganda.
 func _with_free_boost(kind: String, buttons: Array) -> Array:
-	var free := int(GameState.streak().free_boosts)
-	if not is_online() or free <= 0:
+	var free := _free_boosts()
+	if free <= 0:
 		return buttons
 	return [[tr("Usar ajuda grátis (%d)") % free, func() -> void: _boost_online(kind, true), true]] + buttons
+
+
+## Ajudas grátis da sequência de dias (só valem pelo servidor).
+func _free_boosts() -> int:
+	return int(GameState.streak().free_boosts) if is_online() else 0
 
 
 ## Mostra a dica `move` ([de, para]) comprada (`at` = jogadas feitas naquele momento: se a partida mudou nesse
@@ -690,9 +695,14 @@ func _with_free_boost(kind: String, buttons: Array) -> Array:
 func apply_hint(move: Array, at: int) -> void:
 	if _finished or hints_left <= 0 or puzzle.moves_used() != at or move.size() != 2:
 		return
+	hints_left -= 1
+	_show_hint(move)
+
+
+## Liga a setinha na jogada `move` e cobra a ajuda.
+func _show_hint(move: Array) -> void:
 	_hint_move = move
 	_hint_active = true
-	hints_left -= 1
 	_use_boost()
 
 
@@ -749,9 +759,9 @@ func _boost_online(kind: String, free: bool = false) -> void:
 			hints_left = st.hints_left
 			var move: Variant = res.data.get("hint")
 			if move is Array and (move as Array).size() == 2:
-				_hint_move = [int(move[0]), int(move[1])]
-				_hint_active = true
-			_use_boost()
+				_show_hint([int(move[0]), int(move[1])])
+			else:
+				_use_boost()
 		"flask":
 			puzzle.add_empty_tube()
 			bottles_left = st.flasks_left

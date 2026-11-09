@@ -146,7 +146,7 @@ static func state_from_match(m: Dictionary) -> Dictionary:
 	return {
 		"tubes": to_ints(s.get("tubes", [])),
 		"move_limit": int(s.get("moveLimit", 0)),
-		"hints_left": int(s.get("hintsLeft", s.get("shufflesLeft", 0))),
+		"hints_left": int(s.get("hintsLeft", 0)),
 		"flasks_left": int(s.get("flasksLeft", 0)),
 	}
 

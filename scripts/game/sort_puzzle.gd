@@ -98,10 +98,6 @@ func undo() -> bool:
 	return true
 
 
-static func is_undo(move: Array) -> bool:
-	return move.size() == 2 and int(move[0]) == -1 and int(move[1]) == -1
-
-
 ## Frasco extra: uma garrafa vazia a mais, no fim da fila.
 func add_empty_tube() -> void:
 	_history.clear()
