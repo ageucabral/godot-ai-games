@@ -157,8 +157,8 @@ static func open_streak(dialog: DialogBox) -> void:
 	for d: Array in streak_days(count, bool(s.played_today), noon):
 		row.add_child(_streak_box(d))
 	var rewards := next_streak_rewards(count, bool(s.played_today))
-	if int(s.free_boosts) > 0:
-		rewards.append("🎁 " + I18n.t("Ajudas grátis guardadas: %d") % int(s.free_boosts))
+	if not free_boosts_line().is_empty():
+		rewards.append(free_boosts_line())
 	var foot := GameStyle.make_label("    ".join(rewards), 22, true, Color(GameStyle.INK, 0.85))
 	foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	foot.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
@@ -188,16 +188,20 @@ static func _streak_box(d: Array) -> Control:
 
 # ---------- missões do dia ----------
 
+## "🎁 Ajudas grátis guardadas: N" (vazio sem nenhuma), usado na sequência e nas missões.
+static func free_boosts_line() -> String:
+	var free := int(GameState.streak().free_boosts)
+	return "🎁 " + I18n.t("Ajudas grátis guardadas: %d") % free if free > 0 else ""
+
 ## Nome de cada missão do servidor (`id` → texto).
 const MISSION_NAMES := {"solve3": "Resolva 3 fases", "exact1": "Faça 1 fase com jogadas exatas", "daily3": "Jogue 3 desafios do dia"}
 
 
 ## Missões do dia: 3 tarefas, cada uma com barra de progresso e "Resgatar" quando concluída (+1 ajuda grátis).
 static func open_missions(dialog: DialogBox) -> void:
-	var free := int(GameState.streak().free_boosts)
 	var text := I18n.t("Cada missão concluída dá 1 ajuda grátis. Missões novas à meia-noite.")
-	if free > 0:
-		text += "\n🎁 " + I18n.t("Ajudas grátis guardadas: %d") % free
+	if not free_boosts_line().is_empty():
+		text += "\n" + free_boosts_line()
 	dialog.open_card("🎯 " + I18n.t("Missões do dia"), text, [["Fechar", func() -> void: pass, true]], GameStyle.GOLD)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
@@ -219,7 +223,9 @@ static func _mission_row(dialog: DialogBox, m: Dictionary) -> Control:
 	var name := GameStyle.make_label(MISSION_NAMES.get(id, id), 24, true)
 	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	col.add_child(name)
-	var sub := I18n.t("Abre no nível %d") % Rules.unlock_level("daily") if id == "daily3" and not Rules.unlocked("daily", GameState.current_level()) else "%d/%d" % [value, goal]
+	var sub := "%d/%d" % [value, goal]
+	if id == "daily3" and not Rules.unlocked("daily", GameState.current_level()):
+		sub = I18n.t("Abre no nível %d") % Rules.unlock_level("daily")  # os desafios do dia ainda estão trancados
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 10)
 	var bar := ProgressLine.new(float(value) / float(goal))

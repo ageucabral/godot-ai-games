@@ -159,7 +159,7 @@ func refresh() -> void:
 	level_button.fill = GameStyle.PURPLE if hard else GameStyle.GREEN
 	daily_button.set_state(Menus.daily_done(), 0 if Rules.unlocked("daily", level) else Rules.unlock_level("daily"))
 	# missões: só pelo servidor e depois de liberadas por nível
-	side_buttons["missions"].visible = Rules.unlocked("missions", level) and not GameState.missions().is_empty()
+	side_buttons["missions"].visible = Rules.unlocked("missions", level) and not GameState.extras.is_empty()
 	var s := GameState.streak()
 	streak_label.text = str(s.count)
 	streak_flame.lit = bool(s.played_today)

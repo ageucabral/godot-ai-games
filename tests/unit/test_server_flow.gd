@@ -613,7 +613,7 @@ func test_daily_missions_show_progress_and_claim_a_free_boost() -> void:
 	await Server.load_config()
 	await Server.refresh_home()
 	main.show_screen(main.home)
-	assert_true(main.home.side_buttons["missions"].visible, "3º ícone lateral: Missões (nível 4 já libera)")
+	assert_true(main.home.side_buttons["missions"].visible, "3º ícone lateral: Missões (libera no nível 3; aqui o jogador está no 4)")
 	Extras.open_missions(main.home.dialog)
 	assert_eq(main.home.dialog.title_label.text, "🎯 Missões do dia")
 	var claim: Array = main.home.dialog.find_children("*", "GlossButton", true, false).filter(func(b: Button) -> bool: return b.text == "Resgatar")
@@ -623,9 +623,8 @@ func test_daily_missions_show_progress_and_claim_a_free_boost() -> void:
 	assert_true(_paths().has("/pocao/missions/exact1/claim"), "pediu a ajuda ao servidor")
 	assert_eq(int(GameState.streak().free_boosts), 1, "ajuda grátis guardada")
 	assert_eq(main.home.dialog.find_children("*", "GlossButton", true, false).filter(func(b: Button) -> bool: return b.text == "Resgatar").size(), 0, "já resgatada: sem botão")
-	# sem missões (sem servidor) ou antes do nível 3, o ícone some
-	home_extras.erase("missions")
-	await Server.refresh_home()
+	# antes do nível 3 o ícone some
+	GameState.set_level(2)
 	main.home.refresh()
 	assert_false(main.home.side_buttons["missions"].visible)
 
