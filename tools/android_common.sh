@@ -24,8 +24,28 @@ fi
 # na primeira exportação (--install-android-build-template); com versão nova do Godot, reinstala.
 # shellcheck source=godot_version.env
 source "$ROOT/tools/godot_version.env"
+# Instalamos o modelo aqui mesmo (como o Godot faz) para poder ligar o R8 antes da exportação.
 TEMPLATE_FLAG=()
 if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -qxF "${GODOT_VERSION}.${GODOT_FLAVOR}" "$ROOT/android/.build_version" 2>/dev/null; then
   rm -rf "$ROOT/android/build" "$ROOT/android/.build_version"
-  TEMPLATE_FLAG=(--install-android-build-template)
+  SOURCE_ZIP="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_FLAVOR}/android_source.zip"
+  mkdir -p "$ROOT/android/build"
+  unzip -q -o "$SOURCE_ZIP" -d "$ROOT/android/build"
+  touch "$ROOT/android/build/.gdignore"
+  echo "${GODOT_VERSION}.${GODOT_FLAVOR}" > "$ROOT/android/.build_version"
+fi
+
+# R8 na versão "release" (a da Play): encolhe e otimiza o código Java/Kotlin, regras em android/proguard-rules.pro.
+# O mapa para ler os erros fica em android/build/build/outputs/mapping/standardRelease/mapping.txt.
+if ! grep -q "nalata-r8" "$ROOT/android/build/build.gradle"; then
+  python3 - "$ROOT/android/build/build.gradle" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+anchor = "        release {\n"
+at = s.index(anchor, s.index("buildTypes {")) + len(anchor)  # o "release" dos buildTypes, não o da assinatura
+s = s[:at] + ("            // nalata-r8\n            minifyEnabled true\n"
+              "            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../proguard-rules.pro'\n") + s[at:]
+open(p, "w").write(s)
+PY
 fi
