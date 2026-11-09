@@ -20,6 +20,7 @@ func before_each() -> void:
 	Server.events_now = true
 	Server.enabled = true
 	Server.config = {}
+	Account.gate_open = false
 	Server.transport = _fake
 	calls = []
 	replies = {}
@@ -90,6 +91,20 @@ func test_version_compare() -> void:
 	assert_true(ApiClient.version_less("1.3", "1.3.1"))
 	assert_false(ApiClient.version_less("1.3.0", "1.3.0"))
 	assert_false(ApiClient.version_less("1.10.0", "1.9.9"))
+	assert_true(ApiClient.version_less("1.3.1-rc2", "1.3.2"), "o sufixo não vira dígito (1-rc2 não é 12)")
+	assert_false(ApiClient.version_less(" 1.3.1 ", "1.3.1"))
+
+
+func test_version_matches_export_presets() -> void:
+	# a versão que o aviso de atualizar compara é a do Menus.VERSION: tem que ser a mesma que vai para a Play
+	var presets := ConfigFile.new()
+	assert_eq(presets.load("res://export_presets.cfg"), OK, "leu o export_presets.cfg")
+	var checked := 0
+	for section in presets.get_sections():
+		if section.ends_with(".options") and presets.has_section_key(section, "version/name"):
+			assert_eq(str(presets.get_value(section, "version/name")), Menus.VERSION, section)
+			checked += 1
+	assert_true(checked >= 2, "conferiu os presets Android e Android Play")
 
 
 func test_integrity_nonce_matches_server_format() -> void:
@@ -170,6 +185,32 @@ func test_old_version_blocks_with_update_button() -> void:
 	assert_true(Account.check_gate(dialog))
 	assert_eq(dialog.title_label.text, "Atualize o app")
 	assert_eq(dialog.button_texts(), ["Atualizar"])
+
+
+func test_saved_min_version_blocks_without_config() -> void:
+	# abriu sem internet (o /config não chegou): a última versão mínima guardada continua valendo
+	replies["/config"] = [_ok({"minAppVersion": "99.0.0"})]
+	assert_true(await Server.load_config())
+	Server.config = {}
+	assert_true(Account.check_gate(dialog))
+	assert_eq(dialog.title_label.text, "Atualize o app")
+	replies["/config"] = [_ok({"minAppVersion": Menus.VERSION})]
+	assert_true(await Server.load_config())
+	Server.config = {}
+	assert_false(Account.check_gate(dialog), "o painel baixou a versão mínima: libera")
+	assert_eq(Server.saved_min_version(), Menus.VERSION)
+
+
+func test_resume_clears_stale_gate_and_connects() -> void:
+	# a abertura parou no aviso de manutenção; voltou para o app depois que o painel desligou a manutenção
+	Server.config = {"minAppVersion": Menus.VERSION, "maintenance": true}
+	assert_true(Account.check_gate(dialog))
+	replies["/config"] = [_ok({"maintenance": false, "minAppVersion": Menus.VERSION})]
+	await Account.recheck_gate(dialog)
+	await wait_physics_frames(3)
+	assert_true(Server.online(), "seguiu a entrada que a abertura deixou parada")
+	assert_eq(dialog.title_label.text, "Sua idade")
+	assert_false(Account.gate_open)
 
 
 func test_maintenance_blocks_until_it_ends() -> void:
