@@ -66,13 +66,19 @@ static func share_invite(dialog: DialogBox, code: String, link: String, banner: 
 	if with_banner:
 		plugin.shareImage(ProjectSettings.globalize_path(path), text)
 		return
+	share_text(dialog, text, "Convite copiado", "O convite foi copiado. Cole numa conversa para mandar aos amigos.")
+
+
+## Abre o "compartilhar" do Android com o texto; sem o plugin, copia e avisa. `back` roda depois (fecha o aviso).
+static func share_text(dialog: DialogBox, text: String, copied_title: String, copied_text: String, back: Callable = Callable()) -> void:
+	var after: Callable = back if back.is_valid() else func() -> void: pass
+	var plugin := Server.native_with("install_referrer")
 	if plugin != null:
 		plugin.share(text)
+		after.call()
 		return
 	DisplayServer.clipboard_set(text)
-	dialog.open("Convite copiado", I18n.t("O convite foi copiado. Cole numa conversa para mandar aos amigos."), [
-		["Ok", func() -> void: pass, true],
-	])
+	dialog.open(copied_title, I18n.t(copied_text), [["Ok", after, true]])
 
 
 # ---------- prêmio ganho ----------
@@ -100,7 +106,7 @@ static func announce(dialog: DialogBox, payout: Dictionary) -> void:
 static func _short_date(iso: String) -> String:
 	if iso.length() < 19:
 		return iso
-	return Rules.pretty_date(Rules.date_for(int(Time.get_unix_time_from_datetime_string(iso.left(19)))))
+	return Rules.pretty_date(Rules.date_for(Rules.unix_from_iso(iso)))
 
 
 # ---------- meus prêmios ----------

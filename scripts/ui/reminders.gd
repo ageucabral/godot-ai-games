@@ -20,11 +20,8 @@ static func plugin() -> Object:
 
 ## Hora do próximo aviso (Unix): hoje às 19h se ainda não jogou hoje e ainda não passou; senão amanhã às 19h.
 static func next_time(now: int, played_today: bool) -> int:
-	var local := now + Rules.BRASILIA_OFFSET_SECONDS
-	var at := local - posmod(local, 86400) + HOUR * 3600
-	if played_today or local >= at:
-		at += 86400
-	return at - Rules.BRASILIA_OFFSET_SECONDS
+	var at := now + Rules.seconds_to_next_day(now) - 86400 + HOUR * 3600  # hoje às 19h
+	return at + 86400 if played_today or now >= at else at
 
 
 ## [título, texto] do aviso: com sequência, lembra dela; senão, dos desafios novos.

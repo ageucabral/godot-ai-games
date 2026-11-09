@@ -210,7 +210,7 @@ func load_install_referrer() -> void:
 	var code := ApiClient.invite_code_from_referrer(str(out[0]))
 	if not code.is_empty():
 		invite_code = code
-	var duel := Extras.duel_code_from(str(out[0]))
+	var duel := ApiClient.duel_code_from(str(out[0]))
 	if not duel.is_empty():
 		pending_duel = duel
 	_cfg.set_value("session", "referrer_checked", true)
@@ -222,7 +222,7 @@ func take_launch_link() -> void:
 	var plugin := native_with("notifications_allowed")
 	if plugin == null:
 		return
-	var code := Extras.duel_code_from(str(plugin.takeLink()))
+	var code := ApiClient.duel_code_from(str(plugin.takeLink()))
 	if not code.is_empty():
 		pending_duel = code
 

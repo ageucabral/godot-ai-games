@@ -23,13 +23,12 @@ const ACHIEVEMENTS := {
 	"league_up": ["Subiu de liga", "Suba de liga na Liga da semana."],
 	"event_1": ["Festeiro", "Complete um evento."],
 }
-## Frascos: nome e a conquista que libera ("" = sempre).
-const SKINS := {"classic": ["Clássico", ""], "tube": ["Tubo de ensaio", "exact_10"], "cauldron": ["Balão redondo", "level_25"],
-	"heart": ["Coração", "streak_30"], "golden": ["Dourado", "top_100"], "crystal": ["Cristal", "league_up"]}
-## Fundos da partida: [nome, como liberar, fundo da tela (SceneBackground)].
-const BACKGROUNDS := {"night": ["Noite estrelada", "", "night"], "sunset": ["Pôr do sol", "streak_7", "sky"],
-	"sky": ["Céu de dia", "daily_all", "day"], "event:halloween": ["Halloween", "event", "halloween"],
-	"event:natal": ["Natal", "event", "natal"], "event:carnaval": ["Carnaval", "event", "carnaval"]}
+## Frascos: nome de cada um (quais estão liberados vem do servidor, `looks.skins`).
+const SKINS := {"classic": "Clássico", "tube": "Tubo de ensaio", "cauldron": "Balão redondo", "heart": "Coração",
+	"golden": "Dourado", "crystal": "Cristal"}
+## Fundos da partida: [nome, fundo da tela (SceneBackground)]. Os liberados vêm do servidor (`looks.backgrounds`).
+const BACKGROUNDS := {"night": ["Noite estrelada", "night"], "sunset": ["Pôr do sol", "sky"], "sky": ["Céu de dia", "day"],
+	"event:halloween": ["Halloween", "halloween"], "event:natal": ["Natal", "natal"], "event:carnaval": ["Carnaval", "carnaval"]}
 ## Nome de cada liga (0 = a primeira).
 const LEAGUES: Array[String] = ["Liga Bronze", "Liga Prata", "Liga Ouro", "Liga Safira", "Liga Diamante"]
 ## Cor de cada tema de evento (botão do menu).
@@ -40,7 +39,7 @@ const DUEL_URL := "https://nalatagame.tech/duelo/%s"
 
 ## Fundo da partida (SceneBackground) do visual escolhido.
 static func background_kind(bg: String) -> String:
-	return BACKGROUNDS[bg][2] if BACKGROUNDS.has(bg) else "night"
+	return BACKGROUNDS[bg][1] if BACKGROUNDS.has(bg) else "night"
 
 
 ## Liga pelo número (o servidor manda de 0 a 4).
@@ -51,30 +50,6 @@ static func league_name(tier: int) -> String:
 ## Nome da conquista no idioma do jogo.
 static func achievement_name(id: String) -> String:
 	return I18n.t(ACHIEVEMENTS[id][0]) if ACHIEVEMENTS.has(id) else id
-
-
-## Código do duelo num link (nalata://duelo/ABC123, https://nalatagame.tech/duelo/ABC123) ou no texto do
-## referrer da Play ("duel=ABC123"). "" se não tiver.
-static func duel_code_from(text: String) -> String:
-	var t := text.strip_edges()
-	var at := t.find("duelo/")
-	if at >= 0:
-		return _clean_code(t.substr(at + 6))
-	for part in t.uri_decode().split("&"):
-		var kv := part.split("=", true, 1)
-		if kv.size() == 2 and kv[0].strip_edges() == "duel":
-			return _clean_code(kv[1])
-	return ""
-
-
-static func _clean_code(raw: String) -> String:
-	var out := ""
-	for c in raw.strip_edges().to_upper():
-		if (c >= "A" and c <= "Z") or (c >= "0" and c <= "9"):
-			out += c
-		else:
-			break
-	return out if out.length() >= 4 else ""
 
 
 # ---------- sequência de dias ----------
@@ -165,7 +140,7 @@ static func open_looks(dialog: DialogBox, error: String = "") -> void:
 	box.add_child(skins)
 	for id: String in SKINS:
 		var have: bool = (looks.get("skins", []) as Array).has(id)
-		skins.add_child(_look_tile(SKINS[id][0], _skin_preview(id), have, str(looks.get("skin", "")) == id,
+		skins.add_child(_look_tile(SKINS[id], _skin_preview(id), have, str(looks.get("skin", "")) == id,
 			func() -> void: _set_look(dialog, {"skin": id, "bg": str(looks.get("bg", "night"))})))
 	box.add_child(GameStyle.make_label("Fundo da partida", 26, true, GameStyle.ACCENT))
 	var bgs := GridContainer.new()
@@ -177,7 +152,7 @@ static func open_looks(dialog: DialogBox, error: String = "") -> void:
 		var have: bool = (looks.get("backgrounds", []) as Array).has(id)
 		if id.begins_with("event:") and not have:
 			continue  # fundos de evento só aparecem depois de ganhos
-		bgs.add_child(_look_tile(BACKGROUNDS[id][0], _bg_preview(BACKGROUNDS[id][2]), have, str(looks.get("bg", "")) == id,
+		bgs.add_child(_look_tile(BACKGROUNDS[id][0], _bg_preview(BACKGROUNDS[id][1]), have, str(looks.get("bg", "")) == id,
 			func() -> void: _set_look(dialog, {"skin": str(looks.get("skin", "classic")), "bg": id})))
 	dialog.add_content(_scroll(box, 640))
 
@@ -285,13 +260,7 @@ static func share_duel(dialog: DialogBox, match_id: String, moves: int, back: Ca
 	var link := DUEL_URL % str(res.data.get("code", ""))
 	var text := I18n.t("Fiz esta fase do Poção de Cores em %d jogadas. Consegue fazer em menos?") % moves + "\n" + link
 	Server.track("duel_shared")
-	var plugin := Server.native_with("install_referrer")
-	if plugin != null:
-		plugin.share(text)
-		back.call()
-		return
-	DisplayServer.clipboard_set(text)
-	dialog.open("Duelo copiado", I18n.t("O link foi copiado. Cole numa conversa para desafiar um amigo."), [["Ok", back, true]])
+	Prizes.share_text(dialog, text, "Duelo copiado", "O link foi copiado. Cole numa conversa para desafiar um amigo.", back)
 
 
 ## Duelo recebido por link: mostra quem desafiou e o número a bater. `play` = Callable(code) que abre a fase.
@@ -336,12 +305,7 @@ class StarsView extends Control:
 	func _draw() -> void:
 		var step := size.x / total
 		for i in total:
-			var c := Vector2(step * (i + 0.5), size.y * 0.5)
-			var pts := GameStyle.star_points(c, radius, radius * 0.48, 5)
-			var ring := pts.duplicate()
-			ring.append(pts[0])
-			draw_colored_polygon(pts, GameStyle.GOLD if i < count else Color(0, 0, 0, 0.18))
-			draw_polyline(ring, GameStyle.INK, maxf(2.0, radius * 0.14), true)
+			GameStyle.draw_star(self, Vector2(step * (i + 0.5), size.y * 0.5), radius, i < count)
 
 
 ## Chamazinha da sequência de dias.

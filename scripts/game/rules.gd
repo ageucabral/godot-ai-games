@@ -62,15 +62,16 @@ static func stars_for(moves: int, par: int) -> int:
 	return 2 if moves <= par + 3 else 1
 
 
-## Dias da sequência que dão uma ajuda grátis (no servidor).
-const STREAK_FREE_BOOST_DAYS: Array[int] = [3, 5]
-
-
 ## Sequência depois de resolver uma fase em `today`: o mesmo dia não muda; o dia seguinte soma 1; pulou um dia, volta a 1.
 static func next_streak(last: String, count: int, today: String) -> int:
 	if last == today:
 		return count
 	return count + 1 if not last.is_empty() and add_days(last, 1) == today else 1
+
+
+## Instante ISO do servidor ("2026-11-09T03:00:00.000Z", em UTC) em segundos Unix (o Godot só lê até os segundos).
+static func unix_from_iso(iso: String) -> int:
+	return int(Time.get_unix_time_from_datetime_string(iso.left(19)))
 
 
 ## Sequência que vale hoje (se o último dia jogado foi antes de ontem, já caiu para 0).

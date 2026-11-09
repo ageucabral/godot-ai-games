@@ -53,12 +53,12 @@ func test_daily_without_improving_still_counts_for_streak() -> void:
 
 
 func test_duel_code_from_links() -> void:
-	assert_eq(Extras.duel_code_from("nalata://duelo/ab12cd"), "AB12CD")
-	assert_eq(Extras.duel_code_from("https://nalatagame.tech/duelo/AB12CD?x=1"), "AB12CD")
-	assert_eq(Extras.duel_code_from("utm_source=x&duel=AB12CD"), "AB12CD")
-	assert_eq(Extras.duel_code_from("duel%3DAB12CD"), "AB12CD")
-	assert_eq(Extras.duel_code_from("code=XYZ999"), "")
-	assert_eq(Extras.duel_code_from(""), "")
+	assert_eq(ApiClient.duel_code_from("nalata://duelo/ab12cd"), "AB12CD")
+	assert_eq(ApiClient.duel_code_from("https://nalatagame.tech/duelo/AB12CD?x=1"), "AB12CD")
+	assert_eq(ApiClient.duel_code_from("utm_source=x&duel=AB12CD"), "AB12CD")
+	assert_eq(ApiClient.duel_code_from("duel%3DAB12CD"), "AB12CD")
+	assert_eq(ApiClient.duel_code_from("code=XYZ999"), "")
+	assert_eq(ApiClient.duel_code_from(""), "")
 
 
 func test_reminder_time_once_a_day() -> void:

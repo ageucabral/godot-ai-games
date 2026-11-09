@@ -244,9 +244,4 @@ class LevelPath extends Control:
 			if now:
 				continue
 			for k in 3:
-				var sc := c + Vector2((k - 1) * 18.0, 42.0)
-				var pts := GameStyle.star_points(sc, 9.0, 4.3, 5)
-				draw_colored_polygon(pts, GameStyle.GOLD if k < stars[i] else Color(0, 0, 0, 0.3))
-				var ring := pts.duplicate()
-				ring.append(pts[0])
-				draw_polyline(ring, GameStyle.INK, 2.0, true)
+				GameStyle.draw_star(self, c + Vector2((k - 1) * 18.0, 42.0), 9.0, k < stars[i], Color(0, 0, 0, 0.3))

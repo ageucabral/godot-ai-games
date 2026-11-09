@@ -132,11 +132,6 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 		return  # o dia virou (ex.: durante a propaganda): não abre nem gasta tentativa
 	if Server.online():
 		_show_loading(false)
-		# um nível pedido antes ainda a caminho: espera chegar, senão o servidor pode abri-lo depois
-		# deste desafio e fechar a partida do desafio
-		if _next_level_pending():
-			await _next_level_arrived
-		drop_next_level()
 		var body := {"mode": "daily", "index": index}
 		if not reward_id.is_empty():
 			body["rewardId"] = reward_id
@@ -156,9 +151,6 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 ## `{"mode": "duel", "code": …}` (a fase de quem desafiou).
 func open_online_mode(body: Dictionary) -> void:
 	_show_loading(false)
-	if _next_level_pending():
-		await _next_level_arrived  # o servidor fecharia esta partida ao abrir o nível pedido antes
-	drop_next_level()
 	await _open_online(body)
 
 
@@ -248,6 +240,12 @@ func is_online() -> bool:
 
 ## Pede a partida ao servidor. Sem resposta, avisa e volta ao menu. Devolve true se abriu.
 func _open_online(body: Dictionary) -> bool:
+	if body.get("mode") != "level":
+		# um nível pedido antes ainda a caminho: espera chegar, senão o servidor pode abri-lo depois desta
+		# partida e fechá-la; depois esquece o nível (o servidor fecha a partida dele ao abrir esta)
+		if _next_level_pending():
+			await _next_level_arrived
+		drop_next_level()
 	busy = true
 	dialog.open("Carregando…", "", [])
 	var res: Dictionary
@@ -266,6 +264,7 @@ func _open_online(body: Dictionary) -> bool:
 			_show_server_error(res, true)
 		return false
 	open_with(ApiClient.challenge_from_match(res.data.get("match", {})))
+	challenge["start_body"] = body  # recomeçar (evento, duelo) pede a mesma fase de novo
 	return true
 
 
@@ -564,9 +563,7 @@ func _on_restart_pressed() -> void:
 
 func _restart_with_ad() -> void:
 	if challenge.get("mode", "") in ["event", "duel"]:
-		var body := {"mode": challenge.mode}
-		if challenge.mode == "duel":
-			body["code"] = challenge.get("duel_code", "")
+		var body: Dictionary = challenge.start_body
 		Ads.show_rewarded(func() -> void: open_online_mode(body))
 		return
 	if is_level():

@@ -269,6 +269,15 @@ static func draw_coin(ci: CanvasItem, c: Vector2, r: float) -> void:
 	ci.draw_arc(c, r, 0, TAU, 32, Color("8a5208"), maxf(2.0, r * 0.1), true)
 
 
+## Estrela de 5 pontas com contorno: dourada (cheia) ou apagada (`empty`).
+static func draw_star(ci: CanvasItem, c: Vector2, r: float, filled: bool, empty: Color = Color(0, 0, 0, 0.18)) -> void:
+	var pts := star_points(c, r, r * 0.48, 5)
+	var ring := pts.duplicate()
+	ring.append(pts[0])
+	ci.draw_colored_polygon(pts, GOLD if filled else empty)
+	ci.draw_polyline(ring, INK, maxf(2.0, r * 0.14), true)
+
+
 static func star_points(c: Vector2, outer: float, inner: float, tips: int) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in tips * 2:
