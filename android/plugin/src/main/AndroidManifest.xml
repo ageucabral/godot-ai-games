@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lembrete do dia (Android 13+ pede a permissão na primeira vez que o jogador liga os avisos). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application>
         <!-- O Godot acha o plugin por este nome (plugin v2). -->
         <meta-data
@@ -10,5 +12,21 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-7687913363814425~7174006251" />
+        <!-- Lembrete do dia, agendado pelo jogo. -->
+        <receiver android:name="app.nalata.godot.ReminderReceiver" android:exported="false" />
+        <!-- Link do duelo (nalata://duelo/CÓDIGO): guarda o link e abre o jogo. -->
+        <activity
+            android:name="app.nalata.godot.LinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nalata" android:host="duelo" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

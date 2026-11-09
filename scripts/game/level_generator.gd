@@ -42,4 +42,5 @@ static func _generate(level: int) -> Dictionary:
 	return {
 		"mode": "level", "level": level, "difficulty": Rules.level_difficulty(level),
 		"tubes": puzzle.tubes, "covers": puzzle.covers, "par": puzzle.par, "full_points": Rules.full_points_for(puzzle.par), "hidden": setup.hidden,
+		"ice": puzzle.get("ice", []), "only": puzzle.get("only", []),
 	}

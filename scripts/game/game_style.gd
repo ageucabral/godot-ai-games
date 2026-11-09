@@ -55,8 +55,50 @@ static func body_font(weight: int = 800) -> Font:
 	return v
 
 
-## Contorno do frasco de poção: gargalo curto com borda, ombros redondos e corpo reto, na grade 60 x 160.
-static func bottle_outline() -> PackedVector2Array:
+## Frascos que o jogador pode escolher (liberados por conquistas; o servidor diz quais). id → cor da borda.
+const SKIN_EDGES := {"classic": GLASS_EDGE, "tube": Color("bff3ff"), "cauldron": Color("b9a6ff"), "heart": Color("ff9ad2"),
+	"golden": Color("ffd75e"), "crystal": Color("e8fbff")}
+static var _outlines: Dictionary = {}
+
+
+## Contorno do frasco na grade 60 x 160 (o gargalo fica sempre em cima, no mesmo lugar). Calculado uma vez por formato.
+static func bottle_outline(skin: String = "classic") -> PackedVector2Array:
+	if not _outlines.has(skin):
+		match skin:
+			"tube": _outlines[skin] = _tube_outline()
+			"cauldron": _outlines[skin] = _round_outline()
+			"crystal": _outlines[skin] = _crystal_outline()
+			_: _outlines[skin] = _classic_outline()  # coração e dourado: o formato clássico com outra borda e enfeite
+	return _outlines[skin]
+
+
+## Tubo de ensaio: reto e de fundo redondo.
+static func _tube_outline() -> PackedVector2Array:
+	var p := PackedVector2Array([Vector2(15, 4), Vector2(45, 4), Vector2(45, 12), Vector2(50, 16)])
+	p.append(Vector2(50, 128))
+	_cubic(p, Vector2(50, 128), Vector2(50, 160), Vector2(10, 160), Vector2(10, 128))
+	p.append_array(PackedVector2Array([Vector2(10, 16), Vector2(15, 12)]))
+	return p
+
+
+## Balão redondo de alquimista (caldeirão): gargalo comprido e corpo bem redondo embaixo.
+static func _round_outline() -> PackedVector2Array:
+	var p := PackedVector2Array([Vector2(20, 4), Vector2(40, 4), Vector2(40, 12), Vector2(37, 14), Vector2(37, 44)])
+	_cubic(p, Vector2(37, 44), Vector2(62, 58), Vector2(62, 156), Vector2(30, 156))
+	_cubic(p, Vector2(30, 156), Vector2(-2, 156), Vector2(-2, 58), Vector2(23, 44))
+	p.append_array(PackedVector2Array([Vector2(23, 14), Vector2(20, 12)]))
+	return p
+
+
+## Cristal: corpo de faces retas (losango alongado).
+static func _crystal_outline() -> PackedVector2Array:
+	return PackedVector2Array([Vector2(19, 4), Vector2(41, 4), Vector2(41, 12), Vector2(38, 14), Vector2(38, 24), Vector2(56, 44),
+		Vector2(56, 130), Vector2(40, 156), Vector2(20, 156), Vector2(4, 130), Vector2(4, 44), Vector2(22, 24), Vector2(22, 14),
+		Vector2(19, 12)])
+
+
+## Frasco de poção clássico: gargalo curto com borda, ombros redondos e corpo reto.
+static func _classic_outline() -> PackedVector2Array:
 	var p := PackedVector2Array()
 	p.append(Vector2(19, 4))
 	p.append(Vector2(41, 4))
@@ -81,9 +123,9 @@ static func layer_height(capacity: int) -> float:
 
 
 ## Faixa de líquido entre duas alturas (grade 60 x 160), recortada pelo formato do frasco.
-static func band_polygons(y_top: float, y_bottom: float) -> Array[PackedVector2Array]:
+static func band_polygons(y_top: float, y_bottom: float, skin: String = "classic") -> Array[PackedVector2Array]:
 	var band := PackedVector2Array([Vector2(0, y_top), Vector2(60, y_top), Vector2(60, y_bottom), Vector2(0, y_bottom)])
-	return Geometry2D.intersect_polygons(band, bottle_outline())
+	return Geometry2D.intersect_polygons(band, bottle_outline(skin))
 
 
 ## Fundo animado ocupando a tela toda: "sky", "night", "hub" ou "splash" (veja SceneBackground).
@@ -225,6 +267,15 @@ static func draw_coin(ci: CanvasItem, c: Vector2, r: float) -> void:
 	ci.draw_circle(c, r * 0.74, Color("ffdb5c"))
 	ci.draw_colored_polygon(star_points(c, r * 0.5, r * 0.22, 5), Color("e59a12"))
 	ci.draw_arc(c, r, 0, TAU, 32, Color("8a5208"), maxf(2.0, r * 0.1), true)
+
+
+## Estrela de 5 pontas com contorno: dourada (cheia) ou apagada (`empty`).
+static func draw_star(ci: CanvasItem, c: Vector2, r: float, filled: bool, empty: Color = Color(0, 0, 0, 0.18)) -> void:
+	var pts := star_points(c, r, r * 0.48, 5)
+	var ring := pts.duplicate()
+	ring.append(pts[0])
+	ci.draw_colored_polygon(pts, GOLD if filled else empty)
+	ci.draw_polyline(ring, INK, maxf(2.0, r * 0.14), true)
 
 
 static func star_points(c: Vector2, outer: float, inner: float, tips: int) -> PackedVector2Array:

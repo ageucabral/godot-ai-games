@@ -14,6 +14,9 @@ var calls: Array = []
 var forced: Dictionary = {}
 var server_points: int = 99
 var level_number: int = 4
+## Extras do menu (sequência, frascos, evento) e do fim da partida.
+var home_extras: Dictionary = {}
+var finish_extras: Variant = null
 
 
 func before_each() -> void:
@@ -24,6 +27,8 @@ func before_each() -> void:
 	Ads.instant = true
 	calls = []
 	forced = {}
+	home_extras = {}
+	finish_extras = null
 	Server.session_path = "user://test_session.cfg"
 	Server.sign_out()
 	Server.age_blocked = 0
@@ -62,7 +67,8 @@ func _match(body: Dictionary) -> Dictionary:
 		"date": null if level else TODAY, "index": null if level else body.get("index"), "level": level_number if level else null,
 		"difficulty": "easy", "tubes": TUBES, "covers": [-1.0, -1.0, -1.0], "hidden": false, "par": 3.0, "fullPoints": 6.0,
 		"params": {"shuffles": 3.0, "flasks": 1.0, "boostCost": 2.0, "extraMoves": 7.0}, "attempt": null,
-		"boosts": [], "moves": [],
+		"boosts": [], "moves": [], "eventN": 2.0 if body.get("mode") == "event" else null,
+		"duelCode": body.get("code") if body.get("mode") == "duel" else null,
 		"state": {"tubes": TUBES, "movesUsed": 0, "moveLimit": 3.0, "points": 6, "shufflesLeft": 3, "flasksLeft": 1, "solved": false},
 	}
 
@@ -78,7 +84,7 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 			return _ok({"date": TODAY, "level": {"number": level_number}, "daily": [
 				{"index": 0, "attempts": 1, "solved": true, "bestPoints": 5, "bestMoves": 4},
 				{"index": 1, "attempts": 0, "solved": false, "bestPoints": null, "bestMoves": null},
-			], "month": {"id": "2026-11", "gamePoints": 40, "gamePosition": 7, "globalPoints": 120, "globalPosition": 12}})
+			], "month": {"id": "2026-11", "gamePoints": 40, "gamePosition": 7, "globalPoints": 120, "globalPosition": 12}}.merged(home_extras))
 		"/pocao/matches":
 			return _ok({"match": _match(body)})
 		"/rewards":
@@ -91,7 +97,19 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		"/pocao/matches/m-1/finish":
 			return _ok({"matchId": "m-1", "solved": true, "rejected": false, "movesUsed": 3, "par": 3, "fullPoints": 6,
 				"points": server_points, "credited": server_points, "best": null, "newBest": true, "nextLevel": level_number + 1,
-				"gamePoints": 140, "gamePosition": 2})
+				"gamePoints": 140, "gamePosition": 2, "extras": finish_extras})
+		"/pocao/duels":
+			return _ok({"code": "AB12CD", "expiresAt": "2026-11-14T15:00:00Z"})
+		"/pocao/duels/AB12CD":
+			return _ok({"code": "AB12CD", "creator": "Bia", "mine": false, "creatorMoves": 3, "creatorPoints": 6, "expired": false,
+				"expiresAt": "2026-11-14T15:00:00Z", "played": null})
+		"/pocao/league":
+			return _ok({"week": "2026-11-02", "endsAt": "2026-11-09T03:00:00Z", "tier": 2, "move": 5, "rows": [
+				{"position": 1, "nickname": "Ana", "points": 90, "me": false, "zone": "up"},
+				{"position": 2, "nickname": "Eu", "points": 40, "me": true, "zone": "up"},
+				{"position": 20, "nickname": "Rui", "points": 1, "me": false, "zone": "down"}]})
+		"/pocao/looks":
+			return _ok({"skin": body.skin, "bg": body.bg, "skins": ["classic", "tube"], "backgrounds": ["night", "sunset"]})
 		"/config":
 			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw"}}})
 		"/auth/google":
@@ -520,3 +538,137 @@ func test_gap_to_next_position() -> void:
 	var list := [[9, "Ana", 25, false], [10, "Eu", 24, true]]
 	assert_eq(RankingScreen.gap_text(list, 10), "Faltam 2 pts para o 9º")
 	assert_eq(RankingScreen.gap_text(list, 1), "Você está na frente!")
+
+
+# ---------- sequência, estrelas, frascos, eventos, duelos e liga ----------
+
+const EXTRAS := {
+	"streak": {"count": 4, "best": 6, "playedToday": false, "freeBoosts": 1},
+	"stars": [{"level": 2, "stars": 3}, {"level": 3, "stars": 2}],
+	"achievements": [{"id": "first_win", "goal": 1, "value": 1, "unlocked": true}, {"id": "exact_10", "goal": 10, "value": 4, "unlocked": false}],
+	"looks": {"skin": "tube", "bg": "sunset", "skins": ["classic", "tube"], "backgrounds": ["night", "sunset"]},
+	"event": {"id": 7, "name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 1},
+	"duels": [],
+}
+
+
+func _with_extras() -> void:
+	home_extras = EXTRAS.duplicate(true)
+	await Server.refresh_home()
+
+
+func test_home_shows_streak_stars_and_event() -> void:
+	await _with_extras()
+	main.show_screen(main.home)
+	var home: Control = main.home
+	assert_eq(home.streak_label.text, "4")
+	assert_false(home.streak_flame.lit, "ainda não jogou hoje")
+	assert_eq(GameState.level_stars(2), 3)
+	assert_eq(home.level_path.stars, [0, 3, 2], "níveis 1 a 3 (o 1 sem estrelas)")
+	assert_true(home.event_button.visible)
+	assert_eq(home.event_button.text, "Natal  1/15")
+	Extras.open_streak(home.dialog)
+	assert_true(home.dialog.text_label.text.contains("1"), "mostra as ajudas grátis")
+
+
+func test_event_plays_with_theme_and_counts_progress() -> void:
+	await _with_extras()
+	main.play_event()
+	await wait_physics_frames(1)
+	assert_eq(_last("/pocao/matches")[2], {"mode": "event"})
+	assert_eq(game.title_text(), "Evento 2 / 15")
+	assert_eq(game._bg.kind, "natal", "fundo do tema do evento")
+	assert_false(game._subtitle.visible)
+	_solve()
+	await wait_physics_frames(1)
+	assert_eq(int(GameState.extras.event.done), 2)
+	assert_true("Próxima fase do evento" in game.dialog.button_texts())
+	assert_false("Desafiar amigo" in game.dialog.button_texts(), "evento não vira duelo")
+
+
+func test_looks_apply_to_the_match() -> void:
+	await _with_extras()
+	main.play_level()
+	await wait_physics_frames(1)
+	assert_eq(game._bg.kind, "sky", "fundo Pôr do sol")
+	assert_eq(game._bottles[0].skin, "tube")
+
+
+func test_choose_look() -> void:
+	await _with_extras()
+	Extras.open_looks(main.dialog)
+	assert_eq(main.dialog.title_label.text, "Meus frascos")
+	await Extras._set_look(main.dialog, {"skin": "classic", "bg": "night"})
+	assert_eq(_last("/pocao/looks")[0], "PUT")
+	assert_eq(GameState.looks().skin, "classic")
+
+
+func test_free_boost_skips_the_ad() -> void:
+	await _with_extras()
+	main.play_level()
+	await wait_physics_frames(1)
+	game._on_shuffle_pressed()
+	assert_eq(game.dialog.button_texts()[0], "Usar ajuda grátis (1)")
+	game.dialog.press("Usar ajuda grátis (1)")
+	await wait_physics_frames(1)
+	assert_false("/rewards" in _paths(), "sem propaganda")
+	assert_true(str(_last("/pocao/matches/m-1/boost")[2].rewardId).begins_with("free:"))
+	assert_eq(int(GameState.streak().free_boosts), 0)
+	game._on_bottle_pressed()
+	assert_eq(game.dialog.button_texts()[0], "Assistir e ganhar", "acabaram as grátis")
+
+
+func test_win_shows_stars_extras_and_duel() -> void:
+	await _with_extras()
+	finish_extras = {"stars": 3, "streak": 5, "freeBoostsGained": 1, "achievements": ["exact_10"], "duel": null}
+	main.play_level()
+	await wait_physics_frames(1)
+	_solve()
+	await wait_physics_frames(1)
+	var text: String = game.dialog.text_label.text
+	assert_true(text.contains("ganhou uma ajuda grátis"), text)
+	assert_true(text.contains("Mão certeira"), "conquista nova pelo nome")
+	assert_eq(int(GameState.streak().count), 5)
+	assert_eq(int(GameState.streak().free_boosts), 2)
+	var stars: Extras.StarsView = game.dialog.inputs()[0]
+	assert_eq(stars.count, 3)
+	assert_true("Desafiar amigo" in game.dialog.button_texts())
+	game.dialog.press("Desafiar amigo")
+	await wait_physics_frames(1)
+	assert_eq(_last("/pocao/duels")[2], {"matchId": "m-1"})
+	assert_eq(game.dialog.title_label.text, "Duelo copiado", "sem o plugin, copia o link")
+	game.dialog.press("Ok")
+	assert_true("Próximo nível" in game.dialog.button_texts(), "volta para a vitória")
+
+
+func test_duel_by_link() -> void:
+	Server.pending_duel = "AB12CD"
+	await Server.refresh_home()
+	await wait_physics_frames(2)
+	assert_eq(main.dialog.title_label.text, "Desafio de amigo")
+	assert_true(main.dialog.text_label.text.contains("Bia"))
+	main.dialog.press("Aceitar o duelo")
+	await wait_physics_frames(1)
+	assert_eq(_last("/pocao/matches")[2], {"mode": "duel", "code": "AB12CD"})
+	assert_eq(game.title_text(), "Duelo")
+	assert_eq(game.challenge.duel_code, "AB12CD")
+	_solve()
+	await wait_physics_frames(1)
+	assert_eq(game.dialog.button_texts(), ["Menu"], "duelo não tem próximo nem novo duelo")
+	assert_eq(GameState.current_level(), 4, "duelo não mexe no nível")
+
+
+func test_league_tab() -> void:
+	main.open_ranking(main.home)
+	var ranking: RankingScreen = main.ranking
+	assert_true(ranking.tabs.visible)
+	await ranking.set_tab("league")
+	assert_eq(ranking.title_label.text, "Liga da semana")
+	assert_true(ranking.subtitle_label.text.begins_with("Liga Ouro"))
+	assert_true(ranking.league_card.visible)
+	assert_false(ranking.me_card.visible)
+	await wait_physics_frames(1)
+	assert_eq(ranking.league_list.get_child_count(), 3)
+	ranking.set_tab("global")
+	assert_true(ranking.me_card.visible)
+	assert_eq(ranking.title_label.text, "Ranking Global")

@@ -52,6 +52,23 @@ var cover_amount: float = 0.0:
 		queue_redraw()
 var _cover_tween: Tween
 
+## Garrafa de gelo: quantas jogadas faltam para derreter (0 = sem gelo).
+var ice_left: int = 0:
+	set(value):
+		ice_left = value
+		queue_redraw()
+## Garrafa de uma cor só: a cor que ela aceita (-1 = qualquer).
+var only_color: int = -1:
+	set(value):
+		only_color = value
+		queue_redraw()
+
+## Frasco escolhido pelo jogador (formato e borda; veja GameStyle.SKIN_EDGES).
+var skin: String = "classic":
+	set(value):
+		skin = value if GameStyle.SKIN_EDGES.has(value) else "classic"
+		queue_redraw()
+
 ## Setinha "toque aqui" em cima do frasco (primeira partida guiada). Balança sozinha.
 var hint: bool = false:
 	set(value):
@@ -166,7 +183,7 @@ func layer_height() -> float:
 func _draw() -> void:
 	var xf := design_transform()
 	draw_set_transform_matrix(xf)
-	var outline := GameStyle.bottle_outline()
+	var outline := GameStyle.bottle_outline(skin)
 
 	# brilho azul atrás do frasco escolhido
 	if _lift > 1.0:
@@ -185,7 +202,7 @@ func _draw() -> void:
 		var y_top := GameStyle.LIQUID_BOTTOM - (level + amount) * h
 		var col: Color = GameStyle.HIDDEN_LAYER if seg[2] else GameStyle.liquid_color(seg[0])
 		top_col = col  # cor da camada de cima que aparece de verdade (ignora as vazias do despejo)
-		var band := GameStyle.band_polygons(y_top, y_bottom + 0.5)
+		var band := GameStyle.band_polygons(y_top, y_bottom + 0.5, skin)
 		for poly in band:
 			draw_colored_polygon(poly, col)
 		# sombra na lateral direita (volume)
@@ -213,14 +230,27 @@ func _draw() -> void:
 
 	var closed := outline.duplicate()
 	closed.append(outline[0])
-	draw_polyline(closed, Color(GameStyle.GLASS_EDGE, 0.35), 6.0, true)
-	draw_polyline(closed, GameStyle.GLASS_EDGE, 2.4, true)
+	var skin_edge: Color = GameStyle.SKIN_EDGES[skin]
+	var edge: Color = skin_edge if only_color < 0 else GameStyle.liquid_color(only_color).lightened(0.25)
+	draw_polyline(closed, Color(edge, 0.35), 6.0, true)
+	draw_polyline(closed, edge, 2.4 if only_color < 0 else 3.6, true)
+	if only_color >= 0:
+		# selo da cor aceita, no pé do frasco
+		draw_circle(Vector2(30, 150), 9, GameStyle.liquid_color(only_color))
+		draw_arc(Vector2(30, 150), 9, 0, TAU, 20, GameStyle.INK, 2.5, true)
 	# borda do gargalo
-	draw_rect(Rect2(18, 3, 24, 6), Color("2a3a7a"))
-	draw_rect(Rect2(18, 3, 24, 6), GameStyle.GLASS_EDGE, false, 2.0)
+	draw_rect(Rect2(18, 3, 24, 6), Color("8a5a10") if skin == "golden" else Color("2a3a7a"))
+	draw_rect(Rect2(18, 3, 24, 6), skin_edge, false, 2.0)
+	if skin == "heart":
+		# coraçãozinho no gargalo
+		draw_circle(Vector2(27.5, 30), 3.2, skin_edge)
+		draw_circle(Vector2(32.5, 30), 3.2, skin_edge)
+		draw_colored_polygon(PackedVector2Array([Vector2(24.4, 31), Vector2(35.6, 31), Vector2(30, 37)]), skin_edge)
 
 	if cover_amount > 0.0 and cover_key >= 0:
 		_draw_cover(xf)
+	if ice_left > 0:
+		_draw_ice()
 
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if hint:
@@ -240,6 +270,23 @@ func _draw() -> void:
 		draw_circle(from, w * 0.5, stream_color)
 
 
+## Gelo por cima do frasco, com o número de jogadas que faltam para derreter.
+func _draw_ice() -> void:
+	var ice := PackedVector2Array()
+	for p in GameStyle.bottle_outline(skin):
+		ice.append(Vector2(30 + (p.x - 30) * 1.08, p.y))
+	draw_colored_polygon(ice, Color(0.82, 0.94, 1.0, 0.78))
+	for x in [14.0, 26.0, 40.0]:
+		draw_line(Vector2(x, 46), Vector2(x + 8, 70), Color(1, 1, 1, 0.8), 2.0, true)
+	var closed := ice.duplicate()
+	closed.append(ice[0])
+	draw_polyline(closed, Color("6fb6ff"), 2.4, true)
+	var font := GameStyle.title_font()
+	var y := 104.0
+	draw_string_outline(font, Vector2(0, y), str(ice_left), HORIZONTAL_ALIGNMENT_CENTER, 60, 34, 6, Color.WHITE)
+	draw_string(font, Vector2(0, y), str(ice_left), HORIZONTAL_ALIGNMENT_CENTER, 60, 34, Color("1b4f9a"))
+
+
 ## Pano claro por cima do frasco, com dobras e um selo com a garrafinha da cor que o abre.
 ## Ao sair, sobe e fica transparente.
 func _draw_cover(xf: Transform2D) -> void:
@@ -247,7 +294,7 @@ func _draw_cover(xf: Transform2D) -> void:
 	var rise := (1.0 - a) * -50.0
 	draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(0, rise)))
 	var cloth := PackedVector2Array()
-	for p in GameStyle.bottle_outline():
+	for p in GameStyle.bottle_outline(skin):
 		cloth.append(Vector2(30 + (p.x - 30) * 1.12, p.y - 2))
 	draw_colored_polygon(cloth, Color(0.96, 0.9, 0.93, a))
 	# dobras do pano

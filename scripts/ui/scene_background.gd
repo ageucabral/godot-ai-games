@@ -2,12 +2,21 @@ class_name SceneBackground
 extends Control
 ## Fundo animado: a ilustração gerada (assets/art) cobrindo a tela e brilhinhos piscando por cima.
 ## "sky": céu de fim de tarde (menu do jogo; os brilhos sobem). "night": noite estrelada (partida).
-## "hub": vila flutuante ao entardecer (menu Na Lata). "splash": tela de abertura.
+## "hub": vila flutuante ao entardecer (menu Na Lata). "splash": tela de abertura. "day", "halloween", "natal" e
+## "carnaval": fundos da partida liberados por conquistas e eventos.
 
 const ART := {"sky": "res://assets/art/home_bg.jpg", "night": "res://assets/art/game_bg.jpg", "splash": "res://assets/art/splash.jpg",
-	"hub": "res://assets/art/hub_bg.jpg"}
+	"hub": "res://assets/art/hub_bg.jpg", "day": "res://assets/art/day_bg.jpg", "halloween": "res://assets/art/halloween_bg.jpg",
+	"natal": "res://assets/art/natal_bg.jpg", "carnaval": "res://assets/art/carnaval_bg.jpg"}
 
-var kind: String = "sky"
+var kind: String = "sky":
+	set(value):
+		if kind == value:
+			return
+		kind = value
+		if is_inside_tree():
+			_art = load(ART[kind]) if ART.has(kind) else null
+			queue_redraw()
 var _art: Texture2D
 var _time: float = 0.0
 var _stars: Array = []  # [posição relativa, tamanho, fase]

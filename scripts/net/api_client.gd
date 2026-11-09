@@ -37,6 +37,11 @@ const ERROR_TEXTS := {
 	"FX_UNAVAILABLE": "Não deu para calcular o valor agora. Tente mais tarde.",
 	"EXPIRED": "O prazo para resgatar este prêmio terminou.",
 	"ALREADY_SUBMITTED": "Seus dados já foram enviados.",
+	"NO_EVENT": "Nenhum evento agora.",
+	"EVENT_DONE": "Você já completou este evento.",
+	"DUEL_EXPIRED": "Este duelo já acabou.",
+	"OWN_DUEL": "Este duelo é seu. Mande o link para um amigo.",
+	"NO_FREE_BOOST": "Você não tem ajuda grátis.",
 }
 
 ## Número do projeto Google Cloud do Na Lata (o mesmo do login com Google): vai no pedido do Play Integrity.
@@ -110,6 +115,8 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		"difficulty": str(m.get("difficulty", "easy")),
 		"tubes": to_ints(m.get("tubes", [])),
 		"covers": to_ints(m.get("covers", [])),
+		"ice": to_ints(m.get("ice", [])),
+		"only": to_ints(m.get("only", [])),
 		"hidden": bool(m.get("hidden", false)),
 		"par": int(m.get("par", 0)),
 		"full_points": int(m.get("fullPoints", 0)),
@@ -126,6 +133,10 @@ static func challenge_from_match(m: Dictionary) -> Dictionary:
 		data["date"] = str(m.date)
 	if m.get("index") != null:
 		data["index"] = int(m.index)
+	if m.get("eventN") != null:
+		data["event_n"] = int(m.eventN)
+	if m.get("duelCode") != null:
+		data["duel_code"] = str(m.duelCode)
 	return data
 
 
@@ -202,11 +213,29 @@ static func integrity_nonce(device_hash: String, at_ms: int) -> String:
 
 ## Código de convite que veio no link da Play ("code=ABC123&utm_…" → "ABC123"; "" se não tiver).
 static func invite_code_from_referrer(referrer: String) -> String:
+	return referrer_param(referrer, "code").to_upper()
+
+
+## Um valor do texto do referrer da Play ("code=ABC&duel=XYZ"); "" se não tiver.
+static func referrer_param(referrer: String, key: String) -> String:
 	for part in referrer.uri_decode().split("&"):
 		var kv := part.split("=", true, 1)
-		if kv.size() == 2 and kv[0].strip_edges() == "code":
-			return kv[1].strip_edges().to_upper()
+		if kv.size() == 2 and kv[0].strip_edges() == key:
+			return kv[1].strip_edges()
 	return ""
+
+
+## Código do duelo num link (nalata://duelo/ABC123, https://nalatagame.tech/duelo/ABC123) ou no referrer da Play
+## ("duel=ABC123"). "" se não tiver.
+static func duel_code_from(text: String) -> String:
+	var at := text.find("duelo/")
+	var raw := text.substr(at + 6) if at >= 0 else referrer_param(text, "duel")
+	var out := ""
+	for c in raw.strip_edges().to_upper():
+		if not ((c >= "A" and c <= "Z") or (c >= "0" and c <= "9")):
+			break
+		out += c
+	return out if out.length() >= 4 else ""
 
 
 ## Aviso de manutenção no idioma do jogador (cai no português e depois no texto geral).

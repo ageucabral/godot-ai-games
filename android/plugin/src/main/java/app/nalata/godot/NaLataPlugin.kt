@@ -1,8 +1,12 @@
 package app.nalata.godot
 
+import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -41,6 +45,8 @@ import org.godotengine.godot.plugin.UsedByGodot
  * - Propaganda premiada do AdMob com SSV: `customData` = rewardId do servidor, `userId` = id do jogador.
  * - Play Integrity (o servidor confere se é o app original da Play num aparelho íntegro).
  * - Convite: lê o código que veio no link da Play (install referrer) e abre o "compartilhar" do Android.
+ * - Avisos no celular: um lembrete por dia, no máximo (AlarmManager + [ReminderReceiver]).
+ * - Duelo: o link nalata://duelo/CÓDIGO abre o app ([LinkActivity] guarda o link para o jogo ler).
  * Tudo responde por sinais, na linha principal do Godot.
  */
 class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
@@ -61,6 +67,8 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         SignalInfo("integrity_token", String::class.java, String::class.java),
         // texto do referrer da Play (ex.: "code=ABC123"; "" se não houver)
         SignalInfo("install_referrer", String::class.java),
+        // pode mostrar avisos no celular (depois de pedir a permissão no Android 13+)
+        SignalInfo("notifications_allowed", java.lang.Boolean::class.java),
     )
 
     private fun act(): Activity? = activity
@@ -273,5 +281,64 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         } catch (e: Exception) {
             ""
         }
+    }
+
+    // ---------- Avisos no celular ----------
+
+    /** Pode mostrar avisos? (Android 13+ pede permissão; antes, sempre pode.) */
+    @UsedByGodot
+    fun notificationsAllowed(): Boolean {
+        val a = act() ?: return false
+        return Build.VERSION.SDK_INT < 33 ||
+            a.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+
+    /** Pede a permissão de avisos (Android 13+). Responde com `notifications_allowed(bool)`. */
+    @UsedByGodot
+    fun requestNotifications() {
+        val a = act() ?: return emitSignal("notifications_allowed", false)
+        if (notificationsAllowed()) return emitSignal("notifications_allowed", true)
+        a.runOnUiThread { a.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFY_REQUEST) }
+    }
+
+    override fun onMainRequestPermissionsResult(requestCode: Int, permissions: Array<out String>?, grantResults: IntArray?) {
+        if (requestCode == NOTIFY_REQUEST) emitSignal("notifications_allowed", notificationsAllowed())
+    }
+
+    /**
+     * Agenda o lembrete (substitui o anterior: no máximo um por vez, então no máximo um por dia).
+     * `atMs` = hora em milissegundos Unix.
+     */
+    @UsedByGodot
+    fun scheduleReminder(atMs: Long, title: String, text: String) {
+        val a = act() ?: return
+        val ctx = a.applicationContext
+        ctx.getSharedPreferences(ReminderReceiver.PREFS, Context.MODE_PRIVATE).edit()
+            .putString("title", title).putString("text", text).apply()
+        val alarms = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        // sem horário exato (não precisa de permissão especial); o Android pode atrasar uns minutos
+        alarms.set(AlarmManager.RTC_WAKEUP, atMs, ReminderReceiver.pending(ctx))
+    }
+
+    /** Desliga o lembrete agendado. */
+    @UsedByGodot
+    fun cancelReminder() {
+        val ctx = act()?.applicationContext ?: return
+        (ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(ReminderReceiver.pending(ctx))
+    }
+
+    // ---------- Duelo por link ----------
+
+    /** Link que abriu o app (ex.: "nalata://duelo/ABC123"), uma vez só; "" se não houver. */
+    @UsedByGodot
+    fun takeLink(): String {
+        val prefs = act()?.applicationContext?.getSharedPreferences(LinkActivity.PREFS, Context.MODE_PRIVATE) ?: return ""
+        val link = prefs.getString("link", "") ?: ""
+        if (link.isNotEmpty()) prefs.edit().remove("link").apply()
+        return link
+    }
+
+    private companion object {
+        const val NOTIFY_REQUEST = 4210
     }
 }

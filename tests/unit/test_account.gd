@@ -443,7 +443,16 @@ func test_sound_toggle() -> void:
 	Sfx.play("pour")
 	assert_eq(Sfx.played, ["pour"], "desligado: não toca")
 	Menus.open_settings(dialog)
+	dialog.press("Sons e avisos")
 	assert_true("Som: desligado" in dialog.button_texts())
+	assert_true("Música: ligada" in dialog.button_texts())
+	dialog.press("Música: ligada")
+	assert_false(Sfx.music_enabled(), "música desligada")
+	assert_false(Sfx.music_playing())
+	dialog.press("Música: desligada")
+	assert_true(Sfx.music_enabled())
+	assert_false(Sfx.music_playing(), "sem tela (testes) não toca")
+	assert_false(dialog.button_texts().any(func(t: String) -> bool: return t.begins_with("Avisos")), "avisos só com o plugin")
 
 
 # ---------- primeira partida guiada ----------

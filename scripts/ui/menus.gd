@@ -1,9 +1,10 @@
 class_name Menus
 extends RefCounted
-## Janelas usadas no hub e na tela do jogo: configurações (conta, idioma, som, como jogar, ajuda e termos).
+## Janelas usadas no hub e na tela do jogo: configurações (conta, conquistas e frascos, idioma, sons e avisos,
+## como jogar, ajuda e termos).
 ## A conta e a ajuda ficam em `scripts/ui/account.gd`.
 
-const VERSION := "1.3.1"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
+const VERSION := "1.3.2"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
 
 ## Desafios de hoje já resolvidos.
@@ -17,16 +18,35 @@ static func daily_done() -> int:
 
 
 static func open_settings(dialog: DialogBox) -> void:
-	dialog.open("Configurações", I18n.t("Versão %s") % VERSION, [
-		["Sua conta", func() -> void: Account.open_account(dialog)],
+	var buttons: Array = [["Sua conta", func() -> void: Account.open_account(dialog)]]
+	if not GameState.extras.is_empty():
+		buttons.append(["Conquistas e frascos", func() -> void: Extras.open_achievements(dialog)])
+	buttons.append_array([
 		[I18n.t("Idioma: %s") % I18n.language_name(GameState.language()), func() -> void: open_language(dialog)],
-		[I18n.t("Som: ligado") if Sfx.enabled() else I18n.t("Som: desligado"), func() -> void:
-			Sfx.set_enabled(not Sfx.enabled())
-			open_settings(dialog)],
+		["Sons e avisos", func() -> void: open_sounds(dialog)],
 		["Como jogar", func() -> void: open_how_to_play(dialog)],
 		["Ajuda e termos", func() -> void: Account.open_help(dialog)],
 		["Fechar", func() -> void: pass, true],
 	])
+	dialog.open("Configurações", I18n.t("Versão %s") % VERSION, buttons)
+
+
+## Som, música e o aviso do dia no celular (este só no app do Android).
+static func open_sounds(dialog: DialogBox) -> void:
+	var buttons: Array = [
+		[I18n.t("Som: ligado") if Sfx.enabled() else I18n.t("Som: desligado"), func() -> void:
+			Sfx.set_enabled(not Sfx.enabled())
+			open_sounds(dialog)],
+		[I18n.t("Música: ligada") if Sfx.music_enabled() else I18n.t("Música: desligada"), func() -> void:
+			Sfx.set_music_enabled(not Sfx.music_enabled())
+			open_sounds(dialog)],
+	]
+	if Reminders.plugin() != null:
+		buttons.append([I18n.t("Avisos no celular: ligados") if Reminders.enabled() else I18n.t("Avisos no celular: desligados"), func() -> void:
+			await Reminders.set_enabled(not Reminders.enabled())
+			open_sounds(dialog)])
+	buttons.append(["Voltar", func() -> void: open_settings(dialog), true])
+	dialog.open("Sons e avisos", "", buttons)
 
 
 static func open_language(dialog: DialogBox) -> void:

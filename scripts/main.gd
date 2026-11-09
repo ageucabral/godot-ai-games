@@ -31,11 +31,13 @@ func _ready() -> void:
 	home.level_requested.connect(play_level)
 	home.daily_requested.connect(func() -> void: show_screen(daily))
 	home.ranking_requested.connect(func() -> void: open_ranking(home))
+	home.event_requested.connect(play_event)
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
 	game.back_requested.connect(_leave_game)
 	game.next_requested.connect(request_play)
 	game.next_level_requested.connect(play_level)
+	game.next_event_requested.connect(play_event)
 	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
 	ranking.invite_requested.connect(func() -> void: Prizes.open_invite(dialog))
 	ranking.claim_requested.connect(func(payout_id: String) -> void: Prizes.open_claim(dialog, payout_id))
@@ -55,12 +57,21 @@ func _connect_server() -> void:
 	if Account.check_gate(dialog):
 		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
 	await Account.connect_and_onboard(dialog)
+	Server.take_launch_link()
+	Reminders.update()
+	_show_pending_duel()
 
 
 ## Voltou para o app (estava em segundo plano): confere de novo manutenção e versão mínima.
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_RESUMED and Server.enabled and is_inside_tree():
+	if not Server.enabled or not is_inside_tree():
+		return
+	if what == NOTIFICATION_APPLICATION_RESUMED:
 		_recheck_gate()
+		Server.take_launch_link()  # voltou pelo link de um duelo
+		_show_pending_duel()
+	elif what == NOTIFICATION_APPLICATION_PAUSED:
+		Reminders.update()  # o aviso de amanhã já sabe se jogou hoje
 
 
 func _recheck_gate() -> void:
@@ -97,6 +108,19 @@ func _on_server_home() -> void:
 			_announced[id] = true
 			Prizes.announce(dialog, p)
 			return
+	if _show_pending_duel():
+		return
+	Reminders.maybe_ask(dialog)
+
+
+## Duelo que chegou por link: mostra o desafio (fora da partida). Devolve true se abriu.
+func _show_pending_duel() -> bool:
+	if Server.pending_duel.is_empty() or not Server.online() or game.visible:
+		return false
+	var code := Server.pending_duel
+	Server.pending_duel = ""
+	Extras.open_duel(dialog, code, play_duel)
+	return true
 
 
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
@@ -134,6 +158,20 @@ func play_level() -> void:
 	show_screen(game)
 	if not resume:
 		game.open_level(GameState.current_level())
+
+
+## Abre a próxima fase do evento no ar (pelo servidor).
+func play_event() -> void:
+	_return_screen = home
+	show_screen(game)
+	game.open_online_mode({"mode": "event"})
+
+
+## Aceitou um duelo: abre a mesma fase de quem desafiou.
+func play_duel(code: String) -> void:
+	_return_screen = home
+	show_screen(game)
+	game.open_online_mode({"mode": "duel", "code": code})
 
 
 ## Abre um desafio de hoje. A primeira tentativa é grátis; as próximas pedem propaganda.

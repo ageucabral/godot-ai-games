@@ -33,6 +33,10 @@ const MONTH_NAMES: Array[String] = ["janeiro", "fevereiro", "março", "abril", "
 	"julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
+## Novas mecânicas (Ageu, 9/11/2026): garrafa de gelo a partir do nível 40 e garrafa de uma cor a partir do 55.
+const ICE_FROM: int = 40
+const ONLY_FROM: int = 55
+
 ## Degraus do modo por níveis (Ageu, 7/11/2026: dificuldade subindo aos poucos, com mais frascos e
 ## jogadas diferentes). [a partir do nível, cores, cores repetidas, vazias, cobertas, camadas "?", jogadas mínimas]
 const LEVEL_STEPS: Array = [
@@ -51,6 +55,36 @@ const LEVEL_STEPS: Array = [
 ]
 
 
+## Estrelas de uma fase: 3 = jogadas exatas, 2 = até 3 a mais, 1 = só passou (igual ao servidor).
+static func stars_for(moves: int, par: int) -> int:
+	if moves <= par:
+		return 3
+	return 2 if moves <= par + 3 else 1
+
+
+## Sequência depois de resolver uma fase em `today`: o mesmo dia não muda; o dia seguinte soma 1; pulou um dia, volta a 1.
+static func next_streak(last: String, count: int, today: String) -> int:
+	if last == today:
+		return count
+	return count + 1 if not last.is_empty() and add_days(last, 1) == today else 1
+
+
+## Instante ISO do servidor ("2026-11-09T03:00:00.000Z", em UTC) em segundos Unix (o Godot só lê até os segundos).
+static func unix_from_iso(iso: String) -> int:
+	return int(Time.get_unix_time_from_datetime_string(iso.left(19)))
+
+
+## Sequência que vale hoje (se o último dia jogado foi antes de ontem, já caiu para 0).
+static func live_streak(last: String, count: int, today: String) -> int:
+	return count if not last.is_empty() and (last == today or add_days(last, 1) == today) else 0
+
+
+## "AAAA-MM-DD" mais n dias.
+static func add_days(date: String, n: int) -> String:
+	var d := Time.get_unix_time_from_datetime_string(date + "T12:00:00")
+	return Time.get_date_string_from_unix_time(d + n * 86400)
+
+
 ## Como cada nível é montado: segue o degrau do nível e, dentro dele, pede um pouco mais de jogadas
 ## a cada 3 níveis (até +3), para a subida ser gradual.
 static func level_setup(level: int) -> Dictionary:
@@ -60,7 +94,8 @@ static func level_setup(level: int) -> Dictionary:
 			step = s
 	var bonus := mini((level - int(step[0])) / 3, 3)
 	return {"colors": step[1], "repeats": step[2], "empty": step[3], "covers": step[4],
-		"hidden": step[5], "min_par": int(step[6]) + bonus}
+		"hidden": step[5], "min_par": int(step[6]) + bonus,
+		"ice": 1 if level >= ICE_FROM else 0, "only": 1 if level >= ONLY_FROM else 0}
 
 
 ## Nome da dificuldade mostrado num nível (pelo degrau): com camadas "?" é difícil,

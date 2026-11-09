@@ -13,7 +13,7 @@ var _card: PanelContainer
 ## Ação de cada botão aberto agora (trocável com `set_action`, ex.: para ler os campos do formulário).
 var _actions: Array = []
 ## A partir de quantos botões a lista rola.
-const SCROLL_FROM := 6
+const SCROLL_FROM := 7
 const SCROLL_HEIGHT := 700.0
 
 
