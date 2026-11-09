@@ -58,15 +58,17 @@ static func share_invite(dialog: DialogBox, code: String, link: String, banner: 
 	var text := I18n.t("Jogue o Na Lata comigo e concorra a prêmios! Meu código: %s") % code
 	if not link.is_empty():
 		text += "\n" + link
-	Server.track("invite_shared", {"banner": style})
 	var plugin := Server.native_with("install_referrer")
 	if plugin:
 		var path := InviteBanners.file_path(style)
 		if banner != null and banner.save_png(path) == OK:
+			Server.track("invite_shared", {"banner": style})
 			plugin.shareImage(ProjectSettings.globalize_path(path), text)
 		else:
+			Server.track("invite_shared", {"banner": -1})  # só o texto (a figura ainda não estava pronta)
 			plugin.share(text)
 		return
+	Server.track("invite_shared", {"banner": -1})
 	DisplayServer.clipboard_set(text)
 	dialog.open("Convite copiado", I18n.t("O convite foi copiado. Cole numa conversa para mandar aos amigos."), [
 		["Ok", func() -> void: pass, true],

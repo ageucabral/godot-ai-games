@@ -129,8 +129,12 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 	if _show_if_closed(date):
 		return  # o dia virou (ex.: durante a propaganda): não abre nem gasta tentativa
 	if Server.online():
-		drop_next_level()
 		_show_loading(false)
+		# um nível pedido antes ainda a caminho: espera chegar, senão o servidor pode abri-lo depois
+		# deste desafio e fechar a partida do desafio
+		if not _next_level.is_empty() and not _next_level.has("res"):
+			await _next_level_arrived
+		drop_next_level()
 		var body := {"mode": "daily", "index": index}
 		if not reward_id.is_empty():
 			body["rewardId"] = reward_id
@@ -181,7 +185,10 @@ func _take_next_level() -> Dictionary:
 	if _next_level.is_empty():
 		return {}
 	if not _next_level.has("res"):
+		busy = true  # nada de pausa ou ajudas na partida anterior enquanto espera
+		dialog.open("Carregando…", "", [])
 		await _next_level_arrived
+		busy = false
 	var item := _next_level
 	_next_level = {}
 	if not item.has("res") or Time.get_ticks_msec() - int(item.at) > PREFETCH_TTL_MS:

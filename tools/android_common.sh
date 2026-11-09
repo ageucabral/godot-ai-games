@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Preparação comum das exportações Android (lido com "source" por export_android.sh e
 # export_android_release.sh): Godot + modelos, Android SDK, caminhos do SDK/Java para o Godot e o
-# modelo "Gradle build" em android/build. Define ANDROID_HOME, JAVA_HOME e TEMPLATE_FLAG.
+# modelo "Gradle build" em android/build (com o R8 ligado na versão release). Define ANDROID_HOME e JAVA_HOME.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 mkdir -p build/android && touch build/.gdignore  # o Godot não deve importar o que já foi exportado
@@ -20,12 +20,11 @@ if [[ -n "$SETTINGS" ]]; then
   sed -i "/^\[resource\]/a export/android/android_sdk_path = \"$ANDROID_HOME\"\nexport/android/java_sdk_path = \"$JAVA_HOME\"" "$SETTINGS"
 fi
 
-# "Gradle build" (precisa do plugin Android: login Google e AdMob): o Godot instala o modelo em android/build
-# na primeira exportação (--install-android-build-template); com versão nova do Godot, reinstala.
+# "Gradle build" (precisa do plugin Android: login Google e AdMob): o modelo vai para android/build na primeira
+# exportação e é reinstalado com versão nova do Godot. Instalamos aqui mesmo (como o Godot faz com
+# --install-android-build-template) para poder ligar o R8 antes da exportação.
 # shellcheck source=godot_version.env
 source "$ROOT/tools/godot_version.env"
-# Instalamos o modelo aqui mesmo (como o Godot faz) para poder ligar o R8 antes da exportação.
-TEMPLATE_FLAG=()
 if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -qxF "${GODOT_VERSION}.${GODOT_FLAVOR}" "$ROOT/android/.build_version" 2>/dev/null; then
   rm -rf "$ROOT/android/build" "$ROOT/android/.build_version"
   SOURCE_ZIP="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_FLAVOR}/android_source.zip"

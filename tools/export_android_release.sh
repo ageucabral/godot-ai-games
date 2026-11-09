@@ -42,7 +42,7 @@ export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$NALATA_KEY_ALIAS"
 export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$NALATA_KEYSTORE_PASSWORD"
 
 rm -f "$OUT"
-"$ROOT/tools/godot.sh" --headless --path "$ROOT" "${TEMPLATE_FLAG[@]}" --export-release "Android Play" "$OUT"
+"$ROOT/tools/godot.sh" --headless --path "$ROOT" --export-release "Android Play" "$OUT"
 test -s "$OUT"
 # O AAB é assinado com jarsigner: confere a assinatura e mostra a impressão digital (SHA-1/SHA-256) da chave,
 # que tem de ser a mesma "chave de upload" cadastrada na Play Console.

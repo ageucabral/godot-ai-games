@@ -29,6 +29,8 @@ static func render(host: Node, style: int, code: String) -> Image:
 	vp.add_child(build(style, code))
 	host.add_child(vp)
 	await RenderingServer.frame_post_draw
+	if not is_instance_valid(vp):
+		return null  # o convite fechou enquanto desenhava
 	var img := vp.get_texture().get_image()
 	vp.queue_free()
 	return img

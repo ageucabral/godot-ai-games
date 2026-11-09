@@ -166,9 +166,14 @@ func test_challenge_from_match_uses_ints() -> void:
 
 
 func test_ranking_rows_join_podium_and_rows() -> void:
-	var rows := ApiClient.ranking_rows({"podium": [{"position": 1, "nickname": "Ana", "points": 9}, null],
-		"rows": [{"position": 5, "nickname": "", "guest": true, "points": 2, "isMe": true}]})
-	assert_eq(rows, [[1, "Ana", 9, false], [5, "Visitante", 2, true]])
+	var rows := ApiClient.ranking_rows({"podium": [{"position": 1, "nickname": "Ana", "points": 9, "delta": 2.0}, null],
+		"rows": [{"position": 5, "nickname": "", "guest": true, "points": 2, "isMe": true, "delta": null}]})
+	assert_eq(rows, [[1, "Ana", 9, false, 2], [5, "Visitante", 2, true, null]])
+
+
+func test_prize_chips_are_short() -> void:
+	assert_eq(ApiClient.prize_chips([{"posFrom": 1, "posTo": 1, "amountLabel": "US$ 10"}, {"posFrom": 4, "posTo": 10, "amountLabel": "US$ 1"}]),
+		[["1º", "US$ 10"], ["4º–10º", "US$ 1"]])
 
 
 # ---------- partidas pelo servidor ----------

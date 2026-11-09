@@ -20,7 +20,7 @@ var position_label: Label
 var points_label: Label
 var detail_label: Label
 var prize_card: PanelContainer
-var prize_list: VBoxContainer
+var prize_list: GridContainer
 var top_card: PanelContainer
 var top_list: VBoxContainer
 var info_label: Label
@@ -103,17 +103,20 @@ func _ready() -> void:
 			claim_requested.emit(str(pending[0].get("id", ""))))
 	box.add_child(claim_button)
 
-	# prêmios do mês: uma linha por faixa
+	# prêmios do mês: pílulas lado a lado (posição em cima, valor embaixo)
 	prize_card = _card(GameStyle.GOLD)
+	(prize_card.get_theme_stylebox("panel") as StyleBoxFlat).set_content_margin_all(12)
 	box.add_child(prize_card)
 	var prize_box := VBoxContainer.new()
 	prize_box.mouse_filter = Control.MOUSE_FILTER_PASS
-	prize_box.add_theme_constant_override("separation", 6)
+	prize_box.add_theme_constant_override("separation", 8)
 	prize_card.add_child(prize_box)
-	prize_box.add_child(GameStyle.make_label("Prêmios do mês", 28, true, GameStyle.INK))
-	prize_list = VBoxContainer.new()
+	prize_box.add_child(GameStyle.make_label("Prêmios do mês", 24, true, GameStyle.INK))
+	prize_list = GridContainer.new()
+	prize_list.columns = 4
 	prize_list.mouse_filter = Control.MOUSE_FILTER_PASS
-	prize_list.add_theme_constant_override("separation", 2)
+	prize_list.add_theme_constant_override("h_separation", 8)
+	prize_list.add_theme_constant_override("v_separation", 8)
 	prize_box.add_child(prize_list)
 
 	# a lista do mês (rola junto com a página)
@@ -182,7 +185,12 @@ func refresh() -> void:
 	points_label.text = tr("%d pts") % total.points
 	var position: Variant = total.get("position")
 	position_label.text = ("%dº" % int(position)) if position != null else "–"
-	detail_label.text = gap_text(rows, position) if position != null else tr("Jogue para entrar no ranking")
+	if position != null:
+		detail_label.text = gap_text(rows, position)
+	elif total.points > 0:
+		detail_label.text = tr("%d jogadas no mês") % total.moves  # sem servidor (Web): sem posição
+	else:
+		detail_label.text = tr("Jogue para entrar no ranking")
 	var online := Server.online()
 	claim_button.visible = online and not Prizes.pending_payouts().is_empty()
 	invite_button.visible = online
@@ -219,12 +227,27 @@ static func gap_text(list: Array, position: Variant) -> String:
 func _fill_prizes() -> void:
 	for c in prize_list.get_children():
 		c.queue_free()
-	var lines := ApiClient.prize_lines(prizes)
-	prize_card.visible = not lines.is_empty()
-	for line in lines:
-		var l := GameStyle.make_label(line, 26, true, GameStyle.INK)
-		l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		prize_list.add_child(l)
+	var chips := ApiClient.prize_chips(prizes)
+	prize_card.visible = not chips.is_empty()
+	prize_list.columns = clampi(chips.size(), 1, 4)
+	for c in chips:
+		var chip := PanelContainer.new()
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS
+		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var b := StyleBoxFlat.new()
+		b.bg_color = GameStyle.CREAM
+		b.set_corner_radius_all(16)
+		b.set_content_margin_all(6)
+		chip.add_theme_stylebox_override("panel", b)
+		var v := VBoxContainer.new()
+		v.mouse_filter = Control.MOUSE_FILTER_PASS
+		v.add_theme_constant_override("separation", -4)
+		chip.add_child(v)
+		for part in [[c[0], 20, GameStyle.ACCENT], [c[1], 26, GameStyle.INK]]:
+			var l := GameStyle.make_label(part[0], part[1], true, part[2])
+			l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+			v.add_child(l)
+		prize_list.add_child(chip)
 
 
 ## Até onde vai o prêmio (a última posição premiada); 0 sem prêmios.
@@ -282,7 +305,13 @@ func _row(r: Array, index: int) -> PanelContainer:
 	if not mine:
 		nick.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	row.add_child(nick)
+	var move := DeltaMark.new()
+	move.delta = r[4] if r.size() > 4 else null
+	move.on_dark = mine
+	row.add_child(move)
 	var pts := GameStyle.make_label(tr("%d pts") % r[2], 26, true, color)
+	pts.custom_minimum_size = Vector2(140, 0)  # coluna fixa: as setas ficam alinhadas
+	pts.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	pts.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	row.add_child(pts)
 	return panel
@@ -308,3 +337,32 @@ class RankBadge extends Control:
 		var col := GameStyle.INK if medal.a > 0.0 else text_color
 		var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
 		draw_string(font, Vector2(c.x - w * 0.5, c.y + 9), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, col)
+
+
+## Quanto o jogador subiu (seta verde) ou caiu (seta vermelha) desde ontem; um traço se ficou igual.
+## Sem retrato de ontem (entrou hoje) não mostra nada.
+class DeltaMark extends Control:
+	const UP := Color("2fa84f")
+	const DOWN := Color("e0303f")
+	var delta: Variant = null
+	var on_dark: bool = false
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(64, 40)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		if delta == null:
+			return
+		var d := int(delta)
+		var font := GameStyle.title_font()
+		var c := Vector2(14, size.y * 0.5)
+		if d == 0:
+			draw_line(c + Vector2(-8, 0), c + Vector2(8, 0), Color(GameStyle.INK if not on_dark else Color.WHITE, 0.5), 4.0)
+			return
+		var col := UP if d > 0 else DOWN
+		if on_dark:
+			col = col.lightened(0.35)
+		var s := 9.0 if d > 0 else -9.0
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -s), c + Vector2(9, s * 0.8), c + Vector2(-9, s * 0.8)]), col)
+		draw_string(font, Vector2(28, size.y * 0.5 + 8), str(absi(d)), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, col)
