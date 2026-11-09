@@ -15,6 +15,8 @@ var _return_screen: Control
 var _ranking_return: Control
 ## Prêmios já avisados nesta abertura do app (o aviso "Você ganhou!" sai uma vez).
 var _announced: Dictionary = {}
+## Já está conferindo a versão mínima/manutenção depois de voltar para o app.
+var _rechecking: bool = false
 
 
 func _ready() -> void:
@@ -61,8 +63,11 @@ func _notification(what: int) -> void:
 
 
 func _recheck_gate() -> void:
-	if await Server.load_config():
-		Account.check_gate(dialog)
+	if _rechecking:
+		return  # voltou de novo antes da resposta (propaganda, escolha de conta): uma conferência basta
+	_rechecking = true
+	await Account.recheck_gate(dialog)
+	_rechecking = false
 
 
 ## Saiu da partida pelo menu: mede quem desistiu no meio e encerra a partida guiada.

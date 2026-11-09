@@ -175,11 +175,21 @@ static func version_less(a: String, b: String) -> bool:
 	var pa := a.strip_edges().split(".")
 	var pb := b.strip_edges().split(".")
 	for i in maxi(pa.size(), pb.size()):
-		var x := int(pa[i]) if i < pa.size() else 0
-		var y := int(pb[i]) if i < pb.size() else 0
+		var x := _leading_int(pa[i]) if i < pa.size() else 0
+		var y := _leading_int(pb[i]) if i < pb.size() else 0
 		if x != y:
 			return x < y
 	return false
+
+
+## Número do começo de um pedaço da versão ("1-rc2" → 1; o `int()` juntaria os dígitos e daria 12).
+static func _leading_int(part: String) -> int:
+	var digits := ""
+	for c in part.strip_edges():
+		if c < "0" or c > "9":
+			break
+		digits += c
+	return int(digits) if not digits.is_empty() else 0
 
 
 ## Nonce do Play Integrity: base64 web-safe (sem "=") de "nalata:<aparelho>:<ms>" (o servidor lê igual).

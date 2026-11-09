@@ -133,10 +133,20 @@ func load_config() -> bool:
 	if not res.data is Dictionary:
 		return false
 	config = res.data
+	# guarda a versão mínima no aparelho: se o /config não chegar numa abertura, o aviso de atualizar continua
+	var min_version := str(config.get("minAppVersion", "")).strip_edges()
+	if min_version != saved_min_version():
+		_cfg.set_value("config", "min_app_version", min_version)
+		_cfg.save(session_path)
 	var plugin := native()
 	if plugin:
 		plugin.adsInit()
 	return true
+
+
+## Última versão mínima que o servidor mandou ("" = nenhuma), guardada no aparelho.
+func saved_min_version() -> String:
+	return str(_cfg.get_value("config", "min_app_version", ""))
 
 
 ## Entra com a conta Google: o plugin abre a escolha de conta e o servidor confere o idToken.

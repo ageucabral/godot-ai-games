@@ -38,21 +38,25 @@ static func _handle_blocked(dialog: DialogBox, res: Dictionary) -> bool:
 
 # ---------- manutenção e versão mínima ----------
 
+## O aviso de versão antiga ou de manutenção está (ou estava por último) na tela.
+static var gate_open: bool = false
+
 ## Mostra o aviso que não deixa jogar (versão antiga ou manutenção). Devolve true se bloqueou.
 static func check_gate(dialog: DialogBox) -> bool:
 	var cfg: Dictionary = Server.config
-	if cfg.is_empty():
-		return false
-	var min_version := str(cfg.get("minAppVersion", ""))
+	# sem o /config desta abertura (sem internet, servidor lento): vale a última versão mínima guardada
+	var min_version := str(cfg.get("minAppVersion", Server.saved_min_version()))
 	if not min_version.is_empty() and ApiClient.version_less(Menus.VERSION, min_version):
 		var store := ApiClient.link(cfg, "playStore")
+		gate_open = true
 		dialog.open("Atualize o app", I18n.t("Saiu uma versão nova do Na Lata. Atualize na Play Store para continuar jogando."), [
 			["Atualizar", func() -> void:
 				OS.shell_open(store)
-				check_gate(dialog), true],
+				_refresh_gate(dialog), true],
 		])
 		return true
 	if bool(cfg.get("maintenance", false)):
+		gate_open = true
 		dialog.open("Em manutenção", I18n.t(ApiClient.maintenance_text(cfg, GameState.language())), [
 			["Tentar de novo", func() -> void: _retry_gate(dialog), true],
 		])
@@ -60,12 +64,33 @@ static func check_gate(dialog: DialogBox) -> bool:
 	return false
 
 
+## Voltou para o app: busca o /config de novo. Se o aviso que estava na tela não vale mais (o painel tirou a
+## manutenção ou baixou a versão mínima), fecha o aviso e segue a entrada que a abertura deixou parada.
+static func recheck_gate(dialog: DialogBox) -> void:
+	if await Server.load_config():
+		_refresh_gate(dialog)
+
+
 static func _retry_gate(dialog: DialogBox) -> void:
 	dialog.open("Conferindo…", "", [])
 	await Server.load_config()
+	_refresh_gate(dialog)
+
+
+## Confere o aviso de novo: se ainda vale, ele volta para a tela; se não, fecha e segue a entrada.
+static func _refresh_gate(dialog: DialogBox) -> void:
 	if not check_gate(dialog):
-		dialog.close()
-		connect_and_onboard(dialog)  # o que a abertura do app não fez enquanto o aviso estava na tela
+		_gate_cleared(dialog)
+
+
+## O aviso não vale mais: fecha e faz o que a abertura do app não fez enquanto ele estava na tela.
+## Só uma vez (a volta para o app e o "Tentar de novo" podem chegar aqui juntos).
+static func _gate_cleared(dialog: DialogBox) -> void:
+	if not gate_open:
+		return
+	gate_open = false
+	dialog.close()
+	connect_and_onboard(dialog)
 
 
 ## Depois do aviso de manutenção/versão: lê o convite do link da Play, entra no servidor e segue para
