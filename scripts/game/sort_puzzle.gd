@@ -13,8 +13,6 @@ extends RefCounted
 ## Esta classe não depende da árvore de cenas: dá para testar sozinha.
 
 const CAPACITY: int = 4
-## Limite da busca que confere se um embaralhado tem solução (mesmo limite do gerador de desafios).
-const SHUFFLE_MAX_STATES: int = 150000
 
 var tubes: Array = []
 var hidden: Array = []
@@ -23,8 +21,13 @@ var ice: Array = []
 var only: Array = []
 ## Garrafas que abriram na última jogada (a tela confere `is_covered`; isto ajuda os testes).
 var last_revealed: Array = []
-## Lista de jogadas feitas, cada uma [de, para]. Pelo servidor, vai junto nas ajudas e no fim da partida.
+## Lista de jogadas feitas, cada uma [de, para]; um desfazer entra como `UNDO`. Pelo servidor, vai junto nas ajudas e
+## no fim da partida.
 var moves: Array = []
+## Marca de "desfazer" na lista de jogadas (Ageu, 9/11/2026: desfazer é padrão do gênero; a jogada continua contada).
+const UNDO: Array = [-1, -1]
+## Estado antes de cada despejo ainda desfazível: [garrafas, camadas "?", panos]. O frasco extra zera.
+var _history: Array = []
 
 
 func _init(start_tubes: Array = [], hide_lower_layers: bool = false, start_covers: Array = [], start_ice: Array = [], start_only: Array = []) -> void:
@@ -65,6 +68,7 @@ func is_covered(i: int) -> bool:
 func pour(from: int, to: int) -> int:
 	if not can_pour(from, to):
 		return 0
+	_history.append([copy_tubes(tubes), hidden.duplicate(true), covers.duplicate()])
 	var amount: int = pour_in(tubes, from, to)
 	for i in amount:
 		hidden[from].pop_back()
@@ -76,69 +80,36 @@ func pour(from: int, to: int) -> int:
 	return amount
 
 
+func can_undo() -> bool:
+	return not _history.is_empty()
+
+
+## Desfaz o último despejo: o líquido volta, mas a jogada desfeita continua contada (os pontos não voltam) e o
+## desfazer entra na lista como `UNDO`, para o servidor refazer igual. Gelo e pontos seguem a contagem de jogadas.
+func undo() -> bool:
+	if _history.is_empty():
+		return false
+	var snap: Array = _history.pop_back()
+	tubes = snap[0]
+	hidden = snap[1]
+	covers = snap[2]
+	moves.append(UNDO.duplicate())
+	last_revealed = []
+	return true
+
+
+static func is_undo(move: Array) -> bool:
+	return move.size() == 2 and int(move[0]) == -1 and int(move[1]) == -1
+
+
 ## Frasco extra: uma garrafa vazia a mais, no fim da fila.
 func add_empty_tube() -> void:
+	_history.clear()
 	tubes.append([])
 	hidden.append([])
 	covers.append(-1)
 	ice.append(0)
 	only.append(-1)
-
-
-## Embaralhar: mistura as camadas à mostra das garrafas abertas que ainda não estão completas,
-## mantendo quanto cada uma tem. As camadas "?" ficam onde estão (senão o embaralhar revelaria
-## cores escondidas e esconderia cores já vistas). Só aceita um embaralhado diferente e com solução.
-## Devolve false se não achou.
-func shuffle(rng: RandomNumberGenerator, tries: int = 10) -> bool:
-	var candidate := shuffled_state(rng, tries)
-	if candidate.is_empty():
-		return false
-	apply_shuffled(candidate)
-	return true
-
-
-## Troca as garrafas por um embaralhado já calculado por `shuffled_state`.
-func apply_shuffled(state: Array) -> void:
-	tubes = copy_tubes(state)
-	last_revealed = reveal_in(tubes, covers)  # o embaralhado pode completar a cor de um pano
-
-
-## Calcula um embaralhado (sem aplicar). Devolve [] se não achou um diferente e com solução.
-func shuffled_state(rng: RandomNumberGenerator, tries: int = 10) -> Array:
-	var spots: Array = []
-	var pool: Array = []
-	var left := ice_left()
-	for i in tubes.size():
-		# presa no gelo ou de uma cor só: fica como está
-		if is_covered(i) or is_complete(tubes[i]) or int(left[i]) > 0 or int(only[i]) >= 0:
-			continue
-		for j in (tubes[i] as Array).size():
-			if hidden[i][j]:
-				continue
-			spots.append([i, j])
-			pool.append(tubes[i][j])
-	if pool.size() < 2:
-		return []
-	for _t in tries:
-		var mixed: Array = pool.duplicate()
-		for k in range(mixed.size() - 1, 0, -1):
-			var r := rng.randi_range(0, k)
-			var tmp = mixed[k]
-			mixed[k] = mixed[r]
-			mixed[r] = tmp
-		if mixed == pool:
-			continue
-		var candidate: Array = copy_tubes(tubes)
-		for n in spots.size():
-			candidate[spots[n][0]][spots[n][1]] = mixed[n]
-		if is_solved_state(candidate):
-			continue
-		var candidate_covers: Array = covers.duplicate()
-		reveal_in(candidate, candidate_covers)
-		if min_moves(candidate, SHUFFLE_MAX_STATES, candidate_covers, left, only) < 0:
-			continue
-		return candidate
-	return []
 
 
 func is_solved() -> bool:

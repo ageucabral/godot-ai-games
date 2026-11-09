@@ -431,19 +431,20 @@ const STRINGS := {
 	"+5 jogadas": ["+5 moves", "+5 jugadas"],
 	"+%d jogadas": ["+%d moves", "+%d jugadas"],
 	"PONTOS": ["POINTS", "PUNTOS"],
-	"Embaralhar": ["Shuffle", "Mezclar"],
+	"Desfazer": ["Undo", "Deshacer"],
+	"Dica": ["Hint", "Pista"],
+	"Dica?": ["Hint?", "¿Pista?"],
+	"Mostra a próxima jogada de um caminho curto.\nPede uma propaganda e custa %s.": [
+		"Shows the next move of a short path.\nNeeds an ad and costs %s.",
+		"Muestra la próxima jugada de un camino corto.\nPide un anuncio y cuesta %s."],
+	"Não deu para achar uma dica agora. Nada foi cobrado.": ["Couldn't find a hint right now. Nothing was charged.", "No se pudo encontrar una pista ahora. No se cobró nada."],
 	"Frasco extra": ["Extra bottle", "Frasco extra"],
-	"Embaralhar?": ["Shuffle?", "¿Mezclar?"],
 	"Frasco extra?": ["Extra bottle?", "¿Frasco extra?"],
-	"Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.": [
-		"Mixes the colors of the open bottles again.\nNeeds an ad and costs %s.",
-		"Mezcla de nuevo los colores de las botellas abiertas.\nPide un anuncio y cuesta %s."],
 	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.": [
 		"Get one more empty bottle.\nNeeds an ad and costs %s.",
 		"Gana una botella vacía más.\nPide un anuncio y cuesta %s."],
 	"1 ponto": ["1 point", "1 punto"],
 	"%d pontos": ["%d points", "%d puntos"],
-	"Não deu para embaralhar agora. Nada foi cobrado.": ["Couldn't shuffle right now. Nothing was charged.", "No se pudo mezclar ahora. No se cobró nada."],
 	"Recomeçar?": ["Restart?", "¿Reiniciar?"],
 	"Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado.": [
 		"Each new attempt needs an ad.\nYour best result always counts.",

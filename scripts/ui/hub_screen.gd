@@ -68,6 +68,7 @@ func _ready() -> void:
 			card.pressed.connect(func() -> void: game_requested.emit(id))
 		list.add_child(card)
 		cards[id] = card
+	GameStyle.let_scroll(list)
 	var soon := GameStyle.make_label("Mais jogos em breve", 26, false, Color(1, 1, 1, 0.75))
 	list.add_child(soon)
 

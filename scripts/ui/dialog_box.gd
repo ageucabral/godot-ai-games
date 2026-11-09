@@ -146,6 +146,7 @@ func _open(mode: String, title: String, text: String, buttons: Array) -> void:
 			close()
 			(actions[index] as Callable).call())
 		_buttons.add_child(b)
+	GameStyle.let_scroll(_buttons)
 	text_label.visible = text != ""
 	visible = true
 	# entra com um pulinho

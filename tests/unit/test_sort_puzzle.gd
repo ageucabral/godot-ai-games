@@ -79,38 +79,6 @@ func test_solver_respects_covers() -> void:
 	assert_true(SortPuzzle.min_moves(tubes) > 0)
 
 
-func test_shuffle_keeps_covered_and_complete_bottles() -> void:
-	var p := SortPuzzle.new([[0, 1, 0, 1], [1, 0, 1, 3], [2, 2, 2, 2], [3, 3, 3, 0], [], []], false, [-1, -1, -1, 2, -1, -1])
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 3
-	assert_true(p.shuffle(rng))
-	assert_eq(p.tubes[2], [2, 2, 2, 2], "garrafa completa fica igual")
-	assert_eq(p.tubes[3], [3, 3, 3, 0], "garrafa coberta fica igual")
-	assert_eq(p.moves_used(), 0, "embaralhar não conta como jogada")
-
-
-func test_shuffle_keeps_hidden_layers_in_place() -> void:
-	var p := SortPuzzle.new([[0, 1, 0, 1], [1, 0, 1, 0], [], []], true)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5
-	var before: Array = SortPuzzle.copy_tubes(p.tubes)
-	p.shuffle(rng)
-	for i in 2:
-		for j in 3:
-			assert_eq(p.tubes[i][j], before[i][j], "camada \"?\" não muda de lugar")
-
-
-func test_shuffle_same_seed_same_result() -> void:
-	var tubes := [[0, 1, 2, 0], [1, 2, 0, 1], [2, 0, 1, 2], [], []]
-	var a := SortPuzzle.new(tubes)
-	var b := SortPuzzle.new(tubes)
-	var r1 := RandomNumberGenerator.new()
-	r1.seed = 42
-	var r2 := RandomNumberGenerator.new()
-	r2.seed = 42
-	assert_eq(a.shuffled_state(r1), b.shuffled_state(r2), "a semente refaz o mesmo embaralhado")
-
-
 func test_ice_melts_with_moves() -> void:
 	var p := SortPuzzle.new([[0, 0, 1], [1, 1, 0], [0, 1], [], []], false, [], [2, 0, 0, 0, 0])
 	assert_true(p.is_frozen(0))
@@ -138,3 +106,26 @@ func test_solver_respects_ice_and_only() -> void:
 	assert_true(SortPuzzle.min_moves(tubes, 400000, [], [], [-1, -1, 1]) >= plain, "frasco de uma cor nunca deixa mais curto")
 	var iced := SortPuzzle.min_moves(tubes, 400000, [], [3, 0, 0])
 	assert_true(iced == -1 or iced >= plain, "gelo nunca deixa mais curto")
+
+
+func test_undo_restores_state_and_counts_the_move() -> void:
+	var p := SortPuzzle.new([[0, 1, 1], [1], []])
+	assert_false(p.can_undo())
+	assert_false(p.undo(), "nada para desfazer")
+	p.pour(0, 1)
+	assert_eq(p.tubes, [[0], [1, 1, 1], []])
+	assert_true(p.undo())
+	assert_eq(p.tubes, [[0, 1, 1], [1], []], "voltou como estava")
+	assert_eq(p.moves, [[0, 1], SortPuzzle.UNDO], "a jogada e o desfazer ficam na lista")
+	assert_eq(p.moves_used(), 2, "o desfazer conta como jogada")
+	assert_false(p.can_undo(), "um desfazer por despejo")
+	# desfazer também volta um pano que tinha aberto
+	var c := SortPuzzle.new([[0, 0, 0], [0], [2, 2, 2, 2]], false, [-1, -1, 0])
+	c.pour(1, 0)
+	assert_false(c.is_covered(2), "completou o azul: abriu o pano")
+	c.undo()
+	assert_true(c.is_covered(2), "o pano fecha de novo")
+	# frasco extra zera o histórico (o estado antigo tinha menos garrafas)
+	c.pour(1, 0)
+	c.add_empty_tube()
+	assert_false(c.can_undo())

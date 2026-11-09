@@ -91,6 +91,7 @@ func show_tab(id: String) -> void:
 		body.remove_child(c)
 		c.queue_free()
 	(_tabs[id] as Callable).call(body)
+	GameStyle.let_scroll(body)
 
 
 func close() -> void:

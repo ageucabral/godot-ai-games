@@ -170,6 +170,16 @@ static func add_background(parent: Control, kind: String = "sky") -> SceneBackgr
 	return bg
 
 
+## Deixa o arrastar do dedo chegar ao ScrollContainer: botões e painéis param o toque (MOUSE_FILTER_STOP) e a lista
+## não rola quando o dedo começa em cima deles (Ageu, 9/11/2026: "a rolagem hora funciona hora não"). Com PASS o botão
+## continua respondendo ao toque e o Godot cancela o toque quando vira rolagem. Chamar depois de montar o conteúdo.
+static func let_scroll(root: Node) -> void:
+	for c in root.get_children():
+		if c is Control and (c as Control).mouse_filter == Control.MOUSE_FILTER_STOP:
+			(c as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+		let_scroll(c)
+
+
 static func make_label(text: String, font_size: int, title: bool = false, color: Color = INK) -> Label:
 	var l := Label.new()
 	l.text = text

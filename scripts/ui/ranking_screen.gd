@@ -238,6 +238,7 @@ func refresh() -> void:
 	if in_league:
 		claim_button.visible = false
 		_fill_league()
+		GameStyle.let_scroll(league_list)
 		return
 	title_label.text = tr("Ranking Global")
 	var now := GameState.now_unix()
@@ -268,6 +269,7 @@ func refresh() -> void:
 	if not Server.enabled:
 		lines.append(tr("A lista com todos os jogadores está no app da Play Store."))
 	info_label.text = "\n\n".join(lines)
+	GameStyle.let_scroll(self)
 
 
 ## Liga da semana, como na proposta: medalha e nome da liga, quanto falta e quantos jogadores, "Sobem para a Liga X"
