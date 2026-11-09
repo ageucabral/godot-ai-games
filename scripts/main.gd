@@ -27,11 +27,11 @@ func _ready() -> void:
 	_ranking_return = home
 	hub.game_requested.connect(open_game)
 	hub.global_ranking_requested.connect(func() -> void: open_ranking(hub))
+	hub.event_requested.connect(func() -> void: play_event(hub))
 	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
 	home.daily_requested.connect(func() -> void: show_screen(daily))
 	home.ranking_requested.connect(func() -> void: open_ranking(home))
-	home.event_requested.connect(play_event)
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
 	game.back_requested.connect(_leave_game)
@@ -110,6 +110,8 @@ func _on_server_home() -> void:
 			return
 	if _show_pending_duel():
 		return
+	if Extras.maybe_show_streak(dialog):
+		return
 	Reminders.maybe_ask(dialog)
 
 
@@ -140,6 +142,7 @@ func open_ranking(from: Control) -> void:
 func show_screen(screen: Control) -> void:
 	for s in [hub, home, daily, game, ranking]:
 		s.visible = (s == screen)
+	Sfx.set_track("game" if screen == game else "menu")
 	if screen != game:
 		Server.track("screen_view", {"screen": str(screen.name).to_lower()})
 	if screen.has_method("refresh"):
@@ -160,9 +163,11 @@ func play_level() -> void:
 		game.open_level(GameState.current_level())
 
 
-## Abre a próxima fase do evento no ar (pelo servidor).
-func play_event() -> void:
-	_return_screen = home
+## Abre a próxima fase do evento no ar (pelo servidor). `from` = tela para onde o Menu da partida volta (o cartão
+## do evento fica no hub); sem ela (a "Próxima fase do evento" da vitória), continua a de antes.
+func play_event(from: Control = null) -> void:
+	if from != null:
+		_return_screen = from
 	show_screen(game)
 	game.open_online_mode({"mode": "event"})
 

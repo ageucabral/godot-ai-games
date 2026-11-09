@@ -109,7 +109,7 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 				{"position": 2, "nickname": "Eu", "points": 40, "me": true, "zone": "up"},
 				{"position": 20, "nickname": "Rui", "points": 1, "me": false, "zone": "down"}]})
 		"/pocao/looks":
-			return _ok({"skin": body.skin, "bg": body.bg, "skins": ["classic", "tube"], "backgrounds": ["night", "sunset"]})
+			return _ok(body)
 		"/config":
 			return _ok({"ads": {"unitIds": {"rewarded": "unit-rw"}}})
 		"/auth/google":
@@ -184,9 +184,9 @@ func test_challenge_from_match_uses_ints() -> void:
 
 
 func test_ranking_rows_join_podium_and_rows() -> void:
-	var rows := ApiClient.ranking_rows({"podium": [{"position": 1, "nickname": "Ana", "points": 9, "delta": 2.0}, null],
+	var rows := ApiClient.ranking_rows({"podium": [{"position": 1, "nickname": "Ana", "points": 9, "delta": 2.0, "badge": "exact_10", "frame": "fire"}, null],
 		"rows": [{"position": 5, "nickname": "", "guest": true, "points": 2, "isMe": true, "delta": null}]})
-	assert_eq(rows, [[1, "Ana", 9, false, 2], [5, "Visitante", 2, true, null]])
+	assert_eq(rows, [[1, "Ana", 9, false, 2, "exact_10", "fire"], [5, "Visitante", 2, true, null, null, null]])
 
 
 func test_prize_chips_are_short() -> void:
@@ -219,9 +219,18 @@ func test_level_is_scored_by_the_server() -> void:
 	assert_eq(fin[2].moves, SOLUTION, "manda todas as jogadas")
 	assert_eq(fin[2].claimed, {"moves": 3, "points": 6, "solved": true})
 	assert_true(game.dialog.visible)
-	assert_true(game.dialog.text_label.text.begins_with("+99 pontos"), "mostra os pontos do servidor")
+	assert_eq(_win_points(), "+99", "mostra os pontos do servidor")
 	assert_eq(GameState.current_level(), 5, "libera o próximo nível")
 	assert_eq(int(GameState.game_month_total("potion", "2026-11").points), 140)
+
+
+## Pontos em destaque no cartão da vitória ("+99").
+func _win_points() -> String:
+	for c in game.dialog.inputs():
+		var l: Node = c.find_child("Points", true, false)
+		if l != null:
+			return (l as Label).text
+	return ""
 
 
 func _count(path: String) -> int:
@@ -330,7 +339,7 @@ func test_finish_without_connection_can_retry() -> void:
 	assert_eq(game.dialog.button_texts(), ["Tentar de novo", "Menu"])
 	game.dialog.press("Tentar de novo")
 	await wait_physics_frames(1)
-	assert_true(game.dialog.text_label.text.begins_with("+99 pontos"))
+	assert_eq(_win_points(), "+99")
 
 
 func test_global_ranking_lists_players() -> void:
@@ -546,8 +555,9 @@ const EXTRAS := {
 	"streak": {"count": 4, "best": 6, "playedToday": false, "freeBoosts": 1},
 	"stars": [{"level": 2, "stars": 3}, {"level": 3, "stars": 2}],
 	"achievements": [{"id": "first_win", "goal": 1, "value": 1, "unlocked": true}, {"id": "exact_10", "goal": 10, "value": 4, "unlocked": false}],
-	"looks": {"skin": "tube", "bg": "sunset", "skins": ["classic", "tube"], "backgrounds": ["night", "sunset"]},
-	"event": {"id": 7, "name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 1},
+	"looks": {"skin": "tube", "bg": "sunset", "frame": null, "badge": null, "skins": ["classic", "tube"], "backgrounds": ["night", "sunset"], "frames": ["fire"]},
+	"event": {"id": 7, "name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 1,
+		"rewards": [{"at": 4, "kind": "boost"}, {"at": 8, "kind": "skin"}, {"at": 12, "kind": "frame"}, {"at": 15, "kind": "bg"}]},
 	"duels": [],
 }
 
@@ -564,11 +574,24 @@ func test_home_shows_streak_stars_and_event() -> void:
 	assert_eq(home.streak_label.text, "4")
 	assert_false(home.streak_flame.lit, "ainda não jogou hoje")
 	assert_eq(GameState.level_stars(2), 3)
-	assert_eq(home.level_path.stars, [0, 3, 2], "níveis 1 a 3 (o 1 sem estrelas)")
-	assert_true(home.event_button.visible)
-	assert_eq(home.event_button.text, "Natal  1/15")
-	Extras.open_streak(home.dialog)
-	assert_true(home.dialog.text_label.text.contains("1"), "mostra as ajudas grátis")
+	assert_eq(home.level_map.current, 4)
+	assert_eq(home.level_map.stars, {2: 3, 3: 2}, "os 2 níveis antes do de agora, com as estrelas")
+	# a sequência abre sozinha uma vez por dia
+	assert_eq(main.dialog.title_label.text, "🔥 4 dias seguidos!")
+	assert_eq(main.dialog.button_texts(), ["Continuar"])
+	main.dialog.press("Continuar")
+	await Server.refresh_home()
+	assert_false(main.dialog.visible, "no mesmo dia não abre de novo")
+	# o evento fica num cartão no hub, com a trilha de prêmios
+	main.show_screen(main.hub)
+	var card: EventCard = main.hub.event_card
+	assert_true(card.visible)
+	assert_eq(card._name.text, "Natal")
+	assert_eq(card._count.text, "1 de 15 fases do evento")
+	assert_eq(card._trail.rewards.size(), 4)
+	card.pressed.emit()
+	await wait_physics_frames(1)
+	assert_eq(_last("/pocao/matches")[2], {"mode": "event"})
 
 
 func test_event_plays_with_theme_and_counts_progress() -> void:
@@ -594,13 +617,34 @@ func test_looks_apply_to_the_match() -> void:
 	assert_eq(game._bottles[0].skin, "tube")
 
 
-func test_choose_look() -> void:
+## Botão com esse nome (meta "label") dentro de `node`.
+func _tile(node: Node, label: String) -> Button:
+	for c in node.find_children("*", "Button", true, false):
+		if str(c.get_meta("label", "")) == label:
+			return c
+	return null
+
+
+func test_choose_look_frame_and_badge() -> void:
 	await _with_extras()
-	Extras.open_looks(main.dialog)
-	assert_eq(main.dialog.title_label.text, "Meus frascos")
-	await Extras._set_look(main.dialog, {"skin": "classic", "bg": "night"})
+	var page := Extras.open_collection(main.dialog, "looks")
+	assert_eq(page.tab, "looks")
+	assert_true(_tile(page.body, "Abóbora").disabled, "frasco de evento ainda não ganho: com cadeado")
+	_tile(page.body, "Clássico").pressed.emit()
+	await wait_physics_frames(2)
 	assert_eq(_last("/pocao/looks")[0], "PUT")
+	assert_eq(_last("/pocao/looks")[2], {"skin": "classic"})
 	assert_eq(GameState.looks().skin, "classic")
+	_tile(page.body, "Fogo").pressed.emit()
+	await wait_physics_frames(2)
+	assert_eq(_last("/pocao/looks")[2], {"frame": "fire"}, "moldura do dia 7")
+	page.show_tab("achievements")
+	assert_eq(page.title_label.text, "Conquistas")
+	_tile(page.body, "Primeira poção").pressed.emit()
+	await wait_physics_frames(2)
+	assert_eq(_last("/pocao/looks")[2], {"badge": "first_win"}, "selo ao lado do apelido")
+	assert_true(_tile(page.body, "Mão certeira") == null, "conquista não feita não vira selo")
+	page.close()
 
 
 func test_free_boost_skips_the_ad() -> void:
@@ -625,9 +669,11 @@ func test_win_shows_stars_extras_and_duel() -> void:
 	await wait_physics_frames(1)
 	_solve()
 	await wait_physics_frames(1)
-	var text: String = game.dialog.text_label.text
+	assert_eq(game.dialog.title_label.text, "Nível 4!")
+	var text := " ".join(game.dialog.inputs()[1].find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text))
 	assert_true(text.contains("ganhou uma ajuda grátis"), text)
-	assert_true(text.contains("Mão certeira"), "conquista nova pelo nome")
+	assert_true(text.contains("Nova conquista: Mão certeira"), "conquista nova pelo nome")
+	assert_true(text.contains("Jogadas exatas"), text)
 	assert_eq(int(GameState.streak().count), 5)
 	assert_eq(int(GameState.streak().free_boosts), 2)
 	var stars: Extras.StarsView = game.dialog.inputs()[0]
@@ -645,9 +691,9 @@ func test_duel_by_link() -> void:
 	Server.pending_duel = "AB12CD"
 	await Server.refresh_home()
 	await wait_physics_frames(2)
-	assert_eq(main.dialog.title_label.text, "Desafio de amigo")
-	assert_true(main.dialog.text_label.text.contains("Bia"))
-	main.dialog.press("Aceitar o duelo")
+	assert_eq(main.dialog.title_label.text, "Duelo!")
+	assert_true(main.dialog.text_label.text.contains("Bia te desafiou"))
+	main.dialog.press("Aceitar duelo")
 	await wait_physics_frames(1)
 	assert_eq(_last("/pocao/matches")[2], {"mode": "duel", "code": "AB12CD"})
 	assert_eq(game.title_text(), "Duelo")
@@ -664,11 +710,15 @@ func test_league_tab() -> void:
 	assert_true(ranking.tabs.visible)
 	await ranking.set_tab("league")
 	assert_eq(ranking.title_label.text, "Liga da semana")
-	assert_true(ranking.subtitle_label.text.begins_with("Liga Ouro"))
 	assert_true(ranking.league_card.visible)
 	assert_false(ranking.me_card.visible)
 	await wait_physics_frames(1)
-	assert_eq(ranking.league_list.get_child_count(), 3)
+	# cabeçalho, "sobem", Ana e Você, "descem" e Rui (o meio vazio não aparece)
+	assert_eq(ranking.league_list.get_child_count(), 6)
+	var texts := ranking.league_list.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	assert_true("Liga Ouro" in texts, str(texts))
+	assert_true("SOBEM PARA A LIGA RUBI" in texts, str(texts))
+	assert_true("DESCEM PARA A LIGA PRATA" in texts, str(texts))
 	ranking.set_tab("global")
 	assert_true(ranking.me_card.visible)
 	assert_eq(ranking.title_label.text, "Ranking Global")

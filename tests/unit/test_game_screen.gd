@@ -59,7 +59,9 @@ func test_invalid_pour_keeps_puzzle() -> void:
 func test_win_saves_full_points() -> void:
 	_solve()
 	assert_true(screen.puzzle.is_solved())
-	assert_eq(screen.dialog.title_label.text, "Perfeito!", "pontuação cheia")
+	assert_eq(screen.dialog.title_label.text, "Desafio 1!", "título grande da vitória")
+	var card: Control = screen.dialog.inputs()[1]
+	assert_eq((card.find_child("Points", true, false) as Label).text, "+10", "pontos em destaque")
 	assert_eq(GameState.result("2026-11-07#0").best_points, 10)
 	assert_true("Próximo desafio" in screen.dialog.button_texts())
 
@@ -180,11 +182,15 @@ func test_touch_plus_emulated_click_selects_once() -> void:
 	assert_eq(screen.selected, 0, "garrafa escolhida (não foi solta logo em seguida)")
 
 
-func test_win_title_depends_on_points() -> void:
-	var game_screen: GDScript = load("res://scripts/game/game_screen.gd")
-	assert_eq(game_screen.win_title(10, 10), "Perfeito!")
-	assert_eq(game_screen.win_title(7, 10), "Muito bem!")
-	assert_eq(game_screen.win_title(0, 2), "Muito bem!")
+func test_win_title_names_the_stage() -> void:
+	screen.challenge = {"mode": "level", "level": 23}
+	assert_eq(screen.win_title(), "Nível 23!")
+	screen.challenge = {"mode": "daily", "index": 3}
+	assert_eq(screen.win_title(), "Desafio 4!")
+	screen.challenge = {"mode": "event", "event_n": 7}
+	assert_eq(screen.win_title(), "Fase 7!")
+	screen.challenge = {"mode": "duel"}
+	assert_eq(screen.win_title(), "Duelo!")
 
 
 func test_covered_bottle_cannot_be_used_until_color_done() -> void:

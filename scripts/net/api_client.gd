@@ -178,7 +178,8 @@ static func ranking_rows(data: Dictionary) -> Array:
 				nick = TranslationServer.translate("Visitante")
 			# variação desde o retrato de ontem (+ subiu, - caiu, 0 igual; null = entrou hoje)
 			var delta: Variant = int(r.delta) if r.get("delta") != null else null
-			out.append([pos, nick, int(r.get("points", 0)), bool(r.get("isMe", false)), delta])
+			# selo (id de conquista) e moldura do apelido (null = nenhum)
+			out.append([pos, nick, int(r.get("points", 0)), bool(r.get("isMe", false)), delta, r.get("badge"), r.get("frame")])
 	out.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	return out
 

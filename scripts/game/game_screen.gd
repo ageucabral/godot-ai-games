@@ -32,6 +32,8 @@ var move_limit: int = 0
 var selected: int = -1
 var busy: bool = false
 var dialog: DialogBox
+## Cartão que explica o gelo e o frasco de uma cor (só aparece com essas peças na fase).
+var pieces_card: PiecesCard
 var _bg: SceneBackground
 var _bottles: Array[BottleView] = []
 var _finished: bool = false
@@ -66,6 +68,10 @@ func _ready() -> void:
 	_bg = GameStyle.add_background(self, "night")
 	move_child(_bg, 0)
 	_style_hud()
+	pieces_card = PiecesCard.new()
+	var layout: Control = $Layout
+	layout.add_child(pieces_card)
+	layout.move_child(pieces_card, $Layout/BoosterRow.get_index())
 	dialog = DialogBox.new()
 	add_child(dialog)
 	_menu_button.pressed.connect(_open_pause)
@@ -506,7 +512,25 @@ func _refresh() -> void:
 	_shuffle_button.disabled = shuffles_left <= 0 or not boost_ok
 	_bottle_button.badge = str(bottles_left)
 	_bottle_button.disabled = bottles_left <= 0 or not boost_ok
+	pieces_card.update(pieces_lines(ice, puzzle.only))
 	_update_hint()
+
+
+## Explicação das peças especiais que ainda valem na fase: gelo (com quantas jogadas faltam) e frasco de uma cor.
+static func pieces_lines(ice: Array, only: Array) -> Array[String]:
+	var out: Array[String] = []
+	var melt := 0
+	for v in ice:
+		melt = maxi(melt, int(v))
+	if melt > 0:
+		out.append("🧊 " + I18n.t("Frasco de gelo: derrete depois de %d jogadas.") % melt if melt > 1 else "🧊 " + I18n.t("Frasco de gelo: derrete depois de 1 jogada."))
+	var seen: Array = []
+	for c in only:
+		if int(c) >= 0 and not seen.has(int(c)):
+			seen.append(int(c))
+			var k := int(c) % GameStyle.LIQUID_NAMES.size()
+			out.append("%s %s" % [GameStyle.LIQUID_DOTS[k], I18n.t("Frasco de uma cor: só aceita %s.") % I18n.t(GameStyle.LIQUID_NAMES[k])])
+	return out
 
 
 ## Nome da fase no alto: "Nível 12", "Desafio 3 / 20", "Evento 2 / 15" ou "Duelo".
@@ -826,23 +850,16 @@ func _finish_online() -> void:
 
 
 func _show_level_win(points: int, used: int, extras: Variant = null) -> void:
-	var level_text := tr("+%d pontos em %d jogadas.") % [points, used]
-	if points < challenge.full_points:
-		level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
 	if is_online():
 		prefetch_next_level()
-	_show_win(points, used, level_text, extras, [
+	_show_win(points, used, "", extras, [
 		["Próximo nível", func() -> void: next_level_requested.emit(), true],
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
 
 func _show_daily_win(points: int, used: int, improved: bool, best_points: int, extras: Variant = null) -> void:
-	var text := tr("+%d pontos em %d jogadas.") % [points, used]
-	if not improved:
-		text += tr("\nSeu melhor continua %d pontos.") % best_points
-	elif points < challenge.full_points:
-		text += tr("\nDava para fazer em %d jogadas.") % challenge.par
+	var note := "" if improved else tr("Seu melhor continua %d pontos.") % best_points
 	var buttons: Array = []
 	var next_index := next_unsolved_after(challenge.date, challenge.index)
 	if next_index >= 0:
@@ -850,49 +867,52 @@ func _show_daily_win(points: int, used: int, improved: bool, best_points: int, e
 	if points < challenge.full_points:
 		buttons.append(["Tentar melhorar", _restart_with_ad])
 	buttons.append(["Menu", func() -> void: back_requested.emit()])
-	_show_win(points, used, text, extras, buttons)
+	_show_win(points, used, note, extras, buttons)
 
 
 ## Vitória no evento (pontos no Ranking Global) ou no duelo (sem pontos).
 func _show_online_win(points: int, used: int, extras: Variant) -> void:
 	var buttons: Array = []
-	var text: String
-	if challenge.mode == "duel":
-		text = tr("%d jogadas.") % used
-	else:
-		text = tr("+%d pontos em %d jogadas.") % [points, used]
+	var note := ""
+	if challenge.mode != "duel":
 		var ev: Variant = GameState.extras.get("event")
 		if ev is Dictionary and int(ev.get("done", 0)) < int(ev.get("levels", 0)):
 			buttons.append(["Próxima fase do evento", func() -> void: next_event_requested.emit(), true])
 		else:
-			text += "\n" + tr("Você completou o evento!")
+			note = tr("Você completou o evento!")
 	buttons.append(["Menu", func() -> void: back_requested.emit(), buttons.is_empty()])
-	_show_win(points, used, text, extras, buttons)
+	_show_win(points, used, note, extras, buttons)
 
 
-## Janela da vitória: título, estrelas, o texto com as novidades (sequência, conquistas, duelo) e os botões.
-## Nos níveis pelo servidor dá para desafiar um amigo com a mesma fase (desafio do dia e evento não: ainda valem
-## pontos para o amigo, que treinaria de graça).
-func _show_win(points: int, used: int, text: String, extras: Variant, buttons: Array) -> void:
+## Vitória como na proposta: título grande ("Nível 23!"), as estrelas, "Jogadas exatas: 14 de 14", os pontos em
+## destaque e uma faixa para cada novidade (conquista, sequência, duelo). Nos níveis pelo servidor dá para desafiar um
+## amigo com a mesma fase (desafio do dia e evento não: ainda valem pontos para o amigo, que treinaria de graça).
+func _show_win(points: int, used: int, note: String, extras: Variant, buttons: Array) -> void:
 	_celebrate()
 	var lines := Extras.win_lines(extras)
-	if not lines.is_empty():
-		text += "\n\n" + "\n".join(lines)
 	if is_online() and is_level():
 		var match_id: String = challenge.match_id
 		buttons.insert(buttons.size() - 1, ["Desafiar amigo", func() -> void:
-			Extras.share_duel(dialog, match_id, used, func() -> void: _open_win(points, used, text, buttons))])
-	_open_win(points, used, text, buttons)
+			Extras.share_duel(dialog, match_id, used, func() -> void: _open_win(points, used, note, lines, buttons))])
+	_open_win(points, used, note, lines, buttons)
 
 
-func _open_win(points: int, used: int, text: String, buttons: Array) -> void:
-	dialog.open(win_title(points, challenge.full_points), text, buttons)
-	dialog.add_content(Extras.StarsView.new(Rules.stars_for(used, int(challenge.par)), 3, 34.0))
+func _open_win(points: int, used: int, note: String, lines: Array[String], buttons: Array) -> void:
+	dialog.open_hero(win_title(), "", buttons)
+	dialog.add_content(Extras.StarsView.new(Rules.stars_for(used, int(challenge.par)), 3, 40.0))
+	dialog.add_content(Extras.win_card(points, used, int(challenge.par), challenge.get("mode", "") != "duel", lines, note))
 
 
-## "Perfeito!" com a pontuação cheia; senão "Muito bem!".
-static func win_title(points: int, full_points: int) -> String:
-	return "Perfeito!" if points >= full_points else "Muito bem!"
+## Título da vitória: "Nível 23!", "Desafio 4!", "Fase 7!" (evento) ou "Duelo!".
+func win_title() -> String:
+	match str(challenge.get("mode", "level" if is_level() else "daily")):
+		"duel":
+			return tr("Duelo!")
+		"event":
+			return tr("Fase %d!") % int(challenge.get("event_n", 1))
+		"daily":
+			return tr("Desafio %d!") % (int(challenge.get("index", 0)) + 1)
+	return tr("Nível %d!") % int(challenge.get("level", 1))
 
 
 ## Confete colorido caindo do alto da tela.
@@ -925,3 +945,37 @@ func _celebrate() -> void:
 	add_child(p)
 	p.emitting = true
 	p.finished.connect(p.queue_free)
+
+
+## Cartão claro com uma linha por peça especial ("🧊 Frasco de gelo: derrete depois de 3 jogadas.").
+class PiecesCard extends CenterContainer:
+	var _list: VBoxContainer
+	var _lines: Array[String] = []
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visible = false
+		var p := PanelContainer.new()
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var st := GameStyle.card_box()
+		st.set_content_margin_all(16)
+		st.content_margin_left = 22
+		st.content_margin_right = 22
+		p.add_theme_stylebox_override("panel", st)
+		add_child(p)
+		_list = VBoxContainer.new()
+		_list.add_theme_constant_override("separation", 6)
+		p.add_child(_list)
+
+	func update(lines: Array[String]) -> void:
+		visible = not lines.is_empty()
+		if lines == _lines:
+			return  # o _refresh roda a cada jogada; só remonta quando o texto muda
+		_lines = lines
+		for c in _list.get_children():
+			c.queue_free()
+		for line in lines:
+			var l := GameStyle.make_label(line, 22, true)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+			_list.add_child(l)

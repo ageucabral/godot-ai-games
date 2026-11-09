@@ -67,8 +67,14 @@ func test_reminder_time_once_a_day() -> void:
 	assert_eq(Reminders.next_time(noon, false), seven_pm, "hoje às 19h")
 	assert_eq(Reminders.next_time(noon, true), seven_pm + 86400, "já jogou: amanhã")
 	assert_eq(Reminders.next_time(seven_pm + 60, false), seven_pm + 86400, "passou das 19h: amanhã")
-	assert_true(Reminders.message(5)[0].contains("5"))
-	assert_eq(Reminders.message(0)[0], "Desafios novos no ar")
+	assert_true(Reminders.message(5)[1].contains("5 dias"), "sequência em risco")
+	assert_true(Reminders.message(0)[1].begins_with("Os 20 desafios de hoje chegaram"))
+	var last_day := Rules.unix_from_iso("2026-11-30T15:00:00")
+	assert_true(Reminders.message(5, last_day, 37)[1].contains("37º"), "ranking fechando: avisa o lugar")
+	assert_true(Reminders.message(5, last_day, 37)[1].begins_with("Falta 1 dia"), "último dia: no singular")
+	assert_true(Reminders.message(5, last_day - 86400, 37)[1].begins_with("Faltam 2 dias"))
+	assert_true(Reminders.message(5, last_day - 10 * 86400, 37)[1].contains("sequência"), "longe do fim do mês: a sequência")
+	assert_true(Reminders.message(5, last_day, 37, true)[1].contains("prêmio"), "prêmio vem primeiro")
 
 
 func test_every_skin_has_a_shape_with_liquid() -> void:
@@ -82,9 +88,45 @@ func test_every_skin_has_a_shape_with_liquid() -> void:
 
 
 func test_achievement_names_cover_the_server() -> void:
-	assert_eq(Extras.ACHIEVEMENTS.size(), 16)
+	assert_eq(Extras.ACHIEVEMENTS.size(), 24, "as 24 conquistas da proposta")
 	assert_eq(Extras.achievement_name("duel_1"), "Primeiro duelo")
+	assert_eq(Extras.achievement_icon("exact_10"), "🎯")
 	assert_eq(Extras.league_name(9), "Liga Diamante")
-	var lines := Extras.win_lines({"streak": 3, "freeBoostsGained": 1, "achievements": ["first_win"], "duel": {"won": true, "rivalMoves": 9}})
-	assert_eq(lines.size(), 3)
-	assert_eq(lines[0], "Você venceu o duelo!")
+	assert_eq(Extras.league_name(3), "Liga Rubi")
+	var lines := Extras.win_lines({"streak": 3, "freeBoostsGained": 1, "achievements": ["first_win"], "duel": {"won": true, "rivalMoves": 9}, "eventReward": "frame"})
+	assert_eq(lines.size(), 4)
+	assert_eq(lines[0], "⚔️ Você venceu o duelo!")
+	assert_eq(lines[1], "🏅 Nova conquista: Primeira poção")
+	assert_eq(lines[3], "👑 Prêmio do evento: uma moldura nova!")
+
+
+func test_streak_week_strip() -> void:
+	var monday_noon := Rules.unix_from_iso("2026-11-09T15:00:00")  # segunda, meio-dia em Brasília
+	var days := Extras.streak_days(4, false, monday_noon)  # jogou 4 dias até ontem; hoje seria o 5º
+	assert_eq(days.size(), 7)
+	assert_eq(days.map(func(d: Array) -> String: return d[0]), ["Qui", "Sex", "Sáb", "Dom", "Hoje", "Ter", "Qua"])
+	assert_eq(days.map(func(d: Array) -> bool: return d[1]), [true, true, true, true, false, false, false])
+	assert_eq(days[4][2], "🎁", "dia 5: ajuda grátis")
+	assert_eq(days[6][2], "👑", "dia 7: moldura")
+	assert_eq(Extras.streak_days(7, true, monday_noon)[6][1], true, "7º dia feito hoje")
+	assert_eq(Extras.streak_days(7, true, monday_noon)[6][0], "Hoje")
+	assert_eq(Extras.streak_days(0, false, monday_noon)[0][0], "Hoje", "sem sequência: começa hoje")
+	assert_eq(Extras.next_streak_rewards(4, false), ["🎁 dia 5: 1 ajuda grátis", "👑 dia 7: moldura"])
+	assert_eq(Extras.next_streak_rewards(7, true), ["🧪 dia 30: frasco Coração"])
+
+
+func test_pieces_explained_in_match() -> void:
+	var game_screen: GDScript = load("res://scripts/game/game_screen.gd")
+	assert_eq(game_screen.pieces_lines([0, 3, 0], [-1, -1, -1]), ["🧊 Frasco de gelo: derrete depois de 3 jogadas."])
+	assert_eq(game_screen.pieces_lines([0, 0], [-1, 1]), ["🔵 Frasco de uma cor: só aceita azul."])
+	assert_eq(game_screen.pieces_lines([0, 0], [-1, -1]), [])
+
+
+func test_event_card_done_is_not_playable() -> void:
+	var card := EventCard.new()
+	card.set_event({"name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 3, "rewards": []})
+	assert_false(card.disabled, "com fases a fazer: toca para jogar")
+	card.set_event({"name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 15, "rewards": []})
+	assert_true(card.disabled, "evento completo: o servidor recusaria a próxima fase")
+	assert_eq(card._count.text, "Evento completo!")
+	card.free()

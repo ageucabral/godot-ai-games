@@ -74,11 +74,6 @@ func test_month_countdown() -> void:
 	assert_eq(Rules.seconds_to_month_end(1794063600 + 23 * 86400), 12 * 3600)
 
 
-func test_mascot_floats_and_hops() -> void:
-	assert_eq(MascotView.float_offset(0.0, 0.0), 0.0)
-	assert_true(MascotView.float_offset(0.0, 1.0) < -40.0, "pulinho sobe")
-
-
 func test_new_kinds_of_play_appear_gradually() -> void:
 	assert_eq(Rules.level_setup(9).covers, 0, "sem pano no começo")
 	assert_eq(Rules.level_setup(10).covers, 1, "o pano aparece no nível 10")

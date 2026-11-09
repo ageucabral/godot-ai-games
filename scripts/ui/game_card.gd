@@ -82,7 +82,7 @@ static func _make_boxes(is_locked: bool) -> Dictionary:
 
 ## Ilustração recortada com cantos redondos e brilhinhos subindo por cima.
 func _draw_art(area: Rect2) -> void:
-	var pts := _rounded_rect(area, 24.0)
+	var pts := GameStyle.rounded_points(area, 24.0)
 	var uvs := PackedVector2Array()
 	for p in pts:
 		uvs.append((p - area.position) / area.size)
@@ -98,17 +98,6 @@ func _draw_art(area: Rect2) -> void:
 		var p := area.position + Vector2(area.size.x * (0.15 + 0.17 * i), area.size.y * (0.85 - tt * 0.7))
 		var a := sin(tt * PI)
 		draw_colored_polygon(GameStyle.star_points(p, 9.0 * a + 2.0, 2.5, 4), Color(1, 1, 0.85, 0.85 * a))
-
-
-static func _rounded_rect(r: Rect2, rad: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	var corners := [[r.end - Vector2(rad, rad), 0.0], [Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5],
-		[r.position + Vector2(rad, rad), PI], [Vector2(r.end.x - rad, r.position.y + rad), PI * 1.5]]
-	for c in corners:
-		for j in 7:
-			var a: float = c[1] + PI * 0.5 * j / 6.0
-			pts.append(c[0] + Vector2(cos(a), sin(a)) * rad)
-	return pts
 
 
 func _draw_lock(c: Vector2) -> void:

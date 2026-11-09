@@ -28,11 +28,16 @@ const LIQUIDS: Array[Color] = [
 	Color("ec6a25"),  # 5 Brasa
 	Color("8a86d6"),  # 6 Lavanda (só nos níveis mais altos)
 ]
+## Nome e bolinha de cada cor (para o aviso do frasco de uma cor).
+const LIQUID_NAMES: Array[String] = ["vermelho", "azul", "rosa", "verde", "amarelo", "laranja", "lilás"]
+const LIQUID_DOTS: Array[String] = ["🔴", "🔵", "🩷", "🟢", "🟡", "🟠", "🟣"]
 ## Os desafios do dia usam só as 6 primeiras cores (assim continuam iguais aos já sorteados).
 const DAILY_LIQUIDS: int = 6
 
 const TITLE_FONT_PATH := "res://assets/fonts/LilitaOne-Regular.ttf"
 const BODY_FONT_PATH := "res://assets/fonts/Nunito-Variable.ttf"
+## Emojis coloridos (só os usados no jogo, gerado por `tools/gen_emoji_font.py`), reserva das duas letras.
+const EMOJI_FONT_PATH := "res://assets/fonts/NotoColorEmoji-subset.ttf"
 
 # Frasco desenhado numa grade de 60 x 160.
 const DESIGN_SIZE := Vector2(60, 160)
@@ -45,19 +50,46 @@ static func liquid_color(index: int) -> Color:
 
 
 static func title_font() -> Font:
-	return load(TITLE_FONT_PATH)
+	return _with_emoji(TITLE_FONT_PATH)
 
 
+static var _body_fonts: Dictionary = {}
+
+
+## Uma letra por peso, guardada (criar uma nova a cada desenho refaz o cache de formas das letras).
 static func body_font(weight: int = 800) -> Font:
-	var v := FontVariation.new()
-	v.base_font = load(BODY_FONT_PATH)
-	v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
-	return v
+	if not _body_fonts.has(weight):
+		var v := FontVariation.new()
+		v.base_font = _with_emoji(BODY_FONT_PATH)
+		v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
+		_body_fonts[weight] = v
+	return _body_fonts[weight]
+
+
+## Contorno de um retângulo de cantos redondos (7 pontos por canto), para pintar com degradê ou com uma imagem.
+static func rounded_points(r: Rect2, rad: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var corners := [[r.end - Vector2(rad, rad), 0.0], [Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5],
+		[r.position + Vector2(rad, rad), PI], [Vector2(r.end.x - rad, r.position.y + rad), PI * 1.5]]
+	for c in corners:
+		for j in 7:
+			var a: float = c[1] + PI * 0.5 * j / 6.0
+			pts.append(c[0] + Vector2(cos(a), sin(a)) * rad)
+	return pts
+
+
+## A letra com os emojis de reserva (a letra carregada é uma só para o jogo todo, então basta ligar uma vez).
+static func _with_emoji(path: String) -> Font:
+	var f: Font = load(path)
+	if f.fallbacks.is_empty():
+		f.fallbacks = [load(EMOJI_FONT_PATH)]
+	return f
 
 
 ## Frascos que o jogador pode escolher (liberados por conquistas; o servidor diz quais). id → cor da borda.
 const SKIN_EDGES := {"classic": GLASS_EDGE, "tube": Color("bff3ff"), "cauldron": Color("b9a6ff"), "heart": Color("ff9ad2"),
-	"golden": Color("ffd75e"), "crystal": Color("e8fbff")}
+	"golden": Color("ffd75e"), "crystal": Color("e8fbff"), "event:halloween": Color("ff9a3c"), "event:natal": Color("ff6b6b"),
+	"event:carnaval": Color("ff8ae8")}
 static var _outlines: Dictionary = {}
 
 
@@ -66,8 +98,8 @@ static func bottle_outline(skin: String = "classic") -> PackedVector2Array:
 	if not _outlines.has(skin):
 		match skin:
 			"tube": _outlines[skin] = _tube_outline()
-			"cauldron": _outlines[skin] = _round_outline()
-			"crystal": _outlines[skin] = _crystal_outline()
+			"cauldron", "event:halloween": _outlines[skin] = _round_outline()  # a abóbora é o caldeirão em laranja
+			"crystal", "event:carnaval": _outlines[skin] = _crystal_outline()
 			_: _outlines[skin] = _classic_outline()  # coração e dourado: o formato clássico com outra borda e enfeite
 	return _outlines[skin]
 

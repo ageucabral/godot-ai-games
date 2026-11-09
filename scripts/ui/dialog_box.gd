@@ -3,9 +3,15 @@ extends ColorRect
 ## Janela de aviso sobre a tela (vitória, jogadas acabaram, pontuação zerada...).
 ## Também serve de formulário: depois de `open`, `add_input` põe campos de texto; com muitos botões
 ## (ex.: lista de países), os botões rolam.
+## Três jeitos de mostrar o título: `open` (faixa roxa em cima), `open_card` (título colorido dentro do cartão,
+## como na sequência e nas configurações) e `open_hero` (título grande sobre o fundo, acima do cartão, como na vitória).
 
+## Título da janela (em qualquer um dos três jeitos o texto fica aqui).
 var title_label: Label
 var text_label: Label
+var _header: PanelContainer
+var _card_title: Label
+var _hero_title: Label
 var _buttons: VBoxContainer
 var _scroll: ScrollContainer
 var _inputs: VBoxContainer
@@ -25,6 +31,13 @@ func _init() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 14)
+	center.add_child(column)
+	_hero_title = GameStyle.make_title("", 92, GameStyle.GOLD)
+	_hero_title.custom_minimum_size = Vector2(580, 0)
+	_hero_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(_hero_title)
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(580, 0)
 	var card_style := GameStyle.card_box()
@@ -33,7 +46,7 @@ func _init() -> void:
 	card_style.content_margin_right = 0
 	card_style.content_margin_bottom = 24
 	card.add_theme_stylebox_override("panel", card_style)
-	center.add_child(card)
+	column.add_child(card)
 	_card = card
 	card.resized.connect(func() -> void: card.pivot_offset = card.size * 0.5)
 	var outer := VBoxContainer.new()
@@ -52,6 +65,7 @@ func _init() -> void:
 	head_style.content_margin_right = 20
 	header.add_theme_stylebox_override("panel", head_style)
 	outer.add_child(header)
+	_header = header
 	title_label = GameStyle.make_title("", 58)
 	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.add_child(title_label)
@@ -62,6 +76,9 @@ func _init() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
 	margin.add_child(box)
+	_card_title = GameStyle.make_title("", 54, GameStyle.PURPLE)
+	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_card_title)
 	text_label = GameStyle.make_label("", 30)
 	text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(text_label)
@@ -79,7 +96,28 @@ func _init() -> void:
 
 ## buttons: lista de [texto, ação (Callable), principal (bool)].
 func open(title: String, text: String, buttons: Array) -> void:
+	_open("header", title, text, buttons)
+
+
+## Título colorido dentro do cartão, sem a faixa roxa (sequência de dias, configurações).
+func open_card(title: String, text: String, buttons: Array, title_color: Color = GameStyle.PURPLE) -> void:
+	GameStyle.apply_title_look(_card_title, title_color, 0 if title_color == GameStyle.PURPLE else 8)
+	_open("card", title, text, buttons)
+
+
+## Título grande sobre o fundo, acima do cartão (vitória, duelo).
+func open_hero(title: String, text: String, buttons: Array) -> void:
+	_open("hero", title, text, buttons)
+
+
+func _open(mode: String, title: String, text: String, buttons: Array) -> void:
 	title_label.text = title
+	_card_title.text = title
+	_hero_title.text = title
+	_header.visible = mode == "header"
+	_card_title.visible = mode == "card"
+	_hero_title.visible = mode == "hero"
+	(_card.get_theme_stylebox("panel") as StyleBoxFlat).content_margin_top = 0 if mode == "header" else 26
 	text_label.text = text
 	for b in _buttons.get_children():
 		b.queue_free()
@@ -91,6 +129,7 @@ func open(title: String, text: String, buttons: Array) -> void:
 	_scroll.custom_minimum_size = Vector2(0, SCROLL_HEIGHT if many else 0.0)
 	_scroll.scroll_vertical = 0
 	_actions = []
+	_buttons.add_theme_constant_override("separation", 14)
 	for spec in buttons:
 		var b := GameStyle.make_button(spec[0], spec[2] if spec.size() > 2 else false, 32)
 		b.custom_minimum_size = Vector2(0, 92)
@@ -171,19 +210,26 @@ func inputs() -> Array[Control]:
 	return out
 
 
+## Põe uma linha própria (ex.: as linhas das configurações) junto dos botões. O nome dela para `press` e
+## `button_texts` fica no meta "label" (a linha desenha o texto por conta própria).
+func add_row(row: Control) -> void:
+	_buttons.add_theme_constant_override("separation", 4)  # linhas coladas, como uma lista
+	_buttons.add_child(row)
+
+
 ## Textos dos botões abertos agora (útil nos testes).
 func button_texts() -> Array[String]:
 	var out: Array[String] = []
 	for b in _buttons.get_children():
-		if not b.is_queued_for_deletion():
-			out.append((b as Button).text)
+		if b is Button and not b.is_queued_for_deletion():
+			out.append(str(b.get_meta("label", (b as Button).text)))
 	return out
 
 
 ## Aperta o botão com esse texto (útil nos testes).
 func press(text: String) -> void:
 	for b in _buttons.get_children():
-		if not b.is_queued_for_deletion() and (b as Button).text == text:
+		if b is Button and not b.is_queued_for_deletion() and str(b.get_meta("label", (b as Button).text)) == text:
 			(b as Button).pressed.emit()
 			return
 	push_error("Botão não encontrado: " + text)

@@ -10,6 +10,14 @@ static func draw(ci: CanvasItem, kind: String, c: Vector2, s: float, col: Color 
 	match kind:
 		"gear": _gear(ci, c, s, col)
 		"trophy": _trophy(ci, c, s)
+		"back": _back(ci, c, s, col)
+
+
+## Seta de voltar ("‹").
+static func _back(ci: CanvasItem, c: Vector2, s: float, col: Color) -> void:
+	var pts := PackedVector2Array([c + Vector2(s * 0.25, -s * 0.55), c + Vector2(-s * 0.3, 0), c + Vector2(s * 0.25, s * 0.55)])
+	ci.draw_polyline(pts, GameStyle.INK, s * 0.42, true)
+	ci.draw_polyline(pts, col, s * 0.22, true)
 
 
 static func _gear(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:

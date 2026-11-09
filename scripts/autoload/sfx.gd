@@ -13,9 +13,13 @@ var _next: int = 0
 ## Para testes: os últimos sons tocados (nome), em ordem. Guarda só os últimos `PLAYED_MAX`.
 var played: Array[String] = []
 const PLAYED_MAX := 32
-const MUSIC_PATH := "res://audio/music/calm.ogg"
+## Duas músicas: uma calma para os menus e outra para a partida (troca junto com a tela).
+const TRACKS := {"menu": "res://audio/music/calm.ogg", "game": "res://audio/music/play.ogg"}
 const MUSIC_DB := -14.0
 var _music: AudioStreamPlayer
+var _tracks: Dictionary = {}
+## Música da tela aberta agora: "menu" ou "game".
+var track: String = "menu"
 
 
 func _ready() -> void:
@@ -29,10 +33,12 @@ func _ready() -> void:
 		_players.append(p)
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = MUSIC_DB
-	if ResourceLoader.exists(MUSIC_PATH):
-		var stream: AudioStreamOggVorbis = load(MUSIC_PATH)
-		stream.loop = true
-		_music.stream = stream
+	for k: String in TRACKS:
+		if ResourceLoader.exists(TRACKS[k]):
+			var stream: AudioStreamOggVorbis = load(TRACKS[k])
+			stream.loop = true
+			_tracks[k] = stream
+	_music.stream = _tracks.get(track)
 	add_child(_music)
 	_update_music.call_deferred()
 
@@ -52,6 +58,18 @@ func music_enabled() -> bool:
 func set_music_enabled(on: bool) -> void:
 	GameState.set_setting("music", on)
 	_update_music()
+
+
+## Troca a música ("menu" ou "game"); a mesma que já toca continua de onde estava.
+func set_track(name: String) -> void:
+	if name == track or not _tracks.has(name):
+		return
+	track = name
+	var was_playing := _music.playing
+	_music.stop()
+	_music.stream = _tracks[name]
+	if was_playing:
+		_update_music()
 
 
 ## Música tocando (em volta) só com ela ligada; os testes e o servidor sem tela não tocam.
