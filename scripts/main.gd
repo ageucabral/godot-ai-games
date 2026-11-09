@@ -59,6 +59,7 @@ func _connect_server() -> void:
 	if Account.check_gate(dialog):
 		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
 	await Account.connect_and_onboard(dialog)
+	Purchases.start()  # loja da Play: preço do "Remover anúncios" e restauração de compra
 	_prefetch_level_if_home()  # o app abriu no menu antes de entrar: o "Nível N" abre na hora
 	Server.take_launch_link()
 	Reminders.update()

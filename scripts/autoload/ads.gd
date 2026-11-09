@@ -41,7 +41,7 @@ func play(custom_data: String = "") -> bool:
 			return false  # sem o bloco do AdMob: a simulação nunca seria confirmada pelo servidor
 	if plugin and not unit.is_empty():
 		showing = true
-		plugin.showRewarded(unit, str(Server.profile.get("id", "")), custom_data)
+		plugin.showRewarded(unit, Server.user_id(), custom_data)
 		var out: Array = await Server.wait_signal(Signal(plugin, "rewarded_finished"), Server.NATIVE_TIMEOUT_S, [false, "timeout"])
 		showing = false
 		if bool(out[0]):
@@ -57,7 +57,7 @@ func play(custom_data: String = "") -> bool:
 ## (Android): sem ele não há anúncio nenhum. Use com `await`; volta quando o anúncio fecha (ou na hora).
 func maybe_interstitial(solved_level: int) -> void:
 	var from := Server.rule_int("pcInterFrom", 0)
-	if from <= 0 or solved_level < from:
+	if from <= 0 or solved_level < from or Server.ads_free():
 		levels_since_inter = 0
 		return
 	levels_since_inter += 1

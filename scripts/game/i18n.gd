@@ -361,6 +361,26 @@ const STRINGS := {
 	"Seus pontos, seu nível, seus convites e os prêmios ainda não pagos somem para sempre. Não dá para desfazer.": ["Your points, level, invites and unpaid prizes are gone forever. This can't be undone.", "Tus puntos, tu nivel, tus invitaciones y los premios no pagados se pierden para siempre. No se puede deshacer."],
 	"Sobre o que você quer falar?": ["What do you want to talk about?", "¿Sobre qué quieres hablar?"],
 	"Sua conta": ["Your account", "Tu cuenta"],
+	"Remover anúncios": ["Remove ads", "Quitar anuncios"],
+	"Sem anúncio entre níveis, e as ajudas não pedem mais vídeo (continuam custando pontos).\nCompra única, guardada na sua conta.": [
+		"No ads between levels, and boosts no longer ask for a video (they still cost points).\nOne-time purchase, saved to your account.",
+		"Sin anuncios entre niveles, y las ayudas ya no piden video (siguen costando puntos).\nCompra única, guardada en tu cuenta."],
+	"Comprar por %s": ["Buy for %s", "Comprar por %s"],
+	"Quase lá": ["Almost there", "Casi listo"],
+	"Pagamento pendente. Quando o Google Play confirmar, os anúncios somem sozinhos.": [
+		"Payment pending. Once Google Play confirms it, the ads go away on their own.",
+		"Pago pendiente. Cuando Google Play lo confirme, los anuncios desaparecen solos."],
+	"Esta compra já está em outra conta do Na Lata. Entre com a conta que comprou para ficar sem anúncios.": [
+		"This purchase belongs to another Na Lata account. Sign in with the account that bought it to go ad-free.",
+		"Esta compra ya está en otra cuenta de Na Lata. Entra con la cuenta que la compró para quitar los anuncios."],
+	"Custa %s.": ["Costs %s.", "Cuesta %s."],
+	"Abrindo a loja do Google Play…": ["Opening the Google Play store…", "Abriendo la tienda de Google Play…"],
+	"Não deu para concluir a compra. Tente de novo mais tarde.": ["The purchase could not be completed. Try again later.", "No se pudo completar la compra. Inténtalo más tarde."],
+	"Pronto!": ["Done!", "¡Listo!"],
+	"Sem anúncios. Bom jogo!": ["No more ads. Have fun!", "Sin anuncios. ¡Buen juego!"],
+	"Não deu para confirmar a compra. Tente de novo em instantes: ela fica guardada no Google Play.": [
+		"The purchase could not be confirmed. Try again in a moment: it is kept in Google Play.",
+		"No se pudo confirmar la compra. Inténtalo en un momento: queda guardada en Google Play."],
 	"Sua idade": ["Your age", "Tu edad"],
 	"Sua mensagem": ["Your message", "Tu mensaje"],
 	"Telefone da chave Pix": ["Pix key phone", "Teléfono de la clave Pix"],
@@ -448,15 +468,12 @@ const STRINGS := {
 	"Desfazer": ["Undo", "Deshacer"],
 	"Dica": ["Hint", "Pista"],
 	"Dica?": ["Hint?", "¿Pista?"],
-	"Mostra a próxima jogada de um caminho curto.\nPede uma propaganda e custa %s.": [
-		"Shows the next move of a short path.\nNeeds an ad and costs %s.",
-		"Muestra la próxima jugada de un camino corto.\nPide un anuncio y cuesta %s."],
+	"Mostra a próxima jogada de um caminho curto.": ["Shows the next move of a short path.", "Muestra la próxima jugada de un camino corto."],
+	"Pede uma propaganda e custa %s.": ["Needs an ad and costs %s.", "Pide un anuncio y cuesta %s."],
 	"Não deu para achar uma dica agora. Nada foi cobrado.": ["Couldn't find a hint right now. Nothing was charged.", "No se pudo encontrar una pista ahora. No se cobró nada."],
 	"Frasco extra": ["Extra bottle", "Frasco extra"],
 	"Frasco extra?": ["Extra bottle?", "¿Frasco extra?"],
-	"Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.": [
-		"Get one more empty bottle.\nNeeds an ad and costs %s.",
-		"Gana una botella vacía más.\nPide un anuncio y cuesta %s."],
+	"Ganha uma garrafa vazia a mais.": ["Get one more empty bottle.", "Gana una botella vacía más."],
 	"1 ponto": ["1 point", "1 punto"],
 	"%d pontos": ["%d points", "%d puntos"],
 	"Recomeçar?": ["Restart?", "¿Reiniciar?"],
@@ -469,7 +486,10 @@ const STRINGS := {
 	"Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.": [
 		"Watch an ad to get +%d moves.\nEach move beyond %d costs 1 point.",
 		"Mira un anuncio para ganar +%d jugadas.\nCada jugada más allá de %d quita 1 punto."],
+	"Ganhe +%d jogadas.\nCada jogada além de %d tira 1 ponto.": ["Get +%d moves.\nEach move beyond %d costs 1 point.", "Gana +%d jugadas.\nCada jugada más allá de %d quita 1 punto."],
 	"Pontuação zerada": ["Score is zero", "Puntuación en cero"],
+	"Recomece este desafio.": ["Restart this challenge.", "Reinicia este desafío."],
+	"Recomece este nível, ou termine sem pontos.": ["Restart this level, or finish it without points.", "Reinicia este nivel, o termínalo sin puntos."],
 	"Assista a uma propaganda para recomeçar este desafio.": ["Watch an ad to restart this challenge.", "Mira un anuncio para reiniciar este desafío."],
 	"Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.": [
 		"Watch an ad to restart this level, or finish it without points.",

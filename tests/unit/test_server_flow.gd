@@ -30,6 +30,8 @@ func before_each() -> void:
 	Ads.last_ad_unix = 0
 	Ads.levels_since_inter = 0
 	Ads.rewarded_since_inter = false
+	Purchases.price = ""
+	Purchases._dialog = null
 	calls = []
 	forced = {}
 	home_extras = {}
@@ -97,7 +99,10 @@ func _fake(method: String, path: String, body: Variant) -> Dictionary:
 		"/pocao/matches":
 			return _ok({"match": _match(body)})
 		"/rewards":
-			return _ok({"rewardId": "r-%d" % calls.size(), "ssvCustomData": "r-%d" % calls.size()})
+			return _ok({"rewardId": "r-%d" % calls.size(), "ssvCustomData": "r-%d" % calls.size(), "free": home_extras.get("adsFree", false)})
+		"/purchases":
+			home_extras["adsFree"] = true
+			return _ok({"adsFree": true})
 		"/pocao/matches/m-1/boost":
 			var m := _match({"mode": "level"})
 			m.state = {"tubes": TUBES, "movesUsed": 0, "moveLimit": 10, "points": 4,
@@ -137,7 +142,16 @@ class FakePlugin extends RefCounted:
 	signal ads_initialized(ok: bool)
 	signal rewarded_ready(ok: bool)
 	signal interstitial_finished(shown: bool)
+	signal billing_ready(ok: bool, price: String)
+	signal purchase_found(product: String, token: String)
+	signal purchase_done(product: String, token: String, error: String)
 	var shown: Array = []
+	## Loja: preço devolvido, compras já feitas neste Google, compras pedidas e tokens confirmados para a Play.
+	var price: String = "R$ 19,90"
+	var owned: Array = []
+	var bought: Array = []
+	var acknowledged: Array = []
+	var buy_error: String = ""
 	var preloaded: Array = []
 	var inters: Array = []
 	var inter_preloaded: Array = []
@@ -162,6 +176,18 @@ class FakePlugin extends RefCounted:
 	func showInterstitial(unit_id: String) -> void:
 		inters.append(unit_id)
 		interstitial_finished.emit.call_deferred(inter_ready)
+
+	func billingInit(product: String) -> void:
+		billing_ready.emit.call_deferred(not price.is_empty(), price)
+		for token in owned:
+			purchase_found.emit.call_deferred(product, token)
+
+	func buy(product: String, user_id: String) -> void:
+		bought.append([product, user_id])
+		purchase_done.emit.call_deferred(product, "tok-%d" % bought.size() if buy_error.is_empty() else "", buy_error)
+
+	func acknowledgePurchase(token: String) -> void:
+		acknowledged.append(token)
 
 	func googleSignIn(_client_id: String) -> void:
 		google_signed_in.emit.call_deferred(id_token, "" if not id_token.is_empty() else "cancelled")
@@ -576,6 +602,105 @@ func test_interstitial_between_levels_follows_panel_rules() -> void:
 			for e in c[2].events:
 				names.append(e.name)
 	assert_true("interstitial_shown" in names, "mede quando o anúncio apareceu: " + str(names))
+
+
+## Liga a loja de mentira: entra no servidor, busca o menu e espera a Play responder.
+func _store(plugin: FakePlugin, frames: int) -> void:
+	Server.native_override = plugin
+	await Server.load_config()
+	await Server.refresh_home()
+	Purchases.start()
+	await wait_physics_frames(frames)
+
+
+## Abre "Remover anúncios" e toca em comprar.
+func _press_buy(frames: int) -> void:
+	Purchases.open(main.dialog)
+	main.dialog.press("Comprar por R$ 19,90")
+	await wait_physics_frames(frames)
+
+
+func test_remove_ads_purchase_is_confirmed_by_server_and_skips_ads() -> void:
+	var plugin := FakePlugin.new()
+	Ads.instant = false
+	await _store(plugin, 2)
+	assert_eq(Purchases.price, "R$ 19,90", "preço vem da loja")
+	assert_true(Purchases.available(), "aparece na engrenagem antes de comprar")
+	Menus.open_settings(main.dialog)
+	assert_true("Remover anúncios" in main.dialog.button_texts(), "linha na engrenagem")
+	Purchases.open(main.dialog)
+	assert_eq(main.dialog.title_label.text, "Remover anúncios")
+	main.dialog.press("Comprar por R$ 19,90")
+	await wait_physics_frames(6)
+	assert_eq(plugin.bought, [["remove_ads", "u1"]], "abriu a compra na Play com a conta do jogador")
+	assert_true(_paths().has("/purchases"), "mandou o token ao servidor")
+	assert_eq(plugin.acknowledged, ["tok-1"], "confirmou a compra para a Play depois do servidor aceitar")
+	assert_true(Server.ads_free(), "a conta ficou sem anúncios")
+	assert_eq(main.dialog.title_label.text, "Pronto!")
+	assert_false(Purchases.available(), "não oferece de novo")
+	# sem anúncio entre níveis e ajuda sem vídeo
+	Ads.levels_since_inter = 9
+	await Ads.maybe_interstitial(30)
+	assert_eq(plugin.inters.size(), 0, "sem anúncio entre níveis")
+	var reward_id: String = await Server.rewarded("flask", {"matchId": "m-1"})
+	assert_false(reward_id.is_empty(), "recompensa aceita")
+	assert_eq(plugin.shown.size(), 0, "sem vídeo")
+	# as janelas das ajudas param de falar em propaganda
+	main.play_level()
+	await wait_physics_frames(1)
+	game._on_bottle_pressed()
+	assert_true(game.dialog.text_label.text.ends_with(tr("Custa %s.") % game.boost_cost_text()), "sem 'pede uma propaganda': " + game.dialog.text_label.text)
+
+
+func test_remove_ads_restore_is_skipped_when_already_ads_free() -> void:
+	var plugin := FakePlugin.new()
+	plugin.owned = ["tok-old"]
+	home_extras["adsFree"] = true
+	await _store(plugin, 4)
+	assert_false(_paths().has("/purchases"), "já restaurada: não pede ao servidor a cada abertura")
+
+
+func test_remove_ads_pending_and_failed_purchases_explain_and_stop() -> void:
+	var plugin := FakePlugin.new()
+	plugin.buy_error = "pending"
+	await _store(plugin, 2)
+	await _press_buy(4)
+	assert_eq(main.dialog.title_label.text, "Quase lá", "pagamento pendente é explicado")
+	main.dialog.press("Fechar")
+	# o pagamento conclui mais tarde: a compra vai ao servidor sem abrir janela em cima do jogo
+	plugin.purchase_done.emit("remove_ads", "tok-late", "")
+	await wait_physics_frames(6)
+	assert_true(_paths().has("/purchases"))
+	assert_true(Server.ads_free())
+	assert_false(main.dialog.visible, "nada abre em cima do que o jogador está fazendo")
+	# servidor recusa (token de outra conta)
+	home_extras.erase("adsFree")
+	forced["/purchases"] = [ApiClient.error_result(409, "PURCHASE_TAKEN", "")]
+	plugin.buy_error = ""
+	await Server.refresh_home()
+	await _press_buy(6)
+	assert_eq(main.dialog.title_label.text, "Ops!")
+	assert_true(main.dialog.text_label.text.begins_with("Esta compra já está em outra conta"), main.dialog.text_label.text)
+	assert_eq(plugin.acknowledged.size(), 1, "só a compra aceita foi confirmada para a Play")
+
+
+func test_remove_ads_purchase_is_restored_from_the_store() -> void:
+	var plugin := FakePlugin.new()
+	plugin.owned = ["tok-old"]
+	await _store(plugin, 6)
+	assert_true(_paths().has("/purchases"), "compra antiga vai ao servidor")
+	assert_eq(plugin.acknowledged, ["tok-old"])
+	assert_true(Server.ads_free(), "restaurou sem o jogador fazer nada")
+
+
+func test_remove_ads_cancelled_purchase_goes_back_to_settings() -> void:
+	var plugin := FakePlugin.new()
+	plugin.buy_error = "cancelled"
+	await _store(plugin, 2)
+	await _press_buy(4)
+	assert_false(_paths().has("/purchases"), "cancelou: nada vai ao servidor")
+	assert_false(Server.ads_free())
+	assert_eq(main.dialog.title_label.text, "Configurações", "volta para a engrenagem")
 
 
 func test_interstitial_not_loaded_does_not_hold_the_player() -> void:

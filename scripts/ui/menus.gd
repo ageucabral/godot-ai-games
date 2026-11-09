@@ -31,6 +31,8 @@ static func open_settings(dialog: DialogBox) -> void:
 		dialog.add_row(Row.new("📳", "Vibração", Sfx.set_vibration_enabled, true).with_switch(Sfx.vibration_enabled()))
 	if Reminders.plugin() != null:
 		dialog.add_row(Row.new("🔔", "Avisos no celular", Reminders.set_enabled, true).with_switch(Reminders.enabled()))
+	if Purchases.available():
+		dialog.add_row(Row.new("🚫", "Remover anúncios", func() -> void: Purchases.open(dialog)))
 	dialog.add_row(Row.new("❓", "Como jogar", func() -> void: open_how_to_play(dialog)))
 	dialog.add_row(Row.new("📄", "Ajuda e termos", func() -> void: Account.open_help(dialog)))
 	var close := GameStyle.make_button("Fechar", true, 30)

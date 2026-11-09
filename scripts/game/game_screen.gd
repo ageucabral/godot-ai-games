@@ -675,7 +675,7 @@ func _on_hint_pressed() -> void:
 			return
 		var at: int = puzzle.moves_used()
 		action = func() -> void: Ads.show_rewarded(func() -> void: apply_hint(move, at))
-	dialog.open("Dica?", tr("Mostra a próxima jogada de um caminho curto.\nPede uma propaganda e custa %s.") % boost_cost_text(),
+	dialog.open("Dica?", tr("Mostra a próxima jogada de um caminho curto.") + "\n" + _boost_price_text(),
 		_with_free_boost("hint", [DialogBox.ad("Dica", action), ["Voltar", func() -> void: pass]]))
 
 
@@ -683,7 +683,7 @@ func _on_hint_pressed() -> void:
 func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
-	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), _with_free_boost("flask", [
+	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.") + "\n" + _boost_price_text(), _with_free_boost("flask", [
 		DialogBox.ad("+1 frasco", func() -> void:
 			if is_online():
 				_boost_online("flask")
@@ -691,6 +691,16 @@ func _on_bottle_pressed() -> void:
 				Ads.show_rewarded(apply_extra_bottle)),
 		["Voltar", func() -> void: pass],
 	]))
+
+
+## "Pede uma propaganda e custa 1 ponto." — ou só o custo, para quem comprou "Remover anúncios".
+func _boost_price_text() -> String:
+	return _ad_sentence("Pede uma propaganda e custa %s.", "Custa %s.") % boost_cost_text()
+
+
+## Frase que fala do vídeo, ou a versão sem vídeo para quem comprou "Remover anúncios".
+func _ad_sentence(with_ad: String, without: String) -> String:
+	return tr(without if Server.ads_free() else with_ad)
 
 
 ## Com ajudas grátis da sequência de dias (pelo servidor), a primeira opção usa uma sem propaganda.
@@ -808,7 +818,8 @@ func _on_extra_moves_pressed() -> void:
 
 func _show_out_of_moves() -> void:
 	Sfx.play("lose")
-	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
+	dialog.open("Acabaram as jogadas", _ad_sentence("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.",
+		"Ganhe +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
 		DialogBox.ad(tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed),
 		DialogBox.ad("Recomeçar", _restart_with_ad, false),
 		["Menu", func() -> void: back_requested.emit()],
@@ -819,13 +830,13 @@ func _show_zero_points() -> void:
 	Sfx.play("lose")
 	if not is_daily():
 		# nos níveis dá para terminar sem pontos e seguir em frente
-		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
+		dialog.open("Pontuação zerada", _ad_sentence("Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", "Recomece este nível, ou termine sem pontos."), [
 			DialogBox.ad("Recomeçar", _restart_with_ad),
 			["Continuar sem pontos", func() -> void: _zero_accepted = true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
 		return
-	dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este desafio.", [
+	dialog.open("Pontuação zerada", _ad_sentence("Assista a uma propaganda para recomeçar este desafio.", "Recomece este desafio."), [
 		DialogBox.ad("Recomeçar", _restart_with_ad),
 		["Menu", func() -> void: back_requested.emit()],
 	])
