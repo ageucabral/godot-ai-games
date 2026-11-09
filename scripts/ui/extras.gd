@@ -506,8 +506,15 @@ static func win_lines(extras: Variant) -> Array[String]:
 			I18n.t("Seu amigo fez em %d jogadas. Não foi desta vez!") % int(duel.get("rivalMoves", 0))))
 	for id in e.get("achievements", []):
 		out.append("🏅 " + I18n.t("Nova conquista: %s") % achievement_name(str(id)))
-	if int(e.get("freeBoostsGained", 0)) > 0:
-		out.append("🎁 " + I18n.t("%d dias seguidos: ganhou uma ajuda grátis!") % int(e.get("streak", 0)))
+	# ajudas grátis ganhas agora, com o motivo (`gifts` do servidor)
+	for g in e.get("gifts", []):
+		match str(g):
+			"streak":
+				out.append("🎁 " + I18n.t("%d dias seguidos: ganhou uma ajuda grátis!") % int(e.get("streak", 0)))
+			"comeback":
+				out.append("🎁 " + I18n.t("Que bom te ver de volta! Ganhou uma ajuda grátis."))
+			"exact_run":
+				out.append("🎁 " + I18n.t("3 vitórias exatas seguidas: ganhou uma ajuda grátis!"))
 	var reward := {"boost": "🎁 Prêmio do evento: uma ajuda grátis!", "skin": "🧪 Prêmio do evento: um frasco novo!",
 		"frame": "👑 Prêmio do evento: uma moldura nova!", "bg": "🎉 Prêmio do evento: um fundo novo!"}
 	var kind := str(e.get("eventReward", ""))

@@ -94,7 +94,7 @@ func test_achievement_names_cover_the_server() -> void:
 	assert_eq(Extras.achievement_icon("exact_10"), "🎯")
 	assert_eq(Extras.league_name(9), "Liga Diamante")
 	assert_eq(Extras.league_name(3), "Liga Rubi")
-	var lines := Extras.win_lines({"streak": 3, "freeBoostsGained": 1, "achievements": ["first_win"], "duel": {"won": true, "rivalMoves": 9}, "eventReward": "frame"})
+	var lines := Extras.win_lines({"streak": 3, "freeBoostsGained": 1, "gifts": ["streak"], "achievements": ["first_win"], "duel": {"won": true, "rivalMoves": 9}, "eventReward": "frame"})
 	assert_eq(lines.size(), 4)
 	assert_eq(lines[0], "⚔️ Você venceu o duelo!")
 	assert_eq(lines[1], "🏅 Nova conquista: Primeira poção")

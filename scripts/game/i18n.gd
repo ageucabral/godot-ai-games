@@ -19,6 +19,8 @@ const STRINGS := {
 	"Faça 1 fase com jogadas exatas": ["Finish 1 stage with exact moves", "Haz 1 fase con jugadas exactas"],
 	"Jogue 3 desafios do dia": ["Play 3 daily challenges", "Juega 3 desafíos del día"],
 	"Resgatar": ["Claim", "Canjear"],
+	"Que bom te ver de volta! Ganhou uma ajuda grátis.": ["Good to see you back! You got a free boost.", "¡Qué bueno verte de vuelta! Ganaste una ayuda gratis."],
+	"3 vitórias exatas seguidas: ganhou uma ajuda grátis!": ["3 exact wins in a row: you got a free boost!", "3 victorias exactas seguidas: ¡ganaste una ayuda gratis!"],
 	# liberação por nível, nível difícil e cartão dos desafios (9/11/2026)
 	"Nível %d · difícil": ["Level %d · hard", "Nivel %d · difícil"],
 	"Nível difícil": ["Hard level", "Nivel difícil"],

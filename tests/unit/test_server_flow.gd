@@ -910,18 +910,19 @@ func test_free_boost_skips_the_ad() -> void:
 func test_win_shows_stars_extras_and_duel() -> void:
 	level_number = 20  # o duelo libera no nível 20
 	await _with_extras()
-	finish_extras = {"stars": 3, "streak": 5, "freeBoostsGained": 1, "achievements": ["exact_10"], "duel": null}
+	finish_extras = {"stars": 3, "streak": 5, "freeBoostsGained": 2, "gifts": ["streak", "exact_run"], "achievements": ["exact_10"], "duel": null}
 	main.play_level()
 	await wait_physics_frames(1)
 	_solve()
 	await wait_physics_frames(1)
 	assert_eq(game.dialog.title_label.text, "Nível 20!")
 	var text := " ".join(game.dialog.inputs()[1].find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text))
-	assert_true(text.contains("ganhou uma ajuda grátis"), text)
+	assert_true(text.contains("5 dias seguidos: ganhou uma ajuda grátis"), text)
+	assert_true(text.contains("3 vitórias exatas seguidas"), text)
 	assert_true(text.contains("Nova conquista: Mão certeira"), "conquista nova pelo nome")
 	assert_true(text.contains("Jogadas exatas"), text)
 	assert_eq(int(GameState.streak().count), 5)
-	assert_eq(int(GameState.streak().free_boosts), 2)
+	assert_eq(int(GameState.streak().free_boosts), 3, "as duas ajudas novas somam às guardadas")
 	var stars: Extras.StarsView = game.dialog.inputs()[0]
 	assert_eq(stars.count, 3)
 	assert_true("Desafiar amigo" in game.dialog.button_texts())
