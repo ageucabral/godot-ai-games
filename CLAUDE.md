@@ -200,6 +200,16 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   (`BottleView.celebrate`). **Vibração** leve ao tocar, despejar e completar (`Sfx.HAPTICS`, chave "Vibração" na engrenagem,
   só no celular; permissão `VIBRATE`). **Músicas do painel**: até 3 (OGG/MP3, Painel › Poção › Músicas); o jogo baixa para
   `user://music` (`Server.sync_music`, depois do `/config`) e, com alguma, toca essas uma depois da outra no lugar das do app.
+- **Padrão do mercado** (Ageu, 9/11/2026; proposta https://claude.ai/artifact/LznY1BBkGxffyrPUTdm9b1, tudo aprovado): **desfazer**
+  (a jogada errada continua contando), **dica** no lugar do embaralhar (`SortPuzzle.hint_move`), **liberação por nível**
+  (`Rules.UNLOCKS`: missões 3, desafios 5, liga 10, coleção 15, duelo e evento 20; aviso "Novo: …!" uma vez), selo "Nível difícil"
+  a cada 10, **anúncio entre níveis** (`Ads.maybe_interstitial`; regras `pcInterFrom/Every/GapSec` do painel, nunca logo depois
+  de um vídeo premiado), **Remover anúncios** (`scripts/ui/purchases.gd`: compra única pelo Play Billing, produto `remove_ads`,
+  confirmada por `POST /purchases`; sem anúncio entre níveis e as ajudas pulam o vídeo mas continuam custando pontos; `DialogBox.ad`
+  tira o ícone de vídeo sozinho), **missões do dia** (3º ícone lateral "Missões", `Extras.open_missions`: 3 tarefas do servidor,
+  "Resgatar" = `POST /pocao/missions/:id/claim` → 1 ajuda grátis) e **presentes** (`extras.gifts` da vitória: dia 3/5 da sequência,
+  volta depois de 3+ dias sem jogar, 3 vitórias exatas seguidas). O que o dono precisa fazer na Play Console está em
+  `docs/` do na-lata-web (produto `remove_ads` com preço; conta de serviço com permissão de pedidos; bloco intersticial no painel).
 - Ainda não existe: aviso de consentimento de anúncios (Europa).
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),
