@@ -299,3 +299,33 @@ func test_boost_dialog_shows_real_cost() -> void:
 	screen.open_with(data)
 	screen.get_node("%HintButton").pressed.emit()
 	assert_true(screen.dialog.text_label.text.ends_with("custa 2 pontos."), "custo das regras da partida")
+
+
+func test_pieces_card_collapses_to_a_toggle() -> void:
+	screen.open_with(LevelGenerator.generate(Rules.ICE_FROM))
+	assert_true(screen.pieces_card.visible, "fase com gelo mostra o cartão")
+	assert_true(screen.pieces_card.is_open(), "abre com o texto completo")
+	screen.pieces_card._timer.timeout.emit()
+	assert_false(screen.pieces_card.is_open(), "depois de um tempo recolhe")
+	assert_true(screen.pieces_card._toggle.visible, "fica só o botão ?")
+	screen.pieces_card._toggle.pressed.emit()
+	assert_true(screen.pieces_card.is_open(), "tocar abre de novo")
+	# o gelo conta as jogadas: o texto muda, mas o cartão recolhido não reabre a cada jogada
+	screen.pieces_card._timer.timeout.emit()
+	var move: Array = SortPuzzle.hint_move(screen.puzzle.tubes, screen.puzzle.covers, 60000, screen.puzzle.ice_left(), screen.puzzle.only)
+	screen.tap_bottle(move[0])
+	screen.tap_bottle(move[1])
+	assert_false(screen.pieces_card.is_open(), "jogada com o gelo contando: continua recolhido")
+	# a mesma fase aberta de novo (mesmo texto) volta a abrir
+	screen.open_with(LevelGenerator.generate(Rules.ICE_FROM))
+	assert_true(screen.pieces_card.is_open(), "fase nova abre o cartão, mesmo com o texto igual")
+	screen.open_with(EASY)
+	assert_false(screen.pieces_card.visible, "fase sem peças especiais não tem cartão")
+
+
+func test_hard_level_shows_purple_subtitle() -> void:
+	screen.open_with(LevelGenerator.generate(Rules.HARD_EVERY))
+	assert_true(screen._subtitle.visible)
+	assert_eq(screen._subtitle.text, "Nível difícil")
+	screen.open_with(LevelGenerator.generate(Rules.HARD_EVERY + 1))
+	assert_false(screen._subtitle.visible, "nível comum não mostra dificuldade")

@@ -21,6 +21,7 @@ func after_each() -> void:
 
 
 func test_daily_shows_20_challenges() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	main.get_node("Home").daily_requested.emit()
 	var home: Control = main.get_node("Daily")
 	assert_true(home.visible)
@@ -30,6 +31,7 @@ func test_daily_shows_20_challenges() -> void:
 
 
 func test_first_attempt_is_free() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	main.get_node("Daily").play_button.pressed.emit()
 	assert_true(main.get_node("Game").visible, "abriu a partida")
 	assert_eq(GameState.attempts("2026-11-07#0"), 1)
@@ -37,6 +39,7 @@ func test_first_attempt_is_free() -> void:
 
 
 func test_second_attempt_asks_for_ad() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	main.request_play("2026-11-07", 0)
 	main.get_node("Game").back_requested.emit()
 	assert_true(main.get_node("Daily").visible, "voltou aos desafios do dia")
@@ -79,6 +82,7 @@ func test_hub_banner_countdown_turns_with_month() -> void:
 
 
 func test_declining_ad_returns_to_menu() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	main.request_play("2026-11-07", 0)
 	main.request_play("2026-11-07", 0)
 	assert_true(main.dialog.visible, "pede propaganda")
@@ -87,6 +91,7 @@ func test_declining_ad_returns_to_menu() -> void:
 
 
 func test_daily_follows_midnight() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	var home: Control = main.get_node("Daily")
 	GameState.fixed_unix += 86400
 	home._update_countdown()
@@ -94,6 +99,7 @@ func test_daily_follows_midnight() -> void:
 
 
 func test_past_days_cannot_be_played() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	main.request_play("2026-11-06", 0)
 	assert_true(main.dialog.visible, "avisa que acabou")
 	assert_eq(main.dialog.title_label.text, "Desafio encerrado")
@@ -105,6 +111,45 @@ func test_home_shows_level_and_daily_buttons() -> void:
 	var home: Control = main.get_node("Home")
 	assert_eq(home.level_button.text, "Nível 1")
 	assert_eq(home.daily_button.text, "Desafios do dia  0/20")
+	assert_eq(home.daily_button.locked_at, 5, "desafios trancados até o nível 5")
+	home.daily_button.pressed.emit()
+	assert_false(main.get_node("Daily").visible, "trancado: não abre")
+	GameState.set_level(5)
+	assert_eq(home.daily_button.locked_at, 0)
+	assert_eq(home.level_button.fill, GameStyle.GREEN)
+	GameState.set_level(10)
+	assert_eq(home.level_button.text, "Nível 10 · difícil", "a cada 10 níveis o selo de difícil")
+	assert_eq(home.level_button.fill, GameStyle.PURPLE)
+
+
+func test_unlock_is_announced_once() -> void:
+	var home: Control = main.get_node("Home")
+	assert_false(home.dialog.visible, "nível 1: nada a liberar")
+	GameState.set_level(5)
+	main.show_screen(home)
+	assert_eq(home.dialog.title_label.text, "Novo: Desafios do dia!")
+	home.dialog.press("Legal!")
+	main.show_screen(home)
+	assert_false(home.dialog.visible, "avisa uma vez só")
+	GameState.set_level(10)
+	main.show_screen(home)
+	assert_eq(home.dialog.title_label.text, "Novo: Liga da semana!")
+	home.dialog.press("Legal!")
+	GameState.set_level(15)
+	main.show_screen(home)
+	assert_eq(home.dialog.title_label.text, "Novo: Conquistas e frascos!")
+	home.dialog.press("Legal!")
+	# duas áreas no mesmo nível: um aviso só, com as duas
+	GameState.set_level(20)
+	main.show_screen(home)
+	assert_eq(home.dialog.title_label.text, "Novo: Duelo e Eventos!")
+	home.dialog.press("Legal!")
+	# primeira conferência num app que já tinha progresso (atualização, reinstalação, servidor): só marca, sem avisar
+	GameState.set_setting("unlocks_seen_level", -1)
+	GameState.set_level(25)
+	main.show_screen(home)
+	assert_false(home.dialog.visible, "quem já jogava não vê 'Novo' do que já usa")
+	assert_eq(int(GameState.get_setting("unlocks_seen_level", -1)), 25)
 
 
 func test_home_follows_midnight_without_looping() -> void:
@@ -209,8 +254,10 @@ func test_leaving_level_resumes_same_game() -> void:
 	assert_eq(game.puzzle.moves_used(), 1, "voltar pelo Menu não recomeça de graça")
 
 
-func test_app_opens_on_hub_and_enters_game() -> void:
-	assert_true(main.get_node("Hub").visible, "abre no hub Na Lata")
+func test_app_opens_in_the_only_game_and_hub_is_one_tap_away() -> void:
+	assert_true(main.get_node("Home").visible, "com um jogo só, abre direto no Poção de Cores")
+	main.get_node("Home").side_buttons["games"].pressed.emit()
+	assert_true(main.get_node("Hub").visible, "aba Jogos leva ao hub")
 	main.get_node("Hub").cards["potion"].pressed.emit()
 	assert_true(main.get_node("Home").visible, "entra no Poção de Cores")
 	var splash: Node = null
@@ -240,6 +287,7 @@ func test_home_has_side_icons_and_no_profile_tab() -> void:
 
 
 func test_daily_button_below_level_shows_progress() -> void:
+	GameState.set_level(Rules.unlock_level("daily"))
 	var home: Control = main.get_node("Home")
 	assert_eq(home.daily_button.get_parent(), home.level_button.get_parent(), "embaixo do botão do nível")
 	assert_true(home.daily_button.get_index() > home.level_button.get_index())

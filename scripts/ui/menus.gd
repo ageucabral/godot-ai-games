@@ -22,7 +22,7 @@ static func daily_done() -> int:
 static func open_settings(dialog: DialogBox) -> void:
 	dialog.open_card("Configurações", "", [])
 	dialog.add_row(Row.new("👤", "Sua conta", func() -> void: Account.open_account(dialog)))
-	if not GameState.extras.is_empty():
+	if not GameState.extras.is_empty() and Rules.unlocked("collection", GameState.current_level()):
 		dialog.add_row(Row.new("🏅", "Conquistas e frascos", func() -> void: Extras.open_collection(dialog), true))
 	dialog.add_row(Row.new("🌐", "Idioma", func() -> void: open_language(dialog)).with_value(I18n.language_name(GameState.language())))
 	dialog.add_row(Row.new("🎵", "Música", Sfx.set_music_enabled, true).with_switch(Sfx.music_enabled()))

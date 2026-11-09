@@ -69,6 +69,7 @@ func test_reminder_time_once_a_day() -> void:
 	assert_eq(Reminders.next_time(seven_pm + 60, false), seven_pm + 86400, "passou das 19h: amanhã")
 	assert_true(Reminders.message(5)[1].contains("5 dias"), "sequência em risco")
 	assert_true(Reminders.message(0)[1].begins_with("Os 20 desafios de hoje chegaram"))
+	assert_true(Reminders.message(0, 0, null, false, false)[1].begins_with("Seu próximo nível"), "desafios trancados: fala do nível")
 	var last_day := Rules.unix_from_iso("2026-11-30T15:00:00")
 	assert_true(Reminders.message(5, last_day, 37)[1].contains("37º"), "ranking fechando: avisa o lugar")
 	assert_true(Reminders.message(5, last_day, 37)[1].begins_with("Falta 1 dia"), "último dia: no singular")

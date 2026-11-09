@@ -83,11 +83,17 @@ func _ready() -> void:
 	add_child(timer)
 
 
-## A faixa mostra quanto falta para o mês (e a competição) acabar.
+## Só um jogo liberado: o app abre direto nele.
+func single_game() -> bool:
+	return GAMES.filter(func(g: Array) -> bool: return g[2]).size() == 1
+
+
+## A faixa mostra quanto falta para o mês (e a competição) acabar. O evento só aparece depois de liberado por nível.
 func refresh() -> void:
 	_month = Rules.month_for(GameState.now_unix())
 	var ev: Variant = GameState.extras.get("event")
-	event_card.set_event(ev if ev is Dictionary and Server.online() else null)
+	var show_event := ev is Dictionary and Server.online() and Rules.unlocked("event", GameState.current_level())
+	event_card.set_event(ev if show_event else null)
 	_update_countdown()
 	for c in cards.values():
 		c.queue_redraw()

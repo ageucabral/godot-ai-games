@@ -30,7 +30,7 @@ func _ready() -> void:
 	hub.event_requested.connect(func() -> void: play_event(hub))
 	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
-	home.daily_requested.connect(func() -> void: show_screen(daily))
+	home.daily_requested.connect(_open_daily)
 	home.ranking_requested.connect(func() -> void: open_ranking(home))
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
@@ -43,7 +43,8 @@ func _ready() -> void:
 	ranking.claim_requested.connect(func(payout_id: String) -> void: Prizes.open_claim(dialog, payout_id))
 	ranking.prizes_requested.connect(func() -> void: Prizes.open_my_prizes(dialog))
 	Server.home_updated.connect(_on_server_home)
-	show_screen(hub)
+	# com um jogo só, abre direto nele (Ageu, 9/11/2026); o hub fica a um toque em "Jogos"
+	show_screen(home if hub.single_game() else hub)
 	_connect_server()
 
 
@@ -58,6 +59,7 @@ func _connect_server() -> void:
 	if Account.check_gate(dialog):
 		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
 	await Account.connect_and_onboard(dialog)
+	_prefetch_level_if_home()  # o app abriu no menu antes de entrar: o "Nível N" abre na hora
 	Server.take_launch_link()
 	Reminders.update()
 	_show_pending_duel()
@@ -126,6 +128,32 @@ func _show_pending_duel() -> bool:
 	return true
 
 
+## Desafios do dia: trancados até o nível Rules.unlock_level("daily") (o cartão já avisa; aqui só garante).
+func _open_daily() -> void:
+	if Rules.unlocked("daily", GameState.current_level()):
+		show_screen(daily)
+
+
+## Chegou num nível que libera uma área nova: avisa uma vez, em uma frase ("Novo: Liga da semana!"). Guarda até que
+## nível já avisou; na primeira conferência (app atualizado, reinstalado ou progresso vindo do servidor) só marca.
+func _announce_unlocks() -> void:
+	if home.dialog.visible or dialog.visible:
+		return
+	var level := GameState.current_level()
+	var seen := int(GameState.get_setting("unlocks_seen_level", -1))
+	if seen >= level:
+		return
+	GameState.set_setting("unlocks_seen_level", level)
+	if seen < 0:
+		return
+	var news := Rules.unlocked_between(seen, level)
+	if news.is_empty():
+		return
+	var names: Array = news.map(func(f: String) -> String: return tr(Rules.UNLOCKS[f][1]))
+	var texts: Array = news.map(func(f: String) -> String: return tr(Rules.UNLOCKS[f][2]))
+	home.dialog.open_card(tr("Novo: %s!") % tr(" e ").join(names), "\n".join(texts), [["Legal!", func() -> void: pass, true]])
+
+
 ## Entra num jogo do hub: mostra o menu do jogo com a tela de abertura por cima.
 func open_game(_game_id: String) -> void:
 	show_screen(home)
@@ -150,8 +178,15 @@ func show_screen(screen: Control) -> void:
 		screen.refresh()
 	if Server.online() and screen != game:
 		Server.refresh_home()  # pontos e desafios atualizados pelo servidor
-	if screen == home and not game.can_resume_level(GameState.current_level()):
-		game.prefetch_next_level()  # o botão "Nível N" abre a fase na hora
+	if screen == home:
+		_prefetch_level_if_home()  # o botão "Nível N" abre a fase na hora
+		_announce_unlocks()
+
+
+## No menu sem partida para continuar: pede o próximo nível ao servidor desde já.
+func _prefetch_level_if_home() -> void:
+	if home.visible and not game.can_resume_level(GameState.current_level()):
+		game.prefetch_next_level()
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).

@@ -55,6 +55,47 @@ const LEVEL_STEPS: Array = [
 ]
 
 
+## Liberação aos poucos (Ageu, 9/11/2026, como nos líderes do gênero): cada área abre num nível fixo, com um aviso
+## "Novo!" de uma frase. Antes disso o jogador novo vê só o Nível e a engrenagem.
+## área: [nível que libera, nome, frase do aviso]
+const UNLOCKS := {
+	"daily": [5, "Desafios do dia", "20 desafios novos à meia-noite, iguais para todo mundo."],
+	"league": [10, "Liga da semana", "Compita com outros jogadores e suba de liga."],
+	"collection": [15, "Conquistas e frascos", "Medalhas, frascos e molduras para colecionar."],
+	"duel": [20, "Duelo", "Desafie um amigo na mesma fase depois de vencer."],
+	"event": [20, "Eventos", "Fases com tema e prêmios por tempo limitado, no hub Na Lata."],
+}
+## A cada quantos níveis vem um "Nível difícil" (só o selo roxo; a fase é a mesma do gerador).
+const HARD_EVERY: int = 10
+## A setinha da primeira partida acompanha até este nível.
+const TUTORIAL_LEVELS: int = 3
+
+
+## A área `feature` (chave de UNLOCKS) já está liberada para quem está no nível `level`.
+static func unlocked(feature: String, level: int) -> bool:
+	return level >= unlock_level(feature)
+
+
+## Nível em que a área abre.
+static func unlock_level(feature: String) -> int:
+	return int(UNLOCKS[feature][0])
+
+
+## Áreas que abriram entre o nível `from` (exclusive) e `to` (inclusive), na ordem de liberação.
+static func unlocked_between(from: int, to: int) -> Array[String]:
+	var out: Array[String] = []
+	for feature: String in UNLOCKS:
+		var at := unlock_level(feature)
+		if at > from and at <= to:
+			out.append(feature)
+	return out
+
+
+## Nível marcado como difícil (10, 20, 30…).
+static func is_hard_level(level: int) -> bool:
+	return level >= HARD_EVERY and level % HARD_EVERY == 0
+
+
 ## Estrelas de uma fase: 3 = jogadas exatas, 2 = até 3 a mais, 1 = só passou (igual ao servidor).
 static func stars_for(moves: int, par: int) -> int:
 	if moves <= par:

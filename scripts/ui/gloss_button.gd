@@ -34,13 +34,18 @@ func _init() -> void:
 		e.content_margin_top = 14 + (DEPTH * 0.6 if state == "pressed" else 0.0)
 		e.content_margin_bottom = DEPTH + 12 - (DEPTH * 0.6 if state == "pressed" else 0.0)
 		add_theme_stylebox_override(state, e)
-	# o Button desenha o texto ANTES do nosso _draw (ficaria escondido atrás do corpo):
-	# o texto dele fica invisível e nós desenhamos o nosso por cima
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
-		add_theme_color_override(c, Color(0, 0, 0, 0))
+	setup_drawn(self)
 	add_theme_constant_override("outline_size", 0)
 	resized.connect(func() -> void: pivot_offset = size * 0.5)
-	pressed.connect(func() -> void: Sfx.play("click", -6.0))
+
+
+## Botão que desenha o próprio visual: o Button desenha o texto ANTES do _draw do script (ficaria escondido atrás
+## do desenho), então o texto dele fica invisível e o botão desenha o seu por cima; e toca o clique ao apertar.
+## Usado também pelos cartões-botão (ex.: o dos desafios do dia).
+static func setup_drawn(b: Button) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color(0, 0, 0, 0))
+	b.pressed.connect(func() -> void: Sfx.play("click", -6.0))
 
 
 func _update_pulse() -> void:

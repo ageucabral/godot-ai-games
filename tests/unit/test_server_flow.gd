@@ -17,6 +17,8 @@ var level_number: int = 4
 ## Extras do menu (sequência, frascos, evento) e do fim da partida.
 var home_extras: Dictionary = {}
 var finish_extras: Variant = null
+## O app pediu o próximo nível ao servidor logo ao abrir (antes de os testes mexerem no servidor de mentira).
+var startup_prefetched: bool = false
 
 
 func before_each() -> void:
@@ -42,6 +44,10 @@ func before_each() -> void:
 	game = main.get_node("Game")
 	game.animate = false
 	await wait_physics_frames(2)
+	# o app abre no menu e já pede o próximo nível; os testes mudam o servidor de mentira depois, então esquecem esse
+	startup_prefetched = calls.any(func(c: Array) -> bool: return c[1] == "/pocao/matches")
+	calls = calls.filter(func(c: Array) -> bool: return c[1] != "/pocao/matches")
+	game.drop_next_level()
 
 
 func after_each() -> void:
@@ -328,6 +334,10 @@ func test_first_daily_attempt_is_free_online() -> void:
 	assert_false("/rewards" in _paths(), "sem propaganda")
 
 
+func test_app_start_prefetches_next_level() -> void:
+	assert_true(startup_prefetched, "abriu direto no menu: o nível já foi pedido ao entrar no servidor")
+
+
 func test_no_connection_goes_back() -> void:
 	forced["/pocao/matches"] = [ApiClient.error_result(0, "NETWORK", "")]
 	main.play_level()
@@ -593,9 +603,12 @@ func test_home_shows_streak_stars_and_event() -> void:
 	main.dialog.press("Continuar")
 	await Server.refresh_home()
 	assert_false(main.dialog.visible, "no mesmo dia não abre de novo")
-	# o evento fica num cartão no hub, com a trilha de prêmios
+	# o evento fica num cartão no hub, com a trilha de prêmios — só depois de liberado por nível
 	main.show_screen(main.hub)
 	var card: EventCard = main.hub.event_card
+	assert_false(card.visible, "nível 4: evento ainda trancado")
+	level_number = 20
+	await Server.refresh_home()
 	assert_true(card.visible)
 	assert_eq(card._name.text, "Natal")
 	assert_eq(card._count.text, "1 de 15 fases do evento")
@@ -606,6 +619,7 @@ func test_home_shows_streak_stars_and_event() -> void:
 
 
 func test_event_plays_with_theme_and_counts_progress() -> void:
+	level_number = 20
 	await _with_extras()
 	main.play_event()
 	await wait_physics_frames(1)
@@ -674,13 +688,14 @@ func test_free_boost_skips_the_ad() -> void:
 
 
 func test_win_shows_stars_extras_and_duel() -> void:
+	level_number = 20  # o duelo libera no nível 20
 	await _with_extras()
 	finish_extras = {"stars": 3, "streak": 5, "freeBoostsGained": 1, "achievements": ["exact_10"], "duel": null}
 	main.play_level()
 	await wait_physics_frames(1)
 	_solve()
 	await wait_physics_frames(1)
-	assert_eq(game.dialog.title_label.text, "Nível 4!")
+	assert_eq(game.dialog.title_label.text, "Nível 20!")
 	var text := " ".join(game.dialog.inputs()[1].find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text))
 	assert_true(text.contains("ganhou uma ajuda grátis"), text)
 	assert_true(text.contains("Nova conquista: Mão certeira"), "conquista nova pelo nome")
@@ -718,6 +733,9 @@ func test_duel_by_link() -> void:
 func test_league_tab() -> void:
 	main.open_ranking(main.home)
 	var ranking: RankingScreen = main.ranking
+	assert_false(ranking.tabs.visible, "nível 4: liga ainda trancada")
+	level_number = 10
+	await Server.refresh_home()
 	assert_true(ranking.tabs.visible)
 	await ranking.set_tab("league")
 	assert_eq(ranking.title_label.text, "Liga da semana")
