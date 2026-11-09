@@ -17,7 +17,7 @@ export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$KEYSTORE"
 export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
 export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
 
-"$ROOT/tools/godot.sh" --headless --path "$ROOT" "${TEMPLATE_FLAG[@]}" --export-debug "Android" "$OUT"
+"$ROOT/tools/godot.sh" --headless --path "$ROOT" --export-debug "Android" "$OUT"
 test -s "$OUT"
 "$ANDROID_HOME/build-tools/36.1.0/apksigner" verify "$OUT"
 ls -la "$OUT"

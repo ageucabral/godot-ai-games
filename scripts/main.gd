@@ -26,11 +26,11 @@ func _ready() -> void:
 	_return_screen = home
 	_ranking_return = home
 	hub.game_requested.connect(open_game)
-	hub.global_ranking_requested.connect(open_global_ranking)
+	hub.global_ranking_requested.connect(func() -> void: open_ranking(hub))
 	home.hub_requested.connect(func() -> void: show_screen(hub))
 	home.level_requested.connect(play_level)
 	home.daily_requested.connect(func() -> void: show_screen(daily))
-	home.ranking_requested.connect(open_game_ranking)
+	home.ranking_requested.connect(func() -> void: open_ranking(home))
 	daily.play_requested.connect(request_play)
 	daily.back_requested.connect(func() -> void: show_screen(home))
 	game.back_requested.connect(_leave_game)
@@ -39,6 +39,7 @@ func _ready() -> void:
 	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
 	ranking.invite_requested.connect(func() -> void: Prizes.open_invite(dialog))
 	ranking.claim_requested.connect(func(payout_id: String) -> void: Prizes.open_claim(dialog, payout_id))
+	ranking.prizes_requested.connect(func() -> void: Prizes.open_my_prizes(dialog))
 	Server.home_updated.connect(_on_server_home)
 	show_screen(hub)
 	_connect_server()
@@ -104,17 +105,11 @@ func open_game(_game_id: String) -> void:
 	add_child(SplashOverlay.new())
 
 
-## Ranking Global (soma todos os jogos, vale prêmios), aberto pelo hub.
-func open_global_ranking() -> void:
-	_ranking_return = hub
-	ranking.open_mode("global")
-	show_screen(ranking)
-
-
-## Ranking só do Poção de Cores, aberto pelo menu do jogo.
-func open_game_ranking() -> void:
-	_ranking_return = home
-	ranking.open_mode("game", "potion")
+## Ranking Global (soma todos os jogos, vale prêmios): o único ranking, aberto pelo hub ou pelo menu do jogo.
+## O "Voltar" leva de volta para quem abriu.
+func open_ranking(from: Control) -> void:
+	_ranking_return = from
+	ranking.open()
 	show_screen(ranking)
 
 
@@ -127,6 +122,8 @@ func show_screen(screen: Control) -> void:
 		screen.refresh()
 	if Server.online() and screen != game:
 		Server.refresh_home()  # pontos e desafios atualizados pelo servidor
+	if screen == home and not game.can_resume_level(GameState.current_level()):
+		game.prefetch_next_level()  # o botão "Nível N" abre a fase na hora
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).

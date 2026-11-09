@@ -1,13 +1,9 @@
 class_name GlobalRankBanner
 extends Button
-## Faixa dourada do Ranking Global no hub Na Lata: troféu, "Ranking Global", "Vale prêmios!",
-## quanto falta para o mês acabar e os pontos do jogador somando todos os jogos.
-## Tem um brilho que passa de tempos em tempos e o troféu balança de leve.
+## Faixa dourada do hub Na Lata que chama para a competição do mês (Ageu, 9/11/2026): troféu,
+## "Compita todo mês", o caminho "Jogue · Suba · Ganhe" e quanto falta para o mês acabar. Não diz quais
+## são os prêmios. Tocar abre o Ranking Global. Tem um brilho que passa de tempos em tempos e o troféu balança.
 
-var points: int = 0:
-	set(value):
-		points = value
-		queue_redraw()
 var countdown: String = "":
 	set(value):
 		countdown = value
@@ -53,13 +49,13 @@ func _draw() -> void:
 	var font := _font
 	var x := c.x + 84
 	var w := body.end.x - x - 20
-	_outlined(font, Vector2(x, body.position.y + 66), tr("Ranking Global"), w, 50, Color.WHITE, 11)
-	_outlined(font, Vector2(x, body.position.y + 106), tr("Vale prêmios!"), w, 30, Color("fff3a8"), 8)
+	_outlined(font, Vector2(x, body.position.y + 62), tr("Compita todo mês"), w, 44, Color.WHITE, 10)
+	_outlined(font, Vector2(x, body.position.y + 102), tr("Jogue · Suba · Ganhe prêmios"), w, 28, Color("fff3a8"), 8)
 	var pill := Rect2(Vector2(x, body.end.y - 66), Vector2(w, 52))
 	draw_style_box(_boxes.pill, pill)
-	var line := tr("%d pts") % points
+	var line := tr("Ver ranking")
 	if countdown != "":
-		line = "%s  ·  %s" % [line, countdown]
+		line = tr("Termina em %s") % countdown
 	draw_string(font, pill.position + Vector2(0, 37), line, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, 28, GameStyle.INK)
 
 

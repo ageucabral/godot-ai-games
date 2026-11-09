@@ -1,5 +1,5 @@
 extends Control
-## Hub Na Lata: o Ranking Global (o que vale prêmios) em destaque e a lista de jogos.
+## Hub Na Lata: a faixa da competição do mês (abre o Ranking Global, o que vale prêmios) e a lista de jogos.
 ## O primeiro jogo é o Poção de Cores; os outros chegam depois.
 
 signal game_requested(game_id: String)
@@ -28,7 +28,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 18)
 	add_child(box)
 
-	# só a engrenagem em cima: os pontos já aparecem na faixa do Ranking Global
+	# só a engrenagem em cima
 	var gear := IconButton.new("gear")
 	gear.size_flags_horizontal = Control.SIZE_SHRINK_END
 	gear.pressed.connect(func() -> void: Menus.open_settings(dialog))
@@ -75,11 +75,9 @@ func _ready() -> void:
 	add_child(timer)
 
 
-## A faixa do ranking mostra o total global (todos os jogos) do mês.
+## A faixa mostra quanto falta para o mês (e a competição) acabar.
 func refresh() -> void:
 	_month = Rules.month_for(GameState.now_unix())
-	var total := GameState.global_month_total(_month)
-	rank_banner.points = total.points
 	_update_countdown()
 	for c in cards.values():
 		c.queue_redraw()

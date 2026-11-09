@@ -129,11 +129,8 @@ func test_maintenance_text_by_language() -> void:
 	assert_eq(ApiClient.maintenance_text({"maintenanceText": "Geral"}, "en"), "Geral")
 
 
-func test_prize_lines_and_rule_text() -> void:
-	var lines := ApiClient.prize_lines([
-		{"posFrom": 1, "posTo": 1, "amountLabel": "US$ 100"}, {"posFrom": 4, "posTo": 10, "amountLabel": "US$ 5"}])
-	assert_eq(lines, ["1º lugar: US$ 100", "4º ao 10º: US$ 5 cada"])
-	assert_eq(ApiClient.prize_lines(null), [])
+func test_rule_text() -> void:
+	assert_eq(ApiClient.prize_chips(null), [])
 	assert_eq(ApiClient.rule_text({"tag": "missing"}, {"friends": 3, "days": 3}),
 		"Para receber prêmio, convide 3 amigos que joguem pelo menos 3 dias.")
 	assert_eq(ApiClient.rule_text({"tag": "eligible"}, {}), "Você já cumpre a regra para receber prêmios.")
@@ -338,7 +335,7 @@ func test_account_shows_nickname_and_country() -> void:
 	Account.open_account(dialog)
 	assert_true(dialog.text_label.text.contains("Apelido: Ageu"), dialog.text_label.text)
 	assert_true(dialog.text_label.text.contains("País: Brasil"), dialog.text_label.text)
-	assert_eq(dialog.button_texts(), ["Trocar apelido", "Apagar conta", "Voltar"])
+	assert_eq(dialog.button_texts(), ["Meus prêmios", "Trocar apelido", "Apagar conta", "Voltar"])
 
 
 # ---------- ajuda ----------

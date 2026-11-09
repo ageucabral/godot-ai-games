@@ -304,6 +304,7 @@ static func open_account(dialog: DialogBox) -> void:
 			buttons.append(["Escolher país", func() -> void: ask_country(dialog, func() -> void: open_account(dialog)), true])
 		if str(p.get("email", "")).contains("@"):
 			who += "\n" + str(p.email)
+		buttons.append(["Meus prêmios", func() -> void: Prizes.open_my_prizes(dialog)])
 		buttons.append(["Trocar apelido", func() -> void: ask_nickname(dialog, func() -> void: open_account(dialog))])
 	buttons.append(["Apagar conta", func() -> void: confirm_delete(dialog)])
 	buttons.append(back)

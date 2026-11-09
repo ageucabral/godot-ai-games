@@ -51,6 +51,12 @@ var tutorial: bool = false
 var _quit_reported: bool = false
 var _hint_key: String = ""
 var _hint_move: Array = []
+## Próximo nível já pedido ao servidor enquanto o jogador vê a vitória (abre na hora ao tocar "Próximo nível").
+## {"at": ms, "res": resposta} quando chegou; {"at": ms} enquanto espera.
+var _next_level: Dictionary = {}
+## Quanto tempo o nível pedido antes continua valendo (o servidor só fecha partidas paradas há 2 h).
+const PREFETCH_TTL_MS := 30 * 60 * 1000
+signal _next_level_arrived
 
 
 func _ready() -> void:
@@ -123,6 +129,12 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 	if _show_if_closed(date):
 		return  # o dia virou (ex.: durante a propaganda): não abre nem gasta tentativa
 	if Server.online():
+		_show_loading(false)
+		# um nível pedido antes ainda a caminho: espera chegar, senão o servidor pode abri-lo depois
+		# deste desafio e fechar a partida do desafio
+		if _next_level_pending():
+			await _next_level_arrived
+		drop_next_level()
 		var body := {"mode": "daily", "index": index}
 		if not reward_id.is_empty():
 			body["rewardId"] = reward_id
@@ -141,6 +153,11 @@ func open_challenge(date: String, index: int, reward_id: String = "") -> void:
 ## Abre um nível do modo por níveis (sem tentativas contadas).
 func open_level(level: int) -> void:
 	if Server.online():
+		_show_loading(true)
+		var ready := await _take_next_level()
+		if not ready.is_empty() and ready.ok:
+			open_with(ApiClient.challenge_from_match(ready.data.get("match", {})))
+			return
 		await _open_online({"mode": "level"})  # o servidor sabe qual é o nível do jogador
 		return
 	var data := LevelGenerator.generate(level)
@@ -148,6 +165,54 @@ func open_level(level: int) -> void:
 		back_requested.emit()
 		return
 	open_with(data)
+
+
+## Pede ao servidor o próximo nível já na tela de vitória, para ele abrir sem espera. Só para níveis:
+## nos desafios cada abertura conta uma tentativa.
+func prefetch_next_level() -> void:
+	if not Server.online() or not _next_level.is_empty():
+		return
+	var at := Time.get_ticks_msec()
+	_next_level = {"at": at}
+	var res: Dictionary = await Server.call_api("POST", "/pocao/matches", {"mode": "level"})
+	if int(_next_level.get("at", -1)) == at:
+		_next_level["res"] = res  # se foi descartado enquanto chegava, fica de fora
+	_next_level_arrived.emit()
+
+
+## Usa o nível pedido antes (espera chegar se ainda está a caminho). Vazio = não tem ou venceu.
+func _take_next_level() -> Dictionary:
+	if _next_level.is_empty():
+		return {}
+	if _next_level_pending():
+		busy = true  # nada de pausa ou ajudas na partida anterior enquanto espera
+		dialog.open("Carregando…", "", [])
+		await _next_level_arrived
+		busy = false
+	var item := _next_level
+	_next_level = {}
+	if not item.has("res") or Time.get_ticks_msec() - int(item.at) > PREFETCH_TTL_MS:
+		return {}
+	return item.res
+
+
+## O nível foi pedido e a resposta ainda não chegou.
+func _next_level_pending() -> bool:
+	return not _next_level.is_empty() and not _next_level.has("res")
+
+
+## Esquece o nível pedido antes (outra partida vai abrir e o servidor fecha a dele).
+func drop_next_level() -> void:
+	_next_level = {}
+
+
+## Enquanto a fase chega: some com as garrafas e com a dificuldade da partida anterior.
+func _show_loading(level: bool) -> void:
+	_subtitle.visible = false
+	for b in _bottles:
+		b.visible = false
+	if level:
+		_challenge_value.text = tr("Nível %d") % GameState.current_level()
 
 
 ## A partida aberta é este nível, ainda sem terminar (dá para continuar de onde parou).
@@ -708,6 +773,8 @@ func _show_level_win(points: int, used: int) -> void:
 	if points < challenge.full_points:
 		level_text += tr("\nDava para fazer em %d jogadas.") % challenge.par
 	_celebrate()
+	if is_online():
+		prefetch_next_level()
 	dialog.open(win_title(points, challenge.full_points), level_text, [
 		["Próximo nível", func() -> void: next_level_requested.emit(), true],
 		["Menu", func() -> void: back_requested.emit()],

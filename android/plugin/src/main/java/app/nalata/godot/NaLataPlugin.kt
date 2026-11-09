@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -27,6 +28,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.IntegrityTokenRequest
+import java.io.File
 import java.util.concurrent.Executors
 import org.godotengine.godot.Godot
 import org.godotengine.godot.plugin.GodotPlugin
@@ -238,6 +240,24 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, text)
+            }
+            a.startActivity(Intent.createChooser(send, null))
+        }
+    }
+
+    /** Abre o "compartilhar" com a figura do convite (arquivo do app) e o texto. Sem a figura, só o texto. */
+    @UsedByGodot
+    fun shareImage(path: String, text: String) {
+        val a = act() ?: return
+        a.runOnUiThread {
+            val send = Intent(Intent.ACTION_SEND).apply { putExtra(Intent.EXTRA_TEXT, text) }
+            try {
+                val uri = FileProvider.getUriForFile(a, a.packageName + ".fileprovider", File(path))
+                send.type = "image/png"
+                send.putExtra(Intent.EXTRA_STREAM, uri)
+                send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e: Exception) {
+                send.type = "text/plain"
             }
             a.startActivity(Intent.createChooser(send, null))
         }

@@ -165,7 +165,9 @@ static func ranking_rows(data: Dictionary) -> Array:
 			var nick: String = str(r.get("nickname", ""))
 			if bool(r.get("guest", false)) and nick.is_empty():
 				nick = TranslationServer.translate("Visitante")
-			out.append([pos, nick, int(r.get("points", 0)), bool(r.get("isMe", false))])
+			# variação desde o retrato de ontem (+ subiu, - caiu, 0 igual; null = entrou hoje)
+			var delta: Variant = int(r.delta) if r.get("delta") != null else null
+			out.append([pos, nick, int(r.get("points", 0)), bool(r.get("isMe", false)), delta])
 	out.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	return out
 
@@ -229,9 +231,9 @@ static func link(config: Dictionary, key: String) -> String:
 	return DEFAULT_LINKS.get(key, "")
 
 
-## Prêmios do mês (GET /ranking › prizes) em linhas: "1º lugar: US$ 100", "4º ao 10º: US$ 5 cada".
-static func prize_lines(prizes: Variant) -> Array[String]:
-	var out: Array[String] = []
+## Prêmios do mês (GET /ranking › prizes) em faixas curtas para as pílulas do ranking: [["1º", "US$ 10"], ["4º–10º", "US$ 1"]].
+static func prize_chips(prizes: Variant) -> Array:
+	var out: Array = []
 	if not prizes is Array:
 		return out
 	for p in prizes:
@@ -242,10 +244,7 @@ static func prize_lines(prizes: Variant) -> Array[String]:
 		var amount := str(p.get("amountLabel", ""))
 		if from <= 0 or amount.is_empty():
 			continue
-		if to > from:
-			out.append(TranslationServer.translate("%dº ao %dº: %s cada") % [from, to, amount])
-		else:
-			out.append(TranslationServer.translate("%dº lugar: %s") % [from, amount])
+		out.append([("%dº–%dº" % [from, to]) if to > from else ("%dº" % from), amount])
 	return out
 
 
