@@ -47,33 +47,38 @@ func play(custom_data: String = "") -> bool:
 		if bool(out[0]):
 			_mark_ad(true)
 		return bool(out[0])
-	await _simulate(tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d"))
+	await _simulate()
 	_mark_ad(true)
 	return true
 
 
-## Resolveu um nível e vai para o próximo: mostra o anúncio entre níveis se as regras do painel mandarem
-## (`Rules.interstitial_due`; a contagem de níveis começa no nível da regra). Só com o plugin do AdMob (Android): sem ele
-## não há anúncio nenhum. Use com `await`; volta quando o anúncio fecha (ou na hora, se não era para aparecer).
+## Resolveu um nível e vai para o próximo: mostra o anúncio entre níveis se as regras do painel mandarem (a contagem
+## de níveis começa no nível da regra; um vídeo premiado vale como o anúncio da rodada). Só com o plugin do AdMob
+## (Android): sem ele não há anúncio nenhum. Use com `await`; volta quando o anúncio fecha (ou na hora).
 func maybe_interstitial(solved_level: int) -> void:
 	var from := Server.rule_int("pcInterFrom", 0)
 	if from <= 0 or solved_level < from:
 		levels_since_inter = 0
 		return
 	levels_since_inter += 1
-	var due := Rules.interstitial_due(solved_level, levels_since_inter, GameState.now_unix() - last_ad_unix, rewarded_since_inter,
-		from, Server.rule_int("pcInterEvery", 3), Server.rule_int("pcInterGapSec", 90))
 	if rewarded_since_inter:
 		rewarded_since_inter = false
-		levels_since_inter = 0  # o vídeo premiado valeu como o anúncio desta rodada
-	if not due or showing:
+		levels_since_inter = 0
 		return
+	if showing:
+		return
+	var due := Rules.interstitial_due(levels_since_inter, GameState.now_unix() - last_ad_unix,
+		Server.rule_int("pcInterEvery", 3), Server.rule_int("pcInterGapSec", 90))
 	if instant:
-		_mark_ad(false)
+		if due:
+			_mark_ad(false)
 		return
 	var plugin: Object = Server.native_with("interstitial_finished") if Server.enabled else null
 	var unit := Server.ad_unit_id("interstitial")
 	if plugin == null or unit.is_empty():
+		return
+	if not due:
+		plugin.preloadInterstitial(unit)  # já deixa o próximo pronto (o plugin não baixa de novo se já tem)
 		return
 	showing = true
 	plugin.showInterstitial(unit)
@@ -93,8 +98,8 @@ func _mark_ad(rewarded: bool) -> void:
 		levels_since_inter = 0
 
 
-## Tela escura de `duration` segundos no lugar do AdMob (Web, computador, testes). `text` leva um %d com a contagem.
-func _simulate(text: String) -> void:
+## Tela escura de `duration` segundos no lugar do AdMob (Web, computador, testes).
+func _simulate() -> void:
 	showing = true
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -118,7 +123,7 @@ func _simulate(text: String) -> void:
 
 	var left := duration
 	while left > 0.0:
-		label.text = text % ceili(left)
+		label.text = tr("PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d") % ceili(left)
 		await get_tree().create_timer(minf(1.0, left)).timeout
 		left -= 1.0
 	layer.queue_free()

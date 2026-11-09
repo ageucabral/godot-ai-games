@@ -164,11 +164,15 @@ func load_config() -> bool:
 		plugin.adsInit()
 	# já deixa uma propaganda carregada: o toque em "assistir" abre na hora (plugin novo, com o sinal "rewarded_ready")
 	var preload_plugin := native_with("rewarded_ready")
-	if preload_plugin and not rewarded_unit_id().is_empty():
-		preload_plugin.preloadRewarded(rewarded_unit_id())
+	var rewarded_unit := rewarded_unit_id()
+	if preload_plugin and not rewarded_unit.is_empty():
+		preload_plugin.preloadRewarded(rewarded_unit)
+	# o anúncio entre níveis só para quem já chegou ao nível da regra (quem não chegou não baixa à toa)
 	var inter_plugin := native_with("interstitial_finished")
-	if inter_plugin and not ad_unit_id("interstitial").is_empty() and rule_int("pcInterFrom", 0) > 0:
-		inter_plugin.preloadInterstitial(ad_unit_id("interstitial"))
+	var inter_unit := ad_unit_id("interstitial")
+	var inter_from := rule_int("pcInterFrom", 0)
+	if inter_plugin and not inter_unit.is_empty() and inter_from > 0 and GameState.current_level() >= inter_from:
+		inter_plugin.preloadInterstitial(inter_unit)
 	return true
 
 

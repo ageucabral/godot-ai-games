@@ -908,9 +908,15 @@ func _show_level_win(points: int, used: int, extras: Variant = null) -> void:
 	if is_online():
 		prefetch_next_level()
 	_show_win(points, used, "", extras, [
-		["Próximo nível", func() -> void: next_level_requested.emit(), true],
+		["Próximo nível", _go_next_level.bind(int(challenge.get("level", 0))), true],
 		["Menu", func() -> void: back_requested.emit()],
 	])
+
+
+## "Próximo nível" da vitória: antes, o anúncio entre níveis, se as regras do painel mandarem.
+func _go_next_level(solved: int) -> void:
+	await Ads.maybe_interstitial(solved)
+	next_level_requested.emit()
 
 
 func _show_daily_win(points: int, used: int, improved: bool, best_points: int, extras: Variant = null) -> void:

@@ -55,19 +55,19 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     private val tag = "NaLata"
     private val io = Executors.newSingleThreadExecutor()
     private var adsReady = false
-    // propaganda premiada já carregada (para abrir na hora do toque); vale 1 h no AdMob, usamos até 50 min
-    private var cachedAd: RewardedAd? = null
-    private var cachedUnit = ""
-    private var cachedAt = 0L
-    private var loadingUnit = ""
-    private val waiting = mutableListOf<(RewardedAd?) -> Unit>()
-    private var lastLoadError = ""
-    // anúncio entre níveis (intersticial) já carregado, mesma validade
-    private var cachedInter: InterstitialAd? = null
-    private var cachedInterUnit = ""
-    private var cachedInterAt = 0L
-    private var loadingInterUnit = ""
-    private val waitingInter = mutableListOf<(InterstitialAd?) -> Unit>()
+    // propaganda premiada e anúncio entre níveis já carregados (para abrir na hora): um "slot" para cada bloco
+    private val rewarded = AdSlot<RewardedAd>("rewarded") { a, unit, ok, fail ->
+        RewardedAd.load(a, unit, AdRequest.Builder().build(), object : RewardedAdLoadCallback() {
+            override fun onAdLoaded(ad: RewardedAd) = ok(ad)
+            override fun onAdFailedToLoad(e: LoadAdError) = fail(e)
+        })
+    }
+    private val interstitial = AdSlot<InterstitialAd>("interstitial") { a, unit, ok, fail ->
+        InterstitialAd.load(a, unit, AdRequest.Builder().build(), object : InterstitialAdLoadCallback() {
+            override fun onAdLoaded(ad: InterstitialAd) = ok(ad)
+            override fun onAdFailedToLoad(e: LoadAdError) = fail(e)
+        })
+    }
 
     override fun getPluginName() = "NaLata"
 
@@ -111,40 +111,7 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun preloadRewarded(unitId: String) {
         val a = act() ?: return
-        a.runOnUiThread { load(a, unitId) { emitSignal("rewarded_ready", it != null) } }
-    }
-
-    private fun freshAd(unitId: String): RewardedAd? =
-        cachedAd?.takeIf { cachedUnit == unitId && System.currentTimeMillis() - cachedAt < 50 * 60 * 1000L }
-
-    /** Carrega uma propaganda (ou usa a guardada) e guarda; `done(null)` se não veio. Roda na thread da tela. */
-    private fun load(a: Activity, unitId: String, done: (RewardedAd?) -> Unit) {
-        freshAd(unitId)?.let { return done(it) }
-        waiting.add(done)
-        if (loadingUnit == unitId) return  // já está carregando: recebe quando chegar
-        loadingUnit = unitId
-        RewardedAd.load(a, unitId, AdRequest.Builder().build(), object : RewardedAdLoadCallback() {
-            override fun onAdLoaded(ad: RewardedAd) {
-                loadingUnit = ""
-                cachedAd = ad
-                cachedUnit = unitId
-                cachedAt = System.currentTimeMillis()
-                answer(ad)
-            }
-
-            override fun onAdFailedToLoad(e: LoadAdError) {
-                loadingUnit = ""
-                Log.w(tag, "rewarded load: ${e.code} ${e.message}")
-                lastLoadError = if (e.code == AdRequest.ERROR_CODE_NO_FILL) "no_fill" else "load_${e.code}"
-                answer(null)
-            }
-        })
-    }
-
-    private fun answer(ad: RewardedAd?) {
-        val all = waiting.toList()
-        waiting.clear()
-        all.forEach { it(ad) }
+        a.runOnUiThread { rewarded.load(a, unitId) { emitSignal("rewarded_ready", it != null) } }
     }
 
     /**
@@ -157,8 +124,8 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
         val a = act() ?: return emitSignal("rewarded_finished", false, "no_activity")
         a.runOnUiThread {
             val show = fun(ad: RewardedAd?) {
-                if (ad == null) return emitSignal("rewarded_finished", false, lastLoadError.ifEmpty { "load" })
-                cachedAd = null
+                if (ad == null) return emitSignal("rewarded_finished", false, rewarded.lastLoadError.ifEmpty { "load" })
+                rewarded.forget()
                 ad.setServerSideVerificationOptions(
                     ServerSideVerificationOptions.Builder().setUserId(userId).setCustomData(customData).build()
                 )
@@ -166,17 +133,17 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
                 ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                     override fun onAdDismissedFullScreenContent() {
                         emitSignal("rewarded_finished", earned, if (earned) "" else "closed")
-                        load(a, unitId) {}
+                        rewarded.load(a, unitId) {}
                     }
 
                     override fun onAdFailedToShowFullScreenContent(e: AdError) {
                         emitSignal("rewarded_finished", false, "show_${e.code}")
-                        load(a, unitId) {}
+                        rewarded.load(a, unitId) {}
                     }
                 }
                 ad.show(a) { earned = true }
             }
-            load(a, unitId) { show(it) }
+            rewarded.load(a, unitId) { show(it) }
         }
     }
 
@@ -184,39 +151,7 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun preloadInterstitial(unitId: String) {
         val a = act() ?: return
-        a.runOnUiThread { loadInter(a, unitId) {} }
-    }
-
-    private fun freshInter(unitId: String): InterstitialAd? =
-        cachedInter?.takeIf { cachedInterUnit == unitId && System.currentTimeMillis() - cachedInterAt < 50 * 60 * 1000L }
-
-    /** Carrega o intersticial (ou usa o guardado); `done(null)` se não veio. Roda na thread da tela. */
-    private fun loadInter(a: Activity, unitId: String, done: (InterstitialAd?) -> Unit) {
-        freshInter(unitId)?.let { return done(it) }
-        waitingInter.add(done)
-        if (loadingInterUnit == unitId) return  // já está carregando: recebe quando chegar
-        loadingInterUnit = unitId
-        InterstitialAd.load(a, unitId, AdRequest.Builder().build(), object : InterstitialAdLoadCallback() {
-            override fun onAdLoaded(ad: InterstitialAd) {
-                loadingInterUnit = ""
-                cachedInter = ad
-                cachedInterUnit = unitId
-                cachedInterAt = System.currentTimeMillis()
-                answerInter(ad)
-            }
-
-            override fun onAdFailedToLoad(e: LoadAdError) {
-                loadingInterUnit = ""
-                Log.w(tag, "interstitial load: ${e.code} ${e.message}")
-                answerInter(null)
-            }
-        })
-    }
-
-    private fun answerInter(ad: InterstitialAd?) {
-        val all = waitingInter.toList()
-        waitingInter.clear()
-        all.forEach { it(ad) }
+        a.runOnUiThread { interstitial.load(a, unitId) {} }
     }
 
     /**
@@ -227,22 +162,22 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
     fun showInterstitial(unitId: String) {
         val a = act() ?: return emitSignal("interstitial_finished", false)
         a.runOnUiThread {
-            val ad = freshInter(unitId)
+            val reload = { interstitial.load(a, unitId) {} }
+            val ad = interstitial.take(unitId)
             if (ad == null) {
                 emitSignal("interstitial_finished", false)
-                loadInter(a, unitId) {}
+                reload()
                 return@runOnUiThread
             }
-            cachedInter = null
             ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
                     emitSignal("interstitial_finished", true)
-                    loadInter(a, unitId) {}
+                    reload()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(e: AdError) {
                     emitSignal("interstitial_finished", false)
-                    loadInter(a, unitId) {}
+                    reload()
                 }
             }
             ad.show(a)
@@ -467,5 +402,56 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
 
     private companion object {
         const val NOTIFY_REQUEST = 4210
+    }
+}
+
+/**
+ * Um bloco do AdMob com o anúncio já carregado (vale 1 h no AdMob; usamos 50 min) e a fila de quem espera o
+ * carregamento. `request` chama o `load` do SDK do tipo certo. Tudo na thread da tela.
+ */
+private class AdSlot<T : Any>(
+    private val name: String,
+    private val request: (Activity, String, (T) -> Unit, (LoadAdError) -> Unit) -> Unit,
+) {
+    private var cached: T? = null
+    private var cachedUnit = ""
+    private var cachedAt = 0L
+    private var loadingUnit = ""
+    private val waiting = mutableListOf<(T?) -> Unit>()
+    var lastLoadError = ""
+
+    private fun fresh(unitId: String): T? =
+        cached?.takeIf { cachedUnit == unitId && System.currentTimeMillis() - cachedAt < 50 * 60 * 1000L }
+
+    /** O anúncio guardado, tirando-o do slot (cada um só aparece uma vez); null se não há nenhum pronto. */
+    fun take(unitId: String): T? = fresh(unitId)?.also { cached = null }
+
+    /** Esquece o guardado (quem pegou por `load` vai mostrá-lo). */
+    fun forget() { cached = null }
+
+    /** Carrega (ou usa o guardado) e guarda; `done(null)` se não veio. */
+    fun load(a: Activity, unitId: String, done: (T?) -> Unit) {
+        fresh(unitId)?.let { return done(it) }
+        waiting.add(done)
+        if (loadingUnit == unitId) return  // já está carregando: recebe quando chegar
+        loadingUnit = unitId
+        request(a, unitId, { ad ->
+            loadingUnit = ""
+            cached = ad
+            cachedUnit = unitId
+            cachedAt = System.currentTimeMillis()
+            answer(ad)
+        }, { e ->
+            loadingUnit = ""
+            Log.w("NaLata", "$name load: ${e.code} ${e.message}")
+            lastLoadError = if (e.code == AdRequest.ERROR_CODE_NO_FILL) "no_fill" else "load_${e.code}"
+            answer(null)
+        })
+    }
+
+    private fun answer(ad: T?) {
+        val all = waiting.toList()
+        waiting.clear()
+        all.forEach { it(ad) }
     }
 }

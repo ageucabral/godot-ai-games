@@ -36,7 +36,7 @@ func _ready() -> void:
 	daily.back_requested.connect(func() -> void: show_screen(home))
 	game.back_requested.connect(_leave_game)
 	game.next_requested.connect(request_play)
-	game.next_level_requested.connect(_next_level)
+	game.next_level_requested.connect(play_level)
 	game.next_event_requested.connect(play_event)
 	ranking.back_requested.connect(func() -> void: show_screen(_ranking_return))
 	ranking.invite_requested.connect(func() -> void: Prizes.open_invite(dialog))
@@ -187,14 +187,6 @@ func show_screen(screen: Control) -> void:
 func _prefetch_level_if_home() -> void:
 	if home.visible and not game.can_resume_level(GameState.current_level()):
 		game.prefetch_next_level()
-
-
-## "Próximo nível" da vitória: antes de abrir, o anúncio entre níveis, se as regras do painel mandarem. Se o jogador saiu
-## da partida enquanto o anúncio estava aberto, não abre a fase por cima da outra tela.
-func _next_level() -> void:
-	await Ads.maybe_interstitial(GameState.current_level() - 1)
-	if game.visible:
-		play_level()
 
 
 ## Abre o próximo nível do modo por níveis (sempre grátis; recomeçar pede propaganda).
