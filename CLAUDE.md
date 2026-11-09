@@ -195,6 +195,11 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   Mecânicas: **gelo** a partir do nível 40 (frasco travado por algumas jogadas) e **frasco de uma cor** a partir
   do 55, com um cartão na partida explicando cada um. No servidor elas só entram com a chave "Gelo e frasco de uma cor" (`rules.pcMechanics`) ligada no painel:
   ligar **junto com a versão mínima 1.3.2**, depois que a 1.3.2 estiver na Play (a 1.3.1 não conhece essas peças).
+- **Botões de propaganda** (Ageu, 9/11/2026): ícone de vídeo + recompensa curta ("▶ +1 frasco", "▶ +5 jogadas"), feitos com
+  `DialogBox.ad(...)` (desenho em `GlossButton.draw_video_icon`). **Frasco completo** brilha e solta estrelas
+  (`BottleView.celebrate`). **Vibração** leve ao tocar, despejar e completar (`Sfx.HAPTICS`, chave "Vibração" na engrenagem,
+  só no celular; permissão `VIBRATE`). **Músicas do painel**: até 3 (OGG/MP3, Painel › Poção › Músicas); o jogo baixa para
+  `user://music` (`Server.sync_music`, depois do `/config`) e, com alguma, toca essas uma depois da outra no lugar das do app.
 - Ainda não existe: aviso de consentimento de anúncios (Europa).
   O APK de teste usa o pacote `com.ageucabral.nalata` (instala ao lado do app da Play). A versão da Play é o
   preset **"Android Play"**: AAB, pacote `app.nalata.android` (atualização do app Expo, que parou no versionCode 17),

@@ -12,6 +12,11 @@ var fill: Color = GameStyle.PURPLE:
 var radius: float = -1.0  # -1 = automático (bem redondo)
 ## Desenha o texto (os botões só com desenho, como os de ajuda, desligam).
 var show_label: bool = true
+## Ícone de vídeo antes do texto: o botão pede uma propaganda (ex.: "▶ +1 frasco", como nos outros jogos).
+var video_icon: bool = false:
+	set(value):
+		video_icon = value
+		queue_redraw()
 var pulse: bool = false:
 	set(value):
 		pulse = value
@@ -94,9 +99,19 @@ func _draw_label(body: Rect2) -> void:
 	var desc := font.get_descent(font_size)
 	var baseline := body.position.y + (body.size.y + asc - desc) * 0.5
 	var pos := Vector2(body.position.x, baseline)
+	var width := body.size.x
 	var col := Color(1, 1, 1, 0.8) if disabled else Color.WHITE
-	draw_string_outline(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, body.size.x, font_size, maxi(8, font_size / 5), GameStyle.INK)
-	draw_string(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, body.size.x, font_size, col)
+	if video_icon:
+		# ícone + texto centrados juntos
+		var icon_w := font_size * 1.25
+		var gap := font_size * 0.35
+		var text_w := font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var left := body.position.x + (body.size.x - icon_w - gap - text_w) * 0.5
+		Icons.draw(self, "video", Vector2(left + icon_w * 0.5, body.get_center().y), icon_w, col)
+		pos = Vector2(left + icon_w + gap, baseline)
+		width = text_w + 2
+	draw_string_outline(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, width, font_size, maxi(8, font_size / 5), GameStyle.INK)
+	draw_string(font, pos, shown, HORIZONTAL_ALIGNMENT_CENTER, width, font_size, col)
 
 
 static func _box(color: Color, r: float, border: int = 0) -> StyleBoxFlat:

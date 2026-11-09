@@ -94,7 +94,12 @@ func _init() -> void:
 	_scroll.add_child(_buttons)
 
 
-## buttons: lista de [texto, ação (Callable), principal (bool)].
+## Botão que pede propaganda: ícone de vídeo + a recompensa em poucas palavras (ex.: "+1 frasco").
+static func ad(text: String, action: Callable, main: bool = true) -> Array:
+	return [text, action, main, true]
+
+
+## buttons: lista de [texto, ação (Callable), principal (bool), ícone de vídeo (bool, veja `ad`)].
 func open(title: String, text: String, buttons: Array) -> void:
 	_open("header", title, text, buttons)
 
@@ -132,6 +137,7 @@ func _open(mode: String, title: String, text: String, buttons: Array) -> void:
 	_buttons.add_theme_constant_override("separation", 14)
 	for spec in buttons:
 		var b := GameStyle.make_button(spec[0], spec[2] if spec.size() > 2 else false, 32)
+		b.video_icon = spec.size() > 3 and bool(spec[3])
 		b.custom_minimum_size = Vector2(0, 92)
 		var index := _actions.size()
 		_actions.append(spec[1])

@@ -8,6 +8,7 @@ signal tapped(index: int)
 const LIFT: float = 34.0
 const MOUTH := Vector2(30, 4)       # boca do frasco na grade 60 x 160
 const PIVOT := Vector2(30, 80)      # centro de giro ao inclinar
+const SPARK_CENTER := Vector2(30, 90)  # de onde saem as estrelinhas do frasco completo
 const SURFACE_MAX_Y: float = 138.0  # abaixo daqui o fundo do frasco começa a arredondar
 
 var index: int = 0
@@ -82,6 +83,12 @@ var _lift: float = 0.0:
 		_lift = value
 		queue_redraw()
 var _tween: Tween
+## Festa de frasco completo (0 → 1): brilho da cor, pulinho e estrelinhas saindo da boca.
+var _done_t: float = -1.0:
+	set(value):
+		_done_t = value
+		queue_redraw()
+var _done_color: Color = Color.WHITE
 
 
 func _ready() -> void:
@@ -130,6 +137,32 @@ func set_covered(covered: bool, animated: bool = true) -> void:
 		return
 	_cover_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	_cover_tween.tween_property(self, "cover_amount", 0.0, 0.6)
+
+
+## Frasco ficou completo: pulinho, brilho da cor do líquido e estrelinhas saindo da boca.
+func celebrate(color: int) -> void:
+	_done_color = GameStyle.liquid_color(color)
+	if not is_inside_tree():
+		return
+	z_index = 5  # estrelinhas por cima dos frascos vizinhos
+	var t := create_tween()
+	t.tween_property(self, "_done_t", 1.0, 0.9).from(0.0)
+	t.tween_property(self, "_done_t", -1.0, 0.0)
+	t.tween_property(self, "z_index", 0, 0.0)
+	# o pulinho usa o mesmo `_tween` da subida: tocar no frasco no meio dele não deixa os dois brigando pelo `_lift`
+	if _tween:
+		_tween.kill()
+	_tween = create_tween().set_trans(Tween.TRANS_SINE)
+	_tween.tween_property(self, "_lift", LIFT * 0.6, 0.14).set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "_lift", 0.0, 0.32).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+
+
+## Posição (grade 60 x 160) e tamanho da estrelinha `i` de `n` no instante `t` da festa: saem do meio do frasco
+## para todos os lados (ficam em volta dele, sem invadir o placar lá em cima).
+static func done_spark(i: int, n: int, t: float) -> Array:
+	var a := -PI * 0.5 + TAU * float(i) / n
+	var dist := 24.0 + 46.0 * ease(t, 0.4)
+	return [SPARK_CENTER + Vector2(cos(a) * 0.9, sin(a) * 1.3) * dist, 10.0 * (1.0 - t * 0.6)]
 
 
 ## Balança de leve quando a jogada não é permitida.
@@ -189,6 +222,11 @@ func _draw() -> void:
 	if _lift > 1.0:
 		draw_circle(Vector2(30, 96), 40, Color(0.55, 0.8, 1.0, 0.10 * _lift / LIFT))
 
+	if _done_t >= 0.0:
+		# brilho da cor do líquido atrás do frasco, que acende e apaga
+		var glow := sin(_done_t * PI)
+		draw_circle(Vector2(30, 92), 58, Color(_done_color, 0.22 * glow))
+		draw_circle(Vector2(30, 92), 42, Color(_done_color.lightened(0.3), 0.25 * glow))
 	draw_colored_polygon(outline, GameStyle.GLASS)
 	var h := layer_height()
 	var level := 0.0
@@ -247,6 +285,13 @@ func _draw() -> void:
 		draw_circle(Vector2(32.5, 30), 3.2, skin_edge)
 		draw_colored_polygon(PackedVector2Array([Vector2(24.4, 31), Vector2(35.6, 31), Vector2(30, 37)]), skin_edge)
 
+	if _done_t >= 0.0:
+		var glow := sin(_done_t * PI)
+		draw_polyline(closed, Color(_done_color.lightened(0.45), glow), 6.0, true)
+		const SPARKS := 7
+		for i in SPARKS:
+			var sp := done_spark(i, SPARKS, _done_t)
+			GameStyle.draw_star(self, sp[0], sp[1], true, Color(0, 0, 0, 0))
 	if cover_amount > 0.0 and cover_key >= 0:
 		_draw_cover(xf)
 	if ice_left > 0:

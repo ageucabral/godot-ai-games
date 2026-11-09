@@ -314,3 +314,16 @@ static func rule_text(me: Dictionary, rules: Variant) -> String:
 			return TranslationServer.translate("Para receber prêmio, convide %d amigos que joguem pelo menos %d dias.") % [
 				int(r.get("friends", 3)), int(r.get("days", 3))]
 	return ""
+
+
+## Nome do arquivo de uma música do painel no aparelho ("1-ab12cd.ogg"), a partir de um item de `GET /config`
+## `music` ({slot, mime, version}). "" quando o item não serve (vaga fora de 1–3, formato que o jogo não toca).
+static func music_file_name(m: Variant) -> String:
+	if not m is Dictionary:
+		return ""
+	var slot := int(m.get("slot", 0))
+	var version := str(m.get("version", ""))
+	var ext: String = {"audio/ogg": "ogg", "audio/mpeg": "mp3"}.get(str(m.get("mime", "")), "")
+	if slot < 1 or slot > 3 or ext.is_empty() or not version.is_valid_hex_number():
+		return ""
+	return "%d-%s.%s" % [slot, version, ext]

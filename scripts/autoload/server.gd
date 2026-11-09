@@ -31,6 +31,11 @@ const NATIVE_TIMEOUT_S := 180.0
 var native_override: Object = null
 ## GET /config (regras, blocos do AdMob, links). Os blocos de propaganda vêm do painel.
 var config: Dictionary = {}
+## Músicas de fundo enviadas pelo painel (`config.music`), baixadas uma vez e guardadas aqui.
+var music_dir: String = "user://music"
+## Para testes: (url, arquivo de destino) -> bool; grava o arquivo no lugar do download de verdade.
+var music_download: Callable
+const MUSIC_TIMEOUT_S := 90.0
 ## Espera usada entre tentativas de confirmar a propaganda (os testes zeram).
 var retry_wait_s: float = REWARD_RETRY_WAIT_S
 
@@ -148,6 +153,57 @@ func load_config() -> bool:
 	if preload_plugin and not rewarded_unit_id().is_empty():
 		preload_plugin.preloadRewarded(rewarded_unit_id())
 	return true
+
+
+## Baixa as músicas do painel que ainda não estão no aparelho, apaga as que saíram e passa a lista para o `Sfx`
+## (com alguma, toca essas no lugar das do app). Sem o /config (sem internet), usa as que já estão guardadas.
+func sync_music() -> void:
+	var list: Variant = config.get("music")
+	if list is Array:
+		DirAccess.make_dir_recursive_absolute(music_dir)
+		var keep: Array[String] = []
+		for m: Variant in list:
+			var file := ApiClient.music_file_name(m)
+			if file.is_empty():
+				continue
+			var path := music_dir.path_join(file)
+			if not FileAccess.file_exists(path):
+				# baixa num arquivo temporário e só renomeia completo: um arquivo cortado nunca fica com o nome final
+				var part := path + ".part"
+				if not await _download_music(str(m.get("url", "")), part) or DirAccess.rename_absolute(part, path) != OK:
+					DirAccess.remove_absolute(part)
+					continue
+			keep.append(file)
+		for file in _music_files():
+			if not file in keep:
+				DirAccess.remove_absolute(music_dir.path_join(file))
+	Sfx.set_custom_tracks(_music_files().map(func(f: String) -> String: return music_dir.path_join(f)))
+
+
+## Arquivos de música guardados, em ordem de vaga ("1-…", "2-…", "3-…").
+func _music_files() -> Array[String]:
+	var files: Array[String] = []
+	for f in DirAccess.get_files_at(music_dir):
+		if f.get_extension() in ["ogg", "mp3"]:
+			files.append(f)
+	files.sort()
+	return files
+
+
+## Baixa `url` (caminho da API, ex. "/pocao/music/1?v=…") direto para o arquivo `dest`, sem guardar na memória.
+func _download_music(url: String, dest: String) -> bool:
+	if music_download.is_valid():
+		return music_download.call(url, dest)
+	var http := HTTPRequest.new()
+	http.timeout = MUSIC_TIMEOUT_S
+	http.download_file = dest
+	add_child(http)
+	if url.is_empty() or http.request(base_url + url) != OK:
+		http.queue_free()
+		return false
+	var out: Array = await http.request_completed
+	http.queue_free()
+	return out[0] == HTTPRequest.RESULT_SUCCESS and out[1] == 200
 
 
 ## Última versão mínima que o servidor mandou ("" = nenhuma), guardada no aparelho.

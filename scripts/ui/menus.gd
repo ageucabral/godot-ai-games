@@ -27,6 +27,8 @@ static func open_settings(dialog: DialogBox) -> void:
 	dialog.add_row(Row.new("🌐", "Idioma", func() -> void: open_language(dialog)).with_value(I18n.language_name(GameState.language())))
 	dialog.add_row(Row.new("🎵", "Música", Sfx.set_music_enabled, true).with_switch(Sfx.music_enabled()))
 	dialog.add_row(Row.new("🔊", "Sons", Sfx.set_enabled).with_switch(Sfx.enabled()))
+	if Sfx.can_vibrate():
+		dialog.add_row(Row.new("📳", "Vibração", Sfx.set_vibration_enabled, true).with_switch(Sfx.vibration_enabled()))
 	if Reminders.plugin() != null:
 		dialog.add_row(Row.new("🔔", "Avisos no celular", Reminders.set_enabled, true).with_switch(Reminders.enabled()))
 	dialog.add_row(Row.new("❓", "Como jogar", func() -> void: open_how_to_play(dialog)))

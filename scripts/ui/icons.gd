@@ -11,6 +11,17 @@ static func draw(ci: CanvasItem, kind: String, c: Vector2, s: float, col: Color 
 		"gear": _gear(ci, c, s, col)
 		"trophy": _trophy(ci, c, s)
 		"back": _back(ci, c, s, col)
+		"video": _video(ci, c, s, col)
+
+
+## Vídeo (botões de propaganda): tela arredondada com contorno escuro e o "play" no meio. `s` = largura.
+static func _video(ci: CanvasItem, c: Vector2, s: float, col: Color) -> void:
+	var h := s * 0.74
+	var rect := Rect2(c - Vector2(s, h) * 0.5, Vector2(s, h))
+	ci.draw_style_box(_round_box(int(h * 0.3), 0, GameStyle.INK), rect.grow(3))
+	ci.draw_style_box(_round_box(int(h * 0.26), 0, col), rect)
+	var t := h * 0.24
+	ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-t * 0.8, -t), c + Vector2(t * 1.1, 0), c + Vector2(-t * 0.8, t)]), GameStyle.INK)
 
 
 ## Seta de voltar ("‹").

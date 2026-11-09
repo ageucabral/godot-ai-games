@@ -20,6 +20,15 @@ var _music: AudioStreamPlayer
 var _tracks: Dictionary = {}
 ## Música da tela aberta agora: "menu" ou "game".
 var track: String = "menu"
+## Músicas enviadas pelo painel (Ageu, 9/11/2026; até 3): com alguma, tocam uma depois da outra em todas as telas,
+## no lugar das duas do app. Vazio = as do app.
+var playlist: Array[String] = []  # caminhos; cada uma só é carregada na hora de tocar
+var _playlist_at: int = 0
+## Vibração leve junto de alguns sons da partida (Ageu, 9/11/2026): [duração em ms, força 0–1]. Liga e desliga na
+## engrenagem ("Vibração"), separado do som.
+const HAPTICS := {"tap": [12, 0.35], "pour": [22, 0.6], "bottle_done": [45, 1.0], "wrong": [30, 0.5]}
+## Para testes: as últimas vibrações (nome do som).
+var vibrated: Array[String] = []
 
 
 func _ready() -> void:
@@ -39,6 +48,7 @@ func _ready() -> void:
 			stream.loop = true
 			_tracks[k] = stream
 	_music.stream = _tracks.get(track)
+	_music.finished.connect(_next_in_playlist)
 	add_child(_music)
 	_update_music.call_deferred()
 
@@ -65,10 +75,38 @@ func set_track(name: String) -> void:
 	if name == track or not _tracks.has(name):
 		return
 	track = name
-	var was_playing := _music.playing
+	if playlist.is_empty():
+		_switch_to(_tracks[name], _music.playing)
+	# com músicas do painel, elas seguem tocando em qualquer tela
+
+
+## Troca para as músicas do painel (arquivos .ogg/.mp3 já baixados); lista vazia volta para as do app.
+func set_custom_tracks(paths: Array) -> void:
+	playlist.assign(paths)
+	_playlist_at = 0
+	_switch_to(_load_track(playlist[0]) if not playlist.is_empty() else _tracks.get(track))
+
+
+func _next_in_playlist() -> void:
+	if playlist.is_empty():
+		return
+	_playlist_at = (_playlist_at + 1) % playlist.size()
+	_switch_to(_load_track(playlist[_playlist_at]))
+
+
+static func _load_track(path: String) -> AudioStream:
+	var stream: AudioStream = AudioStreamOggVorbis.load_from_file(path) if path.get_extension() == "ogg" \
+			else AudioStreamMP3.load_from_file(path)
+	if stream:
+		stream.set("loop", false)  # a próxima da lista entra quando esta acaba
+	return stream
+
+
+## Troca o que toca. `play` = false só deixa pronta (o `set_track` não liga a música que estava parada).
+func _switch_to(stream: AudioStream, play: bool = true) -> void:
 	_music.stop()
-	_music.stream = _tracks[name]
-	if was_playing:
+	_music.stream = stream
+	if play:
 		_update_music()
 
 
@@ -85,7 +123,30 @@ func _update_music() -> void:
 		_music.stop()
 
 
+## Vibra só no celular (a chave "Vibração" aparece só lá). Os testes trocam com `vibrate_override`.
+var vibrate_override: Variant = null
+
+
+func can_vibrate() -> bool:
+	return bool(vibrate_override) if vibrate_override != null else OS.has_feature("mobile")
+
+
+func vibration_enabled() -> bool:
+	return bool(GameState.get_setting("vibration", true))
+
+
+func set_vibration_enabled(on: bool) -> void:
+	GameState.set_setting("vibration", on)
+	if on and can_vibrate():
+		Input.vibrate_handheld(20, 0.5)  # mostra como fica
+
+
 func play(sound: String, volume_db: float = 0.0) -> void:
+	if HAPTICS.has(sound) and can_vibrate() and vibration_enabled():
+		vibrated.append(sound)
+		if vibrated.size() > PLAYED_MAX:
+			vibrated.remove_at(0)
+		Input.vibrate_handheld(HAPTICS[sound][0], HAPTICS[sound][1])
 	if not enabled() or not _streams.has(sound):
 		return
 	played.append(sound)

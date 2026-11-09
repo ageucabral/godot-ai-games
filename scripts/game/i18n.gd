@@ -9,6 +9,9 @@ const LANGUAGES: Array = [["pt", "Português"], ["en", "English"], ["es", "Espa�
 
 ## "texto em português": [inglês, espanhol]
 const STRINGS := {
+	"Vibração": ["Vibration", "Vibración"],
+	"+1 frasco": ["+1 flask", "+1 frasco"],
+	"Jogar de novo": ["Play again", "Jugar de nuevo"],
 	"Nenhum evento agora.": ["No event right now.", "Ningún evento ahora."],
 	"Você já completou este evento.": ["You already completed this event.", "Ya completaste este evento."],
 	"Você não tem ajuda grátis.": ["You have no free help.", "No tienes ayuda gratis."],
@@ -440,15 +443,12 @@ const STRINGS := {
 		"Gana una botella vacía más.\nPide un anuncio y cuesta %s."],
 	"1 ponto": ["1 point", "1 punto"],
 	"%d pontos": ["%d points", "%d puntos"],
-	"Assistir e embaralhar": ["Watch and shuffle", "Ver y mezclar"],
-	"Assistir e ganhar": ["Watch and get it", "Ver y ganar"],
 	"Não deu para embaralhar agora. Nada foi cobrado.": ["Couldn't shuffle right now. Nothing was charged.", "No se pudo mezclar ahora. No se cobró nada."],
 	"Recomeçar?": ["Restart?", "¿Reiniciar?"],
 	"Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado.": [
 		"Each new attempt needs an ad.\nYour best result always counts.",
 		"Cada nuevo intento pide un anuncio.\nSiempre vale tu mejor resultado."],
 	"Recomeçar pede uma propaganda.": ["Restarting needs an ad.", "Reiniciar pide un anuncio."],
-	"Assistir e recomeçar": ["Watch and restart", "Ver y reiniciar"],
 	"Continuar jogando": ["Keep playing", "Seguir jugando"],
 	"Acabaram as jogadas": ["Out of moves", "Se acabaron las jugadas"],
 	"Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.": [
@@ -472,7 +472,6 @@ const STRINGS := {
 	"Você já tentou este desafio.": ["You already tried this challenge.", "Ya intentaste este desafío."],
 	"Seu melhor aqui: %d pontos em %d jogadas.": ["Your best here: %d points in %d moves.", "Tu mejor aquí: %d puntos en %d jugadas."],
 	"\nUma nova tentativa pede uma propaganda.": ["\nA new attempt needs an ad.", "\nUn nuevo intento pide un anuncio."],
-	"Assistir e jogar": ["Watch and play", "Ver y jugar"],
 	"PROPAGANDA\n(simulação)\n\nAqui vai aparecer o anúncio do AdMob.\n\n%d": [
 		"AD\n(simulation)\n\nThe AdMob ad will show here.\n\n%d",
 		"ANUNCIO\n(simulación)\n\nAquí aparecerá el anuncio de AdMob.\n\n%d"],
