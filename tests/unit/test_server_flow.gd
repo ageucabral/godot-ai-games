@@ -306,7 +306,7 @@ func test_reward_waits_for_admob_confirmation() -> void:
 func test_daily_retry_sends_reward() -> void:
 	main.request_play(TODAY, 0)  # já tentou uma vez (veio do servidor)
 	assert_true(main.dialog.visible, "pede propaganda")
-	main.dialog.press("Assistir e jogar")
+	main.dialog.press("Jogar de novo")
 	await wait_physics_frames(1)
 	assert_eq(_last("/rewards")[2], {"kind": "pretry", "mode": "2026-11-07#0"})
 	var start: Array = _last("/pocao/matches")
@@ -665,7 +665,7 @@ func test_free_boost_skips_the_ad() -> void:
 	assert_true(str(_last("/pocao/matches/m-1/boost")[2].rewardId).begins_with("free:"))
 	assert_eq(int(GameState.streak().free_boosts), 0)
 	game._on_bottle_pressed()
-	assert_eq(game.dialog.button_texts()[0], "Assistir e ganhar", "acabaram as grátis")
+	assert_eq(game.dialog.button_texts()[0], "+1 frasco", "acabaram as grátis")
 
 
 func test_win_shows_stars_extras_and_duel() -> void:

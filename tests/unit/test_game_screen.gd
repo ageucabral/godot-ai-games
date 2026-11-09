@@ -124,7 +124,7 @@ func test_restart_needs_ad_and_new_attempt() -> void:
 	screen.open_challenge("2026-11-07", 0)
 	assert_eq(GameState.attempts("2026-11-07#0"), 1)
 	screen.get_node("%RestartButton").pressed.emit()
-	screen.dialog.press("Assistir e recomeçar")
+	screen.dialog.press("Recomeçar")
 	assert_eq(GameState.attempts("2026-11-07#0"), 2, "recomeçar gasta uma tentativa")
 	assert_eq(screen.puzzle.moves_used(), 0)
 
@@ -133,7 +133,7 @@ func test_restart_after_midnight_is_closed() -> void:
 	screen.open_challenge("2026-11-07", 0)
 	GameState.fixed_unix += 86400  # virou o dia com a partida aberta
 	screen.get_node("%RestartButton").pressed.emit()
-	screen.dialog.press("Assistir e recomeçar")
+	screen.dialog.press("Recomeçar")
 	assert_eq(screen.dialog.title_label.text, "Desafio encerrado")
 	assert_eq(GameState.attempts("2026-11-07#0"), 1, "não gasta tentativa de dia encerrado")
 
@@ -229,7 +229,7 @@ func test_extra_bottle_costs_one_point() -> void:
 	screen.open_with(EASY)
 	screen.get_node("%BottleButton").pressed.emit()
 	assert_true(screen.dialog.visible, "pede confirmação")
-	screen.dialog.press("Assistir e ganhar")
+	screen.dialog.press("+1 frasco")
 	assert_eq(screen.puzzle.tubes.size(), 4, "ganhou uma garrafa vazia")
 	assert_eq(screen._points_value.text, "9", "custa 1 ponto")
 	assert_eq(screen.bottles_left, 0)
@@ -245,7 +245,7 @@ func test_shuffle_costs_one_point_and_keeps_colors() -> void:
 		before.append_array(t)
 	before.sort()
 	screen.get_node("%ShuffleButton").pressed.emit()
-	screen.dialog.press("Assistir e embaralhar")
+	screen.dialog.press("Embaralhar")
 	var after: Array = []
 	for t in screen.puzzle.tubes:
 		after.append_array(t)

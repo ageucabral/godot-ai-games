@@ -31,6 +31,7 @@ var puzzle: SortPuzzle
 var move_limit: int = 0
 var selected: int = -1
 var busy: bool = false
+var _completed: Array = []  # [frasco, cor] que acabou de ficar completo (festa depois do despejo)
 var dialog: DialogBox
 ## Cartão que explica o gelo e o frasco de uma cor (só aparece com essas peças na fase).
 var pieces_card: PiecesCard
@@ -407,6 +408,7 @@ func _do_pour(from: int, to: int) -> void:
 	Sfx.play("pour")
 	if SortPuzzle.is_complete(puzzle.tubes[to]):
 		Sfx.play("bottle_done", -3.0)
+		_completed = [to, color]
 	if not animate or not is_inside_tree():
 		_after_pour()
 		return
@@ -464,6 +466,9 @@ func _set_flow(src: BottleView, dst: BottleView, src_before: Array, dst_before: 
 
 func _after_pour() -> void:
 	_refresh()
+	if not _completed.is_empty():
+		_bottles[_completed[0]].celebrate(_completed[1])
+		_completed = []
 	if puzzle.is_solved():
 		end_tutorial(true)
 		_finish()
@@ -580,7 +585,7 @@ func _on_restart_pressed() -> void:
 		return
 	var text := "Recomeçar pede uma propaganda." if not is_daily() else "Cada nova tentativa pede uma propaganda.\nVale sempre o seu melhor resultado."
 	dialog.open("Recomeçar?", tr(text), [
-		["Assistir e recomeçar", _restart_with_ad, true],
+		DialogBox.ad("Recomeçar", _restart_with_ad),
 		["Continuar jogando", func() -> void: pass],
 	])
 
@@ -635,7 +640,7 @@ func _on_shuffle_pressed() -> void:
 		var at: int = puzzle.moves_used()
 		action = func() -> void: Ads.show_rewarded(func() -> void: apply_shuffle(mixed, at))
 	dialog.open("Embaralhar?", tr("Mistura de novo as cores das garrafas abertas.\nPede uma propaganda e custa %s.") % boost_cost_text(),
-		_with_free_boost("shuffle", [["Assistir e embaralhar", action, true], ["Voltar", func() -> void: pass]]))
+		_with_free_boost("shuffle", [DialogBox.ad("Embaralhar", action), ["Voltar", func() -> void: pass]]))
 
 
 ## Frasco extra: uma garrafa vazia a mais. Pede propaganda e tira `boost_cost` ponto(s). 1 por fase.
@@ -643,11 +648,11 @@ func _on_bottle_pressed() -> void:
 	if busy or _finished or bottles_left <= 0 or not can_use_boost():
 		return
 	dialog.open("Frasco extra?", tr("Ganha uma garrafa vazia a mais.\nPede uma propaganda e custa %s.") % boost_cost_text(), _with_free_boost("flask", [
-		["Assistir e ganhar", func() -> void:
+		DialogBox.ad("+1 frasco", func() -> void:
 			if is_online():
 				_boost_online("flask")
 			else:
-				Ads.show_rewarded(apply_extra_bottle), true],
+				Ads.show_rewarded(apply_extra_bottle)),
 		["Voltar", func() -> void: pass],
 	]))
 
@@ -754,8 +759,8 @@ func _on_extra_moves_pressed() -> void:
 func _show_out_of_moves() -> void:
 	Sfx.play("lose")
 	dialog.open("Acabaram as jogadas", tr("Assista a uma propaganda para ganhar +%d jogadas.\nCada jogada além de %d tira 1 ponto.") % [extra_moves, challenge.par], [
-		[tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed, true],
-		["Recomeçar", _restart_with_ad],
+		DialogBox.ad(tr("+%d jogadas") % extra_moves, _on_extra_moves_pressed),
+		DialogBox.ad("Recomeçar", _restart_with_ad, false),
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
@@ -765,13 +770,13 @@ func _show_zero_points() -> void:
 	if not is_daily():
 		# nos níveis dá para terminar sem pontos e seguir em frente
 		dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este nível, ou termine sem pontos.", [
-			["Recomeçar", _restart_with_ad, true],
+			DialogBox.ad("Recomeçar", _restart_with_ad),
 			["Continuar sem pontos", func() -> void: _zero_accepted = true],
 			["Menu", func() -> void: back_requested.emit()],
 		])
 		return
 	dialog.open("Pontuação zerada", "Assista a uma propaganda para recomeçar este desafio.", [
-		["Recomeçar", _restart_with_ad, true],
+		DialogBox.ad("Recomeçar", _restart_with_ad),
 		["Menu", func() -> void: back_requested.emit()],
 	])
 
@@ -865,7 +870,7 @@ func _show_daily_win(points: int, used: int, improved: bool, best_points: int, e
 	if next_index >= 0:
 		buttons.append(["Próximo desafio", func() -> void: next_requested.emit(challenge.date, next_index), true])
 	if points < challenge.full_points:
-		buttons.append(["Tentar melhorar", _restart_with_ad])
+		buttons.append(DialogBox.ad("Tentar melhorar", _restart_with_ad, false))
 	buttons.append(["Menu", func() -> void: back_requested.emit()])
 	_show_win(points, used, note, extras, buttons)
 

@@ -42,7 +42,7 @@ func test_second_attempt_asks_for_ad() -> void:
 	assert_true(main.get_node("Daily").visible, "voltou aos desafios do dia")
 	main.request_play("2026-11-07", 0)
 	assert_true(main.dialog.visible, "pede propaganda")
-	main.dialog.press("Assistir e jogar")
+	main.dialog.press("Jogar de novo")
 	assert_eq(GameState.attempts("2026-11-07#0"), 2)
 	assert_true(main.get_node("Game").visible)
 

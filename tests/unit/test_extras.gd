@@ -130,3 +130,26 @@ func test_event_card_done_is_not_playable() -> void:
 	assert_true(card.disabled, "evento completo: o servidor recusaria a próxima fase")
 	assert_eq(card._count.text, "Evento completo!")
 	card.free()
+
+
+func test_full_bottle_sparks_fly_out() -> void:
+	var start: Array = BottleView.done_spark(0, 7, 0.0)
+	var end: Array = BottleView.done_spark(0, 7, 1.0)
+	assert_true((end[0] as Vector2).y < (start[0] as Vector2).y, "a primeira sobe")
+	assert_true((end[0] as Vector2).distance_to(BottleView.SPARK_CENTER) > 60.0, "sai para longe do meio do frasco")
+	assert_true(float(end[1]) < float(start[1]), "e diminui")
+	var bottle := BottleView.new()
+	bottle.celebrate(1)
+	assert_eq(bottle._done_color, GameStyle.liquid_color(1), "brilha na cor do líquido")
+	bottle.free()
+
+
+func test_vibration_follows_its_switch() -> void:
+	Sfx.vibrated.clear()
+	Sfx.play("pour")
+	Sfx.play("click")
+	assert_eq(Sfx.vibrated, ["pour"], "vibra ao despejar, não nos botões")
+	Sfx.set_vibration_enabled(false)
+	Sfx.play("tap")
+	assert_eq(Sfx.vibrated, ["pour"], "desligada na engrenagem")
+	Sfx.set_vibration_enabled(true)

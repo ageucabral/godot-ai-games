@@ -54,6 +54,7 @@ func _connect_server() -> void:
 	if not Server.enabled:
 		return
 	await Server.load_config()
+	Server.sync_music()  # em segundo plano: a música troca quando terminar de baixar
 	if Account.check_gate(dialog):
 		return  # versão antiga ou manutenção: não deixa jogar (o "Tentar de novo" continua daqui)
 	await Account.connect_and_onboard(dialog)
@@ -197,7 +198,7 @@ func request_play(date: String, index: int) -> void:
 	if r.completed:
 		text = tr("Seu melhor aqui: %d pontos em %d jogadas.") % [r.best_points, r.best_moves]
 	dialog.open(tr("Desafio %d") % (index + 1), text + tr("\nUma nova tentativa pede uma propaganda."), [
-		["Assistir e jogar", func() -> void: _start_with_ad(date, index), true],
+		DialogBox.ad("Jogar de novo", func() -> void: _start_with_ad(date, index)),
 		["Voltar", func() -> void: show_screen(daily)],
 	])
 
