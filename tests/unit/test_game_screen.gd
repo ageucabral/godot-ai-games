@@ -310,6 +310,15 @@ func test_pieces_card_collapses_to_a_toggle() -> void:
 	assert_true(screen.pieces_card._toggle.visible, "fica só o botão ?")
 	screen.pieces_card._toggle.pressed.emit()
 	assert_true(screen.pieces_card.is_open(), "tocar abre de novo")
+	# o gelo conta as jogadas: o texto muda, mas o cartão recolhido não reabre a cada jogada
+	screen.pieces_card._timer.timeout.emit()
+	var move: Array = SortPuzzle.hint_move(screen.puzzle.tubes, screen.puzzle.covers, 60000, screen.puzzle.ice_left(), screen.puzzle.only)
+	screen.tap_bottle(move[0])
+	screen.tap_bottle(move[1])
+	assert_false(screen.pieces_card.is_open(), "jogada com o gelo contando: continua recolhido")
+	# a mesma fase aberta de novo (mesmo texto) volta a abrir
+	screen.open_with(LevelGenerator.generate(Rules.ICE_FROM))
+	assert_true(screen.pieces_card.is_open(), "fase nova abre o cartão, mesmo com o texto igual")
 	screen.open_with(EASY)
 	assert_false(screen.pieces_card.visible, "fase sem peças especiais não tem cartão")
 

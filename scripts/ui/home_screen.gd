@@ -156,7 +156,6 @@ func refresh() -> void:
 	var hard := Rules.is_hard_level(level)
 	level_button.text = tr("Nível %d · difícil") % level if hard else tr("Nível %d") % level
 	level_button.fill = GameStyle.PURPLE if hard else GameStyle.GREEN
-	level_button.queue_redraw()
 	var done := Menus.daily_done()
 	daily_button.text = daily_text(done)
 	daily_button.done = done
@@ -201,8 +200,8 @@ class DailyCard extends Button:
 		focus_mode = Control.FOCUS_NONE
 		auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		custom_minimum_size = Vector2(0, 96)
-		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
-			add_theme_color_override(c, Color(0, 0, 0, 0))
+		GlossButton.hide_builtin_label(self)  # o texto é desenhado no _draw (nome à esquerda, contagem à direita)
+		pressed.connect(func() -> void: Sfx.play("click", -6.0))
 
 	func _draw() -> void:
 		var sink := 3.0 if is_pressed() else 0.0

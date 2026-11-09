@@ -134,6 +134,12 @@ func test_unlock_is_announced_once() -> void:
 	GameState.set_level(10)
 	main.show_screen(home)
 	assert_eq(home.dialog.title_label.text, "Novo: Liga da semana!")
+	home.dialog.press("Legal!")
+	# progresso trazido do servidor (ou app atualizado): várias áreas de uma vez, quem já jogava não vê "Novo"
+	GameState.set_level(20)
+	main.show_screen(home)
+	assert_false(home.dialog.visible, "liberou duelo e evento juntos: já jogava, não avisa")
+	assert_true("duel" in GameState.get_setting("unlocks_seen", []), "mas fica marcado como visto")
 
 
 func test_home_follows_midnight_without_looping() -> void:

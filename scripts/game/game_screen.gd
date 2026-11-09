@@ -314,6 +314,7 @@ func open_with(data: Dictionary) -> void:
 	else:
 		_bg.kind = Extras.background_kind(str(GameState.looks().get("bg", "night")))
 	_build_bottles()
+	pieces_card.reset()  # fase nova: o cartão das peças abre de novo (mesmo com o mesmo texto da anterior)
 	# a setinha guia até o nível Rules.TUTORIAL_LEVELS; a janela de boas-vindas só no 1
 	var level := int(data.get("level", 0))
 	tutorial = is_level() and level <= Rules.TUTORIAL_LEVELS and not bool(GameState.get_setting("tutorial_done", false))
@@ -1028,12 +1029,19 @@ class PiecesCard extends CenterContainer:
 		_timer.timeout.connect(func() -> void: set_open(false))
 		add_child(_timer)
 
-	## Aberto (texto completo, fecha sozinho) ou recolhido (só o "?").
+	## Aberto (texto completo, fecha sozinho) ou recolhido (só o "?"). Recolhido, guarda a altura do texto para as
+	## garrafas não mudarem de lugar no meio da partida.
 	func set_open(open: bool) -> void:
+		custom_minimum_size = Vector2.ZERO if open else Vector2(0, maxf(_panel.size.y, 64.0))
 		_panel.visible = open
 		_toggle.visible = not open
 		if open and is_inside_tree():
 			_timer.start()
+
+	## Fase nova: a próxima lista de peças abre o cartão de novo.
+	func reset() -> void:
+		_lines = []
+		custom_minimum_size = Vector2.ZERO
 
 	func is_open() -> bool:
 		return _panel.visible
@@ -1042,8 +1050,11 @@ class PiecesCard extends CenterContainer:
 		visible = not lines.is_empty()
 		if lines == _lines:
 			return  # o _refresh roda a cada jogada; só remonta quando o texto muda
+		# abre só na primeira vez da fase; depois (ex.: o gelo contando as jogadas) só troca o texto, sem reabrir
+		var first := _lines.is_empty()
 		_lines = lines
-		set_open(true)
+		if first:
+			set_open(true)
 		for c in _list.get_children():
 			c.queue_free()
 		for line in lines:

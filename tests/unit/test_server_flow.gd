@@ -17,6 +17,8 @@ var level_number: int = 4
 ## Extras do menu (sequência, frascos, evento) e do fim da partida.
 var home_extras: Dictionary = {}
 var finish_extras: Variant = null
+## O app pediu o próximo nível ao servidor logo ao abrir (antes de os testes mexerem no servidor de mentira).
+var startup_prefetched: bool = false
 
 
 func before_each() -> void:
@@ -42,6 +44,10 @@ func before_each() -> void:
 	game = main.get_node("Game")
 	game.animate = false
 	await wait_physics_frames(2)
+	# o app abre no menu e já pede o próximo nível; os testes mudam o servidor de mentira depois, então esquecem esse
+	startup_prefetched = calls.any(func(c: Array) -> bool: return c[1] == "/pocao/matches")
+	calls = calls.filter(func(c: Array) -> bool: return c[1] != "/pocao/matches")
+	game.drop_next_level()
 
 
 func after_each() -> void:
@@ -326,6 +332,10 @@ func test_first_daily_attempt_is_free_online() -> void:
 	await wait_physics_frames(1)
 	assert_eq(_last("/pocao/matches")[2], {"mode": "daily", "index": 1})
 	assert_false("/rewards" in _paths(), "sem propaganda")
+
+
+func test_app_start_prefetches_next_level() -> void:
+	assert_true(startup_prefetched, "abriu direto no menu: o nível já foi pedido ao entrar no servidor")
 
 
 func test_no_connection_goes_back() -> void:

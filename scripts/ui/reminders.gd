@@ -26,8 +26,8 @@ static func next_time(now: int, played_today: bool) -> int:
 
 
 ## [título, texto] do aviso para a hora `at`. `streak` = dias seguidos; `position` = lugar no Ranking Global do mês
-## (null = fora); `prize` = tem prêmio para resgatar.
-static func message(streak: int, at: int = 0, position: Variant = null, prize: bool = false) -> Array[String]:
+## (null = fora); `prize` = tem prêmio para resgatar; `daily` = os desafios do dia já liberaram (Rules.UNLOCKS).
+static func message(streak: int, at: int = 0, position: Variant = null, prize: bool = false, daily: bool = true) -> Array[String]:
 	if prize:
 		return ["Na Lata", I18n.t("Você tem um prêmio para resgatar. Abra o app e peça o seu!")]
 	var days := Rules.days_left_in_month(at) if at > 0 else 99
@@ -37,6 +37,8 @@ static func message(streak: int, at: int = 0, position: Variant = null, prize: b
 		return ["Na Lata", I18n.t("Faltam %d dias para o ranking do mês fechar. Você está em %dº.") % [days, int(position)]]
 	if streak >= 2:
 		return [I18n.t("Poção de Cores"), "🔥 " + I18n.t("Sua sequência de %d dias acaba à meia-noite. Uma fase basta!") % streak]
+	if not daily:
+		return [I18n.t("Poção de Cores"), I18n.t("Seu próximo nível te espera!") + " 🧪"]
 	return [I18n.t("Poção de Cores"), I18n.t("Os %d desafios de hoje chegaram! Seja o primeiro a resolver") % Rules.DAILY_COUNT + " 🧪"]
 
 
@@ -51,7 +53,8 @@ static func update() -> void:
 	var s := GameState.streak()
 	var at := next_time(GameState.now_unix(), bool(s.played_today))
 	var month := GameState.global_month_total(Rules.month_for(at))
-	var m := message(int(s.count), at, month.get("position"), not Prizes.pending_payouts().is_empty())
+	var m := message(int(s.count), at, month.get("position"), not Prizes.pending_payouts().is_empty(),
+		Rules.unlocked("daily", GameState.current_level()))
 	p.scheduleReminder(at * 1000, m[0], m[1])
 
 

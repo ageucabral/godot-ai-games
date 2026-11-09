@@ -17,6 +17,7 @@ const STRINGS := {
 	"Novo: %s!": ["New: %s!", "¡Nuevo: %s!"],
 	"Legal!": ["Nice!", "¡Genial!"],
 	"Eventos": ["Events", "Eventos"],
+	"Seu próximo nível te espera!": ["Your next level is waiting!", "¡Tu próximo nivel te espera!"],
 	"20 desafios novos à meia-noite, iguais para todo mundo.": ["20 new challenges at midnight, the same for everyone.", "20 desafíos nuevos a medianoche, iguales para todos."],
 	"Compita com outros jogadores e suba de liga.": ["Compete with other players and climb the leagues.", "Compite con otros jugadores y sube de liga."],
 	"Medalhas, frascos e molduras para colecionar.": ["Medals, flasks and frames to collect.", "Medallas, frascos y marcos para coleccionar."],
