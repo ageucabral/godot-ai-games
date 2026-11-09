@@ -69,6 +69,8 @@ func set_event(ev: Variant) -> void:
 	var done := int(event.get("done", 0))
 	var levels := int(event.get("levels", 0))
 	_new.visible = done == 0
+	# evento completo: o cartão fica só para ver a trilha (o servidor recusaria a próxima fase com EVENT_DONE)
+	disabled = levels > 0 and done >= levels
 	_count.text = tr("Evento completo!") if done >= levels else tr("%d de %d fases do evento") % [done, levels]
 	_trail.rewards = event.get("rewards", [])
 	_trail.done = done

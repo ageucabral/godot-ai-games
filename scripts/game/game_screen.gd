@@ -950,6 +950,7 @@ func _celebrate() -> void:
 ## Cartão claro com uma linha por peça especial ("🧊 Frasco de gelo: derrete depois de 3 jogadas.").
 class PiecesCard extends CenterContainer:
 	var _list: VBoxContainer
+	var _lines: Array[String] = []
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -968,6 +969,9 @@ class PiecesCard extends CenterContainer:
 
 	func update(lines: Array[String]) -> void:
 		visible = not lines.is_empty()
+		if lines == _lines:
+			return  # o _refresh roda a cada jogada; só remonta quando o texto muda
+		_lines = lines
 		for c in _list.get_children():
 			c.queue_free()
 		for line in lines:

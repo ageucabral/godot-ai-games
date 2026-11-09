@@ -208,6 +208,8 @@ class LevelMap extends Control:
 		queue_redraw()
 
 	func _process(delta: float) -> void:
+		if not is_visible_in_tree():
+			return  # com o menu escondido (partida, ranking) não precisa redesenhar
 		_time += delta
 		queue_redraw()
 

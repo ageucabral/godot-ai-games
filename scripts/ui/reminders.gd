@@ -31,6 +31,8 @@ static func message(streak: int, at: int = 0, position: Variant = null, prize: b
 	if prize:
 		return ["Na Lata", I18n.t("Você tem um prêmio para resgatar. Abra o app e peça o seu!")]
 	var days := ceili(Rules.seconds_to_month_end(at) / 86400.0) if at > 0 else 99
+	if position != null and days == 1:
+		return ["Na Lata", I18n.t("Falta 1 dia para o ranking do mês fechar. Você está em %dº.") % int(position)]
 	if position != null and days <= 2:
 		return ["Na Lata", I18n.t("Faltam %d dias para o ranking do mês fechar. Você está em %dº.") % [days, int(position)]]
 	if streak >= 2:

@@ -71,6 +71,8 @@ func test_reminder_time_once_a_day() -> void:
 	assert_true(Reminders.message(0)[1].begins_with("Os 20 desafios de hoje chegaram"))
 	var last_day := Rules.unix_from_iso("2026-11-30T15:00:00")
 	assert_true(Reminders.message(5, last_day, 37)[1].contains("37º"), "ranking fechando: avisa o lugar")
+	assert_true(Reminders.message(5, last_day, 37)[1].begins_with("Falta 1 dia"), "último dia: no singular")
+	assert_true(Reminders.message(5, last_day - 86400, 37)[1].begins_with("Faltam 2 dias"))
 	assert_true(Reminders.message(5, last_day - 10 * 86400, 37)[1].contains("sequência"), "longe do fim do mês: a sequência")
 	assert_true(Reminders.message(5, last_day, 37, true)[1].contains("prêmio"), "prêmio vem primeiro")
 
@@ -118,3 +120,13 @@ func test_pieces_explained_in_match() -> void:
 	assert_eq(game_screen.pieces_lines([0, 3, 0], [-1, -1, -1]), ["🧊 Frasco de gelo: derrete depois de 3 jogadas."])
 	assert_eq(game_screen.pieces_lines([0, 0], [-1, 1]), ["🔵 Frasco de uma cor: só aceita azul."])
 	assert_eq(game_screen.pieces_lines([0, 0], [-1, -1]), [])
+
+
+func test_event_card_done_is_not_playable() -> void:
+	var card := EventCard.new()
+	card.set_event({"name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 3, "rewards": []})
+	assert_false(card.disabled, "com fases a fazer: toca para jogar")
+	card.set_event({"name": "Natal", "theme": "natal", "endsAt": "2026-11-20T03:00:00Z", "levels": 15, "done": 15, "rewards": []})
+	assert_true(card.disabled, "evento completo: o servidor recusaria a próxima fase")
+	assert_eq(card._count.text, "Evento completo!")
+	card.free()
