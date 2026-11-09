@@ -134,11 +134,15 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   (`scenes/ui/daily_screen.tscn`), partida (`scenes/game/game_screen.tscn`, só mostra Fácil/Médio/Difícil nos desafios; com animação de despejo, pausa
   na engrenagem e confete na vitória) e ranking (`scenes/ui/ranking_screen.tscn`). Perfil e configurações
   ficam em `scripts/ui/menus.gd`.
-- **Dois rankings** (Ageu, 7/11/2026): cada jogo tem o seu ranking (aberto pelo menu do jogo) e o
-  **Ranking Global** soma todos os jogos e é o que vale prêmios (faixa dourada no hub,
-  `scripts/ui/global_rank_banner.gd`). `ranking_screen.gd` tem os dois modos (`open_mode`);
-  `GameState.global_month_total` soma os jogos de `GameState.GAME_IDS`. Hoje todo o progresso salvo é do
-  Poção de Cores: o segundo jogo vai precisar separar os pontos por jogo no salvamento.
+- **Só o Ranking Global** (Ageu, 9/11/2026; antes eram dois): soma todos os jogos e é o que vale prêmios. O botão
+  de ranking de cada jogo e a faixa do hub (`scripts/ui/global_rank_banner.gd`: "Compita todo mês", sem citar prêmios
+  nem pontos) abrem o mesmo `ranking_screen.gd` (`Main.open_ranking`). A tela rola inteira: cartão "Você" (posição,
+  pontos, quanto falta para o próximo), prêmios em pílulas compactas, lista com setas de subiu/caiu (`delta` do
+  `GET /ranking`) e "Como ganhar". Sem servidor usa `GameState.global_month_total` (jogos de `GameState.GAME_IDS`).
+  Hoje todo o progresso salvo é do Poção de Cores: o segundo jogo vai precisar separar os pontos por jogo.
+- **Velocidade**: a próxima fase é buscada no servidor durante a vitória e ao abrir o menu
+  (`game_screen.gd` `prefetch_next_level`, vale 30 min), e a dificuldade só aparece nos desafios. No Android o
+  **R8** fica ligado (`tools/android_common.sh` muda o `build.gradle`, regras em `android/proguard-rules.pro`).
 - Ilustrações (OpenRouter/Nano Banana) em `assets/art/`: hub_bg, home_bg, game_bg (1080x1920), splash,
   mascot e potion_card (cartão do jogo no hub). Os fundos e o cartão sempre usam essas imagens (não há desenho
   de reserva no código).
@@ -163,7 +167,9 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   regulamento) e o aviso que não deixa jogar com **versão antiga** (`minAppVersion` do painel) ou **manutenção**.
   `scripts/ui/prizes.gd`: convidar amigos (regra dos **3 amigos que jogam 3 dias** continua, Ageu 8/11/2026), aviso
   "Você ganhou!" (lista `payouts` do `GET /pocao/home`) e resgate por Pix (com cotação) ou USDT. O Ranking Global mostra
-  os prêmios do mês e os botões Convidar/Resgatar. A engrenagem: Sua conta · Idioma · Som · Como jogar · Ajuda e termos.
+  os prêmios do mês e os botões Convidar/Meus prêmios; "Meus prêmios" (`GET /payouts`) lista todos e abre o resgate.
+  O convite tem **3 figuras** com o código (`scripts/ui/invite_banners.gd`) que vão junto no "compartilhar"
+  (`shareImage` do plugin). A engrenagem: Sua conta · Idioma · Som · Como jogar · Ajuda e termos.
 - **Play Integrity**: o plugin pede o token (nonce `nalata:<aparelho>:<ms>`, projeto Cloud 969286539124) e manda no
   login; o servidor confere com a conta de serviço `PLAY_INTEGRITY_CREDENTIALS` e só bloqueia com "Exigir Play
   Integrity" ligado no painel. Falta o dono ligar o projeto Cloud na Play Console e criar a conta de serviço.
