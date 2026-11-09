@@ -13,7 +13,7 @@ signal hub_requested
 
 const GAME_NAME := "Poção de Cores"
 ## Ícones da lateral: [nome, texto, ícone].
-const SIDE_ITEMS: Array = [["games", "Jogos", "games"], ["ranking", "Ranking", "trophy"]]
+const SIDE_ITEMS: Array = [["games", "Jogos", "games"], ["ranking", "Ranking", "trophy"], ["missions", "Missões", "missions"]]
 ## Cor do botão dos desafios: laranja enquanto faltam; roxo quando o dia está completo.
 const DAILY_COLOR := Color("ff8a1f")
 
@@ -146,6 +146,7 @@ func _on_tab(tab: String) -> void:
 	match tab:
 		"games": hub_requested.emit()
 		"ranking": ranking_requested.emit()
+		"missions": Extras.open_missions(dialog)
 
 
 func refresh() -> void:
@@ -157,6 +158,8 @@ func refresh() -> void:
 	level_button.text = tr("Nível %d · difícil") % level if hard else tr("Nível %d") % level
 	level_button.fill = GameStyle.PURPLE if hard else GameStyle.GREEN
 	daily_button.set_state(Menus.daily_done(), 0 if Rules.unlocked("daily", level) else Rules.unlock_level("daily"))
+	# missões: só pelo servidor e depois de liberadas por nível
+	side_buttons["missions"].visible = Rules.unlocked("missions", level) and not GameState.extras.is_empty()
 	var s := GameState.streak()
 	streak_label.text = str(s.count)
 	streak_flame.lit = bool(s.played_today)

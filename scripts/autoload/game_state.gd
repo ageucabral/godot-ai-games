@@ -143,6 +143,20 @@ func streak() -> Dictionary:
 		"best": int(_cfg.get_value(PLAYER, "streak_best", 0)), "played_today": last == today(), "free_boosts": 0}
 
 
+## Missões do dia vindas do servidor ([{id, goal, value, claimed}]); vazio sem servidor.
+func missions() -> Array:
+	var m: Variant = extras.get("missions")
+	return m if m is Array else []
+
+
+## Resgatou uma missão: o servidor devolveu as missões e as ajudas grátis de agora.
+func apply_mission_claim(res: Dictionary) -> void:
+	extras["missions"] = res.get("missions", [])
+	var s: Variant = extras.get("streak")
+	if s is Dictionary:
+		s["freeBoosts"] = int(res.get("freeBoosts", 0))
+
+
 ## Gastou uma ajuda grátis (o servidor já descontou; aqui só atualiza a tela até o próximo menu).
 func use_free_boost() -> void:
 	var s: Variant = extras.get("streak")
@@ -267,7 +281,7 @@ func apply_server_home(home: Dictionary) -> void:
 		if st is Dictionary:
 			_cfg.set_value(LevelGenerator.key_for(int(st.get("level", 0))), "stars", int(st.get("stars", 0)))
 	extras = {}
-	for k in ["streak", "achievements", "looks", "event", "duels"]:
+	for k in ["streak", "achievements", "looks", "event", "duels", "missions"]:
 		if home.get(k) != null:
 			extras[k] = home[k]
 	var month: Dictionary = home.get("month", {})

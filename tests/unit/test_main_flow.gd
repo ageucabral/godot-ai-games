@@ -125,6 +125,10 @@ func test_home_shows_level_and_daily_buttons() -> void:
 func test_unlock_is_announced_once() -> void:
 	var home: Control = main.get_node("Home")
 	assert_false(home.dialog.visible, "nível 1: nada a liberar")
+	GameState.set_level(3)
+	main.show_screen(home)
+	assert_eq(home.dialog.title_label.text, "Novo: Missões do dia!")
+	home.dialog.press("Legal!")
 	GameState.set_level(5)
 	main.show_screen(home)
 	assert_eq(home.dialog.title_label.text, "Novo: Desafios do dia!")
@@ -281,7 +285,7 @@ func test_pause_menu_returns_home() -> void:
 
 func test_home_has_side_icons_and_no_profile_tab() -> void:
 	var home: Control = main.get_node("Home")
-	assert_eq(home.side_buttons.keys(), ["games", "ranking"], "Jogos e Ranking na lateral")
+	assert_eq(home.side_buttons.keys(), ["games", "ranking", "missions"], "Jogos, Ranking e Missões na lateral")
 	home.side_buttons["ranking"].pressed.emit()
 	assert_true(main.get_node("Ranking").visible)
 
