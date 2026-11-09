@@ -34,6 +34,16 @@ if [[ ! -f "$ROOT/android/build/build.gradle" ]] || ! grep -qxF "${GODOT_VERSION
   echo "${GODOT_VERSION}.${GODOT_FLAVOR}" > "$ROOT/android/.build_version"
 fi
 
+# AGP 9 (a Play recomenda; o modelo do Godot 4.7 vem com o AGP 8.6.1 e o Gradle 8.11.1). As duas chaves no
+# gradle.properties mantêm o Kotlin e a DSL antigos que o modelo do Godot ainda usa.
+AGP_VERSION="9.5.1"
+GRADLE_VERSION="9.9.0"
+if ! grep -q "nalata-agp9" "$ROOT/android/build/gradle.properties"; then
+  sed -i -E "s/(androidGradlePlugin: *')[^']+'/\1${AGP_VERSION}'/" "$ROOT/android/build/config.gradle"
+  sed -i -E "s#gradle-[0-9.]+-bin\.zip#gradle-${GRADLE_VERSION}-bin.zip#" "$ROOT/android/build/gradle/wrapper/gradle-wrapper.properties"
+  printf '\n# nalata-agp9\nandroid.builtInKotlin=false\nandroid.newDsl=false\n' >> "$ROOT/android/build/gradle.properties"
+fi
+
 # R8 na versão "release" (a da Play): encolhe e otimiza o código Java/Kotlin, regras em android/proguard-rules.pro.
 # O mapa para ler os erros fica em android/build/build/outputs/mapping/standardRelease/mapping.txt.
 if ! grep -q "nalata-r8" "$ROOT/android/build/build.gradle"; then

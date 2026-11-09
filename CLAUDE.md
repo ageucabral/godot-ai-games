@@ -158,7 +158,7 @@ Cores, letras, tema, botões e o desenho do frasco ficam em `scripts/game/game_s
   `userId` = id do jogador; bloco vem do `GET /config`). O `.aar` compilado fica em `addons/nalata_android/bin/`
   (refazer com `tools/build_android_plugin.sh` ao mudar o Kotlin) e entra no APK pelo `addons/nalata_android`
   (export plugin). Por isso o Android exporta com **Gradle build** (`android/build`, instalado pelo
-  `tools/export_android.sh`; API 36, build-tools 36.1.0). Sem o plugin, `Ads` simula e "Sua conta" diz que o login com Google fica no app da Play Store.
+  `tools/export_android.sh`; API 36, build-tools 36.1.0; **AGP 9.5.1 + Gradle 9.9.0**, trocados por `tools/android_common.sh` porque a Play recomenda o AGP 9). Sem o plugin, `Ads` simula e "Sua conta" diz que o login com Google fica no app da Play Store.
   Testes com plugin de mentira (`Server.native_override`). O plugin também lê o convite do link da Play (install
   referrer), abre o "compartilhar" do Android e pede o token do Play Integrity.
 - **Conta, ajuda e prêmios** (Ageu, 8/11/2026; só jogando pelo servidor): `scripts/ui/account.gd` tem a idade na
