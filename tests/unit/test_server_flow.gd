@@ -162,6 +162,7 @@ class FakePlugin extends RefCounted:
 	var inter_ready: bool = true
 	var earn: bool = true
 	var id_token: String = "id-tok"
+	var sign_in_error: String = "cancelled"
 
 	func adsInit() -> void:
 		pass
@@ -193,7 +194,7 @@ class FakePlugin extends RefCounted:
 		acknowledged.append(token)
 
 	func googleSignIn(_client_id: String) -> void:
-		google_signed_in.emit.call_deferred(id_token, "" if not id_token.is_empty() else "cancelled")
+		google_signed_in.emit.call_deferred(id_token, "" if not id_token.is_empty() else sign_in_error)
 
 	func googleSignOut() -> void:
 		pass
@@ -460,6 +461,23 @@ func test_google_sign_in_keeps_device() -> void:
 	assert_eq(call[2].deviceHash, Server.device_hash, "mesmo aparelho: o progresso do visitante passa para a conta")
 	assert_false(Server.is_guest())
 	assert_eq(Server.token, "tok-g")
+
+
+func test_google_failure_is_measured_with_the_reason() -> void:
+	var plugin := FakePlugin.new()
+	plugin.id_token = ""
+	plugin.sign_in_error = "TYPE_UNKNOWN: [28444] Developer console is not set up correctly"
+	Server.native_override = plugin
+	var res: Dictionary = await Server.sign_in_google()
+	assert_eq(res.code, "GOOGLE_FAILED")
+	assert_eq(res.message, plugin.sign_in_error, "o motivo vai junto para a tela")
+	var reasons: Array = []
+	for c in calls:
+		if c[1] == "/events":
+			for e in c[2].events:
+				if e.name == "google_login_failed":
+					reasons.append(e.props.reason)
+	assert_eq(reasons, [plugin.sign_in_error], "o motivo é medido no servidor")
 
 
 func test_google_cancelled() -> void:
