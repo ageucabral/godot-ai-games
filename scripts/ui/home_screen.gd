@@ -325,26 +325,28 @@ class LevelMap extends Control:
 				break
 		if done.size() > 1:
 			draw_polyline(done, Color(PAST, 0.85), w, true)
-		# tracinhos no meio da estrada
-		var acc := 0.0
+		# tracinhos no meio da estrada: 12 px de traço a cada 28 px de caminho
+		var total := 0.0
 		for i in road.size() - 1:
-			var seg := road[i + 1] - road[i]
-			var len := seg.length()
-			var t := 0.0
-			while t < len:
-				var phase := fmod(acc + t, 28.0)
-				if phase < 12.0:
-					var a := road[i] + seg * (t / len)
-					var e := road[i] + seg * (minf(t + 12.0 - phase, len) / len)
-					draw_line(a, e, Color(1, 1, 1, 0.8), 4.0, true)
-					t += 12.0 - phase
-				else:
-					t += 28.0 - phase
-			acc += len
+			total += road[i].distance_to(road[i + 1])
+		for k in int(total / 28.0) + 1:
+			var from := k * 28.0
+			if from >= total:
+				break
+			draw_line(_along(road, from), _along(road, minf(from + 12.0, total)), Color(1, 1, 1, 0.8), 4.0, true)
 		for i in SPOTS.size():
 			var n := first + i
 			if n != current:
 				_draw_node(self, _spot(i), n)
+
+	## Ponto do caminho a `dist` px do começo.
+	static func _along(road: PackedVector2Array, dist: float) -> Vector2:
+		for i in road.size() - 1:
+			var len := road[i].distance_to(road[i + 1])
+			if dist <= len:
+				return road[i].lerp(road[i + 1], dist / len if len > 0.0 else 0.0)
+			dist -= len
+		return road[road.size() - 1]
 
 	func _draw_pulse() -> void:
 		var c := _pulse.size * 0.5
