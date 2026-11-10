@@ -4,7 +4,7 @@ extends RefCounted
 ## como jogar, ajuda e termos).
 ## A conta e a ajuda ficam em `scripts/ui/account.gd`.
 
-const VERSION := "1.3.3"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
+const VERSION := "1.3.4"  # igual a version/name em export_presets.cfg (presets Android e Android Play)
 
 
 ## Desafios de hoje já resolvidos.
