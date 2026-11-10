@@ -288,18 +288,59 @@ class LevelMap extends Control:
 	func _radius(n: int) -> float:
 		return minf(66.0, size.y * 0.1) if n == current else minf(48.0, size.y * 0.075)
 
+	## Caminho do mapa: uma estrada sinuosa passando por todas as bolinhas (curva suave de Catmull-Rom),
+	## com borda escura, chão claro e tracinhos no meio; a parte já percorrida fica dourada.
+	func _path_points() -> PackedVector2Array:
+		var pts: Array[Vector2] = []
+		for i in SPOTS.size():
+			pts.append(_spot(i))
+		# entra por baixo e sai por cima da tela, para o caminho não "nascer" na primeira bolinha
+		pts.push_front(pts[0] * 2.0 - pts[1])  # continua a direção do primeiro trecho
+		pts.append(pts[pts.size() - 1] * 2.0 - pts[pts.size() - 2])
+		var out := PackedVector2Array()
+		for i in range(1, pts.size() - 2):
+			var p0 := pts[i - 1]
+			var p1 := pts[i]
+			var p2 := pts[i + 1]
+			var p3 := pts[i + 2]
+			for k in 16:
+				var t := k / 16.0
+				var t2 := t * t
+				var t3 := t2 * t
+				out.append(0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3))
+		out.append(pts[pts.size() - 2])
+		return out
+
 	func _draw() -> void:
-		# trilha de pontinhos brancos entre as bolinhas (curva suave)
-		for i in SPOTS.size() - 1:
-			var a := _spot(i)
-			var b := _spot(i + 1)
-			var ctrl := (a + b) * 0.5 + Vector2((b.y - a.y) * 0.35, 0)
-			var length := a.distance_to(b)
-			var dots := int(length / 24.0)
-			for k in range(1, dots):
-				var t := float(k) / dots
-				var p := a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t)
-				draw_circle(p, 6.0, Color(1, 1, 1, 0.85))
+		var road := _path_points()
+		var w := minf(38.0, size.y * 0.1)
+		draw_polyline(road, Color(GameStyle.INK, 0.9), w + 10.0, true)
+		draw_polyline(road, Color("f6e7c1"), w, true)
+		# trecho já percorrido (até a bolinha de agora) fica dourado
+		var done := PackedVector2Array()
+		var here := _spot(current - first)
+		for q in road:
+			done.append(q)
+			if q.distance_to(here) < 4.0 or (done.size() > 16 and q.y <= here.y):
+				break
+		if done.size() > 1:
+			draw_polyline(done, Color(PAST, 0.85), w, true)
+		# tracinhos no meio da estrada
+		var acc := 0.0
+		for i in road.size() - 1:
+			var seg := road[i + 1] - road[i]
+			var len := seg.length()
+			var t := 0.0
+			while t < len:
+				var phase := fmod(acc + t, 28.0)
+				if phase < 12.0:
+					var a := road[i] + seg * (t / len)
+					var e := road[i] + seg * (minf(t + 12.0 - phase, len) / len)
+					draw_line(a, e, Color(1, 1, 1, 0.8), 4.0, true)
+					t += 12.0 - phase
+				else:
+					t += 28.0 - phase
+			acc += len
 		for i in SPOTS.size():
 			var n := first + i
 			if n != current:
