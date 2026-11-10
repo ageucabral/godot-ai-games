@@ -347,11 +347,12 @@ class NaLataPlugin(godot: Godot) : GodotPlugin(godot) {
             } catch (e: NoCredentialException) {
                 done("", "no_account")
             } catch (e: GetCredentialException) {
+                // tipo + mensagem (ex.: "[28444] Developer console is not set up correctly"): o jogo mostra e mede
                 Log.w(tag, "getCredential: ${e.type} ${e.message}")
-                done("", e.type)
+                done("", "${e.type.substringAfterLast('.')}: ${e.message ?: ""}".take(200))
             } catch (e: Exception) {
                 Log.w(tag, "getCredential: ${e.message}")
-                done("", e.message ?: "error")
+                done("", "${e.javaClass.simpleName}: ${e.message ?: ""}".take(200))
             }
         }
     }

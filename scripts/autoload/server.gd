@@ -254,11 +254,14 @@ func sign_in_google() -> Dictionary:
 	var out: Array = await wait_signal(Signal(plugin, "google_signed_in"), NATIVE_TIMEOUT_S, ["", "timeout"])
 	var id_token: String = str(out[0])
 	if id_token.is_empty():
+		if out[1] != "cancelled":
+			track("google_login_failed", {"reason": str(out[1])})
 		return ApiClient.error_result(0, "GOOGLE_CANCELLED" if out[1] == "cancelled" else "GOOGLE_FAILED", str(out[1]))
 	var body: Dictionary = await _login_body()
 	body["idToken"] = id_token
 	var res: Dictionary = await _send("POST", "/auth/google", body, false)
 	if not res.ok:
+		track("google_login_failed", {"reason": "server %d %s" % [res.status, res.code]})
 		return res
 	token = str(res.data.get("token", ""))
 	profile = res.data.get("profile", {})

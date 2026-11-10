@@ -328,7 +328,12 @@ static func _sign_in_google(dialog: DialogBox) -> void:
 	elif res.code == "GOOGLE_CANCELLED":
 		open_account(dialog)
 	else:
-		dialog.open("Sua conta", I18n.t(ApiClient.error_text(res)), [
+		# o motivo técnico vai embaixo, para o jogador poder mandar para o suporte
+		var text := I18n.t(ApiClient.error_text(res))
+		var reason: String = str(res.get("message", ""))
+		if res.code == "GOOGLE_FAILED" and not reason.is_empty():
+			text += "\n\n(%s)" % reason.left(120)
+		dialog.open("Sua conta", text, [
 			["Tentar de novo", func() -> void: _sign_in_google(dialog), true],
 			["Voltar", func() -> void: open_account(dialog)],
 		])
